@@ -1,7 +1,4 @@
 {
-	"config": {
-		"minimum-stability": "dev"
-	},
 	"name": "afterlogic/aurora-module-two-factor-auth",
 	"type": "aurora-module",
 	"require": {
