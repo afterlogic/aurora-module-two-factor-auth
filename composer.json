@@ -4,7 +4,7 @@
 	"require": {
 		"php": ">=5.4.0",
 		"afterlogic/aurora-framework": "~0.9.0",
-		"phpgangsta/googleauthenticator": "~1.0.0"
+		"phpgangsta/googleauthenticator": "dev-master"
 	},
 	"extra": {
 		"installer-name": "TwoFactorAuth"
