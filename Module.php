@@ -186,7 +186,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function onAfterLogin($aArgs, &$mResult)
 	{
-		$sAuthToken = isset($mResult['AuthToken']) ? $mResult['AuthToken'] : '';
+		$sAuthToken = (is_array($mResult) && isset($mResult['AuthToken'])) ? $mResult['AuthToken'] : '';
 		$oUser = \Aurora\System\Api::getAuthenticatedUser($sAuthToken);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
