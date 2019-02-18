@@ -46,7 +46,7 @@
 			<div class="fieldgroup">
 				<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></div>
 				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-				<input id="pin" class="value input" type="text" data-bind="value: pin, onEnter: validatePin">
+				<input id="pin" class="value input" type="text" data-bind="value: pin, valueUpdate: 'afterkeydown', onEnter: validatePin">
 				<div class="buttons">
 					<span class="button" data-bind="click: validatePin, visible: !isValidatingPin()">
 						<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
