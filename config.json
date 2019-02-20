@@ -6,5 +6,17 @@
 	"ClockTolerance": [
 		2,
 		"int"
+	],
+	 "IncludeInMobile": [
+		true,
+		"bool"
+	],
+	"IncludeInDesktop": [
+		true,
+		"bool"
+	],
+	"RequireInMobile": [
+		["StandardLoginFormWebclient"],
+		"array"
 	]
 }

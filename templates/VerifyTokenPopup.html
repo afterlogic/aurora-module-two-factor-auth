@@ -5,10 +5,12 @@
 		<div class="fields">
 			<h1 class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ENTER_PIN'}"></h1>
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_PIN'}"></div>
-			<div class="fieldset">
-				<div class="row">
-					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-					<input class="value input" type="text" spellcheck="false" maxlength="255" data-bind="value: pin, hasFocus: pinFocused" />
+			<div class="fieldset list-block">
+				<div class="item-content">
+					<div data-bind="css: {'item-inner': isMobile(), 'row': !isMobile()}">
+						<span class="item-title label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
+						<input class="value input" type="text" spellcheck="false" maxlength="255" data-bind="value: pin, hasFocus: pinFocused" />
+					</div>
 				</div>
 			</div>
 			<div class="buttons">
