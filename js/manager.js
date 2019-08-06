@@ -32,6 +32,16 @@ module.exports = function (oAppData) {
 
 				if (oLoginScreenView)
 				{
+					// Do not completely replace previous onSystemLoginResponse, because it might be already changed by another plugin
+					var fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponse.bind(oLoginScreenView);
+					if (!_.isFunction(fOldOnSystemLoginResponse))
+					{
+						fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponseBase.bind(oLoginScreenView);
+					}
+					if (!_.isFunction(fOldOnSystemLoginResponse))
+					{
+						fOldOnSystemLoginResponse = function () {};
+					}
 					oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
 						//if TwoFactorAuth enabled - trying to verify user token
 						if (oResponse.Result && oResponse.Result.TwoFactorAuth && oResponse.Result.TwoFactorAuth.UserId)
@@ -44,7 +54,7 @@ module.exports = function (oAppData) {
 						}
 						else
 						{
-							this.onSystemLoginResponseBase(oResponse, oRequest);
+							fOldOnSystemLoginResponse(oResponse, oRequest);
 						}
 					};
 				}
