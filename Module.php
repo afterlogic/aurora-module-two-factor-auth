@@ -155,7 +155,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
-		$oUser = \Aurora\System\Api::getUserById((int) $UserId);
+
+		list(, $sUserId, ) = \explode(':', \Aurora\System\Utils::DecryptValue($UserId));
+
+		$oUser = \Aurora\System\Api::getUserById((int) $sUserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'} && $oUser->{$this->GetName().'::AuthToken'})
 		{
 			$oGoogle = new \PHPGangsta_GoogleAuthenticator();
@@ -192,7 +195,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			if ($oUser->{$this->GetName().'::Secret'} !== "")
 			{
-				$mResult['TwoFactorAuth'] = ['UserId' => $oUser->EntityId];
+				$mResult['TwoFactorAuth'] = ['UserId' => \Aurora\System\Utils::EncryptValue($oUser->PublicId.':'.$oUser->EntityId.':'.time())];
 				$oUser->{$this->GetName().'::AuthToken'} = $mResult['AuthToken'];
 				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 				unset($mResult['AuthToken']);
