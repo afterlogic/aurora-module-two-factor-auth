@@ -22,20 +22,24 @@ function CVerifyTokenPopup()
 	this.onCancel = null;
 	this.pin = ko.observable('');
 	this.inPropgress = ko.observable(false);
-	this.UserId = null;
 	this.pinFocused = ko.observable(false);
 	this.isMobile = ko.observable(App.isMobile() || false);
+
+	this.Login = null;
+	this.Password = null;
+
 }
 
 _.extendOwn(CVerifyTokenPopup.prototype, CAbstractPopup.prototype);
 
 CVerifyTokenPopup.prototype.PopupTemplate = '%ModuleName%_VerifyTokenPopup';
 
-CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, UserId)
+CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, Login, Password)
 {
 	this.onConfirm = onConfirm;
 	this.onCancel = onCancel;
-	this.UserId = UserId;
+	this.Login = Login;
+	this.Password = Password;
 	this.pinFocused(true);
 };
 
@@ -47,7 +51,8 @@ CVerifyTokenPopup.prototype.verifyPin = function ()
 		'VerifyPin', 
 		{
 			'Pin': this.pin(),
-			'UserId': this.UserId
+			'Login': this.Login,
+			'Password': this.Password
 		},
 		this.onGetVerifyResponse,
 		this

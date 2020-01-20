@@ -43,13 +43,15 @@ module.exports = function (oAppData) {
 						fOldOnSystemLoginResponse = function () {};
 					}
 					oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
+
 						//if TwoFactorAuth enabled - trying to verify user token
-						if (oResponse.Result && oResponse.Result.TwoFactorAuth && oResponse.Result.TwoFactorAuth.UserId)
+						if (oResponse.Result && oResponse.Result.TwoFactorAuth)
 						{
 							Popups.showPopup(VerifyTokenPopup, [
 								_.bind(this.onSystemLoginResponseBase, this),
 								_.bind(function () { this.loading(false); }, this),
-								oResponse.Result.TwoFactorAuth.UserId
+								oRequest.Parameters.Login,
+								oRequest.Parameters.Password
 							]);
 						}
 						else

@@ -147,35 +147,38 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 * @throws \Aurora\System\Exceptions\BaseException
 	 */
-	public function VerifyPin($Pin, $UserId)
+	public function VerifyPin($Login, $Password, $Pin)
 	{
 		$mResult = false;
 
-		if (!$Pin || empty($Pin) || !$UserId || empty($UserId))
+		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		list(, $sUserId, ) = \explode(':', \Aurora\System\Utils::DecryptValue($UserId));
+		$mResult = \Aurora\Modules\Core\Module::Decorator()->Login($Login, $Password);
 
-		$oUser = \Aurora\System\Api::getUserById((int) $sUserId);
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'} && $oUser->{$this->GetName().'::AuthToken'})
+		if (isset($mResult['TwoFactorAuth']) && $mResult['TwoFactorAuth'] === true)
 		{
-			$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-			$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-			$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
-			if ($oStatus)
+			$oUser = \Aurora\Modules\Core\Module::getInstance()->GetUserByPublicId($Login);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'} && $oUser->{$this->GetName().'::AuthToken'})
 			{
-				$mResult = ['AuthToken' => $oUser->{$this->GetName().'::AuthToken'}];
-				$oUser->{$this->GetName().'::AuthToken'} = '';
-				$bPrevState = \Aurora\System\Api::skipCheckUserRole(true);
-				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-				\Aurora\System\Api::skipCheckUserRole($bPrevState);
+				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
+				$iClockTolerance = $this->getConfig('ClockTolerance', 2);
+				$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
+				if ($oStatus)
+				{
+					$mResult = ['AuthToken' => $oUser->{$this->GetName().'::AuthToken'}];
+					$oUser->{$this->GetName().'::AuthToken'} = '';
+					$bPrevState = \Aurora\System\Api::skipCheckUserRole(true);
+					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+					\Aurora\System\Api::skipCheckUserRole($bPrevState);
+				}
 			}
-		}
-		else
-		{
-			throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+			else
+			{
+				throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+			}
 		}
 
 		return $mResult;
@@ -195,7 +198,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		{
 			if ($oUser->{$this->GetName().'::Secret'} !== "")
 			{
-				$mResult['TwoFactorAuth'] = ['UserId' => \Aurora\System\Utils::EncryptValue($oUser->PublicId.':'.$oUser->EntityId.':'.time())];
+				$mResult['TwoFactorAuth'] = true;
 				$oUser->{$this->GetName().'::AuthToken'} = $mResult['AuthToken'];
 				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 				unset($mResult['AuthToken']);
