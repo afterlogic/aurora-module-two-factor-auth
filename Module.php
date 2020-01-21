@@ -156,9 +156,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		$mResult = \Aurora\Modules\Core\Module::Decorator()->Login($Login, $Password);
+		$mLoginResult = \Aurora\Modules\Core\Module::Decorator()->Login($Login, $Password);
 
-		if (isset($mResult['TwoFactorAuth']) && $mResult['TwoFactorAuth'] === true)
+		if (isset($mLoginResult['TwoFactorAuth']) && $mLoginResult['TwoFactorAuth'] === true)
 		{
 			$oUser = \Aurora\Modules\Core\Module::getInstance()->GetUserByPublicId($Login);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'} && $oUser->{$this->GetName().'::AuthToken'})
