@@ -160,19 +160,18 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		if (isset($mLoginResult['TwoFactorAuth']) && $mLoginResult['TwoFactorAuth'] === true)
 		{
-			$oUser = \Aurora\Modules\Core\Module::getInstance()->GetUserByPublicId($Login);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'} && $oUser->{$this->GetName().'::AuthToken'})
+			$oUser = \Aurora\System\Api::getAuthenticatedUser();
+			
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'})
 			{
 				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 				$iClockTolerance = $this->getConfig('ClockTolerance', 2);
 				$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
 				if ($oStatus)
 				{
-					$mResult = ['AuthToken' => $oUser->{$this->GetName().'::AuthToken'}];
-					$oUser->{$this->GetName().'::AuthToken'} = '';
-					$bPrevState = \Aurora\System\Api::skipCheckUserRole(true);
-					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-					\Aurora\System\Api::skipCheckUserRole($bPrevState);
+					$mResult = [
+						'AuthToken' => \Aurora\System\Api::getAuthenticatedUserAuthToken()
+					];
 				}
 			}
 			else
@@ -192,15 +191,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function onAfterLogin($aArgs, &$mResult)
 	{
-		$sAuthToken = (is_array($mResult) && isset($mResult['AuthToken'])) ? $mResult['AuthToken'] : '';
-		$oUser = \Aurora\System\Api::getAuthenticatedUser($sAuthToken);
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 		{
 			if ($oUser->{$this->GetName().'::Secret'} !== "")
 			{
 				$mResult['TwoFactorAuth'] = true;
-				$oUser->{$this->GetName().'::AuthToken'} = $mResult['AuthToken'];
-				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+				//TODO remove token from db
+				// \Aurora\System\Api::UserSession()->Delete($mResult['AuthToken']);
 				unset($mResult['AuthToken']);
 			}
 		}
