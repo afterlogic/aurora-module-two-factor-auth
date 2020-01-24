@@ -69,10 +69,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 				$sSecret = $oUser->{$this->GetName().'::Secret'} ? $oUser->{$this->GetName().'::Secret'} : $oGoogle->createSecret();
+				$sQRCodeName = $oUser->PublicId . " (" . $_SERVER['SERVER_NAME'] . ")";
 
 				$mResult = [
 					'Secret' => $sSecret,
-					'QRcode' => $oGoogle->getQRCodeGoogleUrl($_SERVER['SERVER_NAME'], $sSecret),
+					'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
 					'Enabled' => $oUser->{$this->GetName().'::Secret'} ? true : false
 				];
 			}
