@@ -20,9 +20,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init()
 	{
 		$this->extendObject(
-			'Aurora\Modules\Core\Classes\User',
+			\Aurora\Modules\Core\Classes\User::class,
 			[
-				'Secret'		=> array('string', ''),
+				'Secret'		=> array('string', '', false, true),
 				'AuthToken'	=> array('text', '')
 			]
 		);
