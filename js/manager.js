@@ -51,7 +51,8 @@ module.exports = function (oAppData) {
 								_.bind(this.onSystemLoginResponseBase, this),
 								_.bind(function () { this.loading(false); }, this),
 								oRequest.Parameters.Login,
-								oRequest.Parameters.Password
+								oRequest.Parameters.Password,
+								oResponse.Result.TwoFactorHash
 							]);
 						}
 						else

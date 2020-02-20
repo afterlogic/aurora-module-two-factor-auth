@@ -16,18 +16,17 @@ namespace Aurora\Modules\TwoFactorAuth;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
+	public static $VerifyPinState = false;
 			
 	public function init()
 	{
-		$this->extendObject(
-			\Aurora\Modules\Core\Classes\User::class,
-			[
-				'Secret'		=> array('string', '', false, true),
-				'AuthToken'	=> array('text', '')
+		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
+				'Secret'	=> ['string', '', false, true],
+				'Hash'		=> ['string', '']
 			]
 		);
 
-		$this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'));
+		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
 	}
 
 	/**
@@ -69,7 +68,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 				$sSecret = $oUser->{$this->GetName().'::Secret'} ? $oUser->{$this->GetName().'::Secret'} : $oGoogle->createSecret();
-				$sQRCodeName = $oUser->PublicId . " (" . $_SERVER['SERVER_NAME'] . ")";
+				$sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
 
 				$mResult = [
 					'Secret' => $sSecret,
@@ -148,36 +147,40 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 * @throws \Aurora\System\Exceptions\BaseException
 	 */
-	public function VerifyPin($Login, $Password, $Pin)
+	public function VerifyPin($Pin, $Login, $Password, $Hash)
 	{
 		$mResult = false;
 
-		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password))
+		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password) || empty($Hash))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		$mLoginResult = \Aurora\Modules\Core\Module::Decorator()->Login($Login, $Password);
+		self::$VerifyPinState = true;		
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyPinState = false;
 
-		if (isset($mLoginResult['TwoFactorAuth']) && $mLoginResult['TwoFactorAuth'] === true)
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && $mAuthenticateResult['token'] === 'auth')
 		{
-			$oUser = \Aurora\System\Api::getAuthenticatedUser();
-			
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Secret'})
+			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Hash'} === $Hash)
 			{
-				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-				$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-				$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
-				if ($oStatus)
+				if ($oUser->{$this->GetName().'::Secret'})
 				{
-					$mResult = [
-						'AuthToken' => \Aurora\System\Api::getAuthenticatedUserAuthToken()
-					];
+					$oGoogle = new \PHPGangsta_GoogleAuthenticator();
+					$iClockTolerance = $this->getConfig('ClockTolerance', 2);
+					$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
+					if ($oStatus)
+					{
+						$oUser->{$this->GetName().'::Hash'} = '';
+						$oUser->saveAttribute($this->GetName().'::Hash');
+						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+					}
 				}
-			}
-			else
-			{
-				throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+				else
+				{
+					throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+				}
 			}
 		}
 
@@ -190,17 +193,24 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @param array $aArgs
 	 * @param aray $mResult
 	 */
-	public function onAfterLogin($aArgs, &$mResult)
+	public function onAfterAuthenticate($aArgs, &$mResult)
 	{
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		if (!self::$VerifyPinState && $mResult && is_array($mResult) && $mResult['token'] === 'auth')
 		{
-			if ($oUser->{$this->GetName().'::Secret'} !== "")
+			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				$mResult['TwoFactorAuth'] = true;
-				//TODO remove token from db
-				// \Aurora\System\Api::UserSession()->Delete($mResult['AuthToken']);
-				unset($mResult['AuthToken']);
+				if ($oUser->{$this->GetName().'::Secret'} !== "")
+				{
+					$sHash = \sha1($aArgs['Login'].\rand(10000, 99999).$aArgs['Password'].\Aurora\System\Api::$sSalt.\microtime(true));
+					$oUser->{$this->GetName().'::Hash'} = $sHash;
+					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+		
+					$mResult = [
+						'TwoFactorAuth' => true,
+						'TwoFactorHash' => $sHash
+					];
+				}
 			}
 		}
 	}
