@@ -27,20 +27,18 @@ function CVerifyTokenPopup()
 
 	this.Login = null;
 	this.Password = null;
-	this.Hash = null;
 }
 
 _.extendOwn(CVerifyTokenPopup.prototype, CAbstractPopup.prototype);
 
 CVerifyTokenPopup.prototype.PopupTemplate = '%ModuleName%_VerifyTokenPopup';
 
-CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, Login, Password, Hash)
+CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, Login, Password)
 {
 	this.onConfirm = onConfirm;
 	this.onCancel = onCancel;
 	this.Login = Login;
 	this.Password = Password;
-	this.Hash = Hash;
 	this.pinFocused(true);
 };
 
@@ -53,8 +51,7 @@ CVerifyTokenPopup.prototype.verifyPin = function ()
 		{
 			'Pin': this.pin(),
 			'Login': this.Login,
-			'Password': this.Password,
-			'Hash': this.Hash
+			'Password': this.Password
 		},
 		this.onGetVerifyResponse,
 		this

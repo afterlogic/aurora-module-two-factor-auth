@@ -21,8 +21,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init()
 	{
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
-				'Secret'	=> ['string', '', false, true],
-				'Hash'		=> ['string', '']
+				'Secret'	=> ['string', '', false, true]
 			]
 		);
 
@@ -147,11 +146,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 * @throws \Aurora\System\Exceptions\BaseException
 	 */
-	public function VerifyPin($Pin, $Login, $Password, $Hash)
+	public function VerifyPin($Pin, $Login, $Password)
 	{
 		$mResult = false;
 
-		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password) || empty($Hash))
+		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
@@ -163,7 +162,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($mAuthenticateResult && is_array($mAuthenticateResult) && $mAuthenticateResult['token'] === 'auth')
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->{$this->GetName().'::Hash'} === $Hash)
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
 				if ($oUser->{$this->GetName().'::Secret'})
 				{
@@ -172,8 +171,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
 					if ($oStatus)
 					{
-						$oUser->{$this->GetName().'::Hash'} = '';
-						$oUser->saveAttribute($this->GetName().'::Hash');
 						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 					}
 				}
@@ -202,13 +199,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				if ($oUser->{$this->GetName().'::Secret'} !== "")
 				{
-					$sHash = \sha1($aArgs['Login'].\rand(10000, 99999).$aArgs['Password'].\Aurora\System\Api::$sSalt.\microtime(true));
-					$oUser->{$this->GetName().'::Hash'} = $sHash;
-					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-		
 					$mResult = [
-						'TwoFactorAuth' => true,
-						'TwoFactorHash' => $sHash
+						'TwoFactorAuth' => true
 					];
 				}
 			}
