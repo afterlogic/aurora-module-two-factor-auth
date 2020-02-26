@@ -159,7 +159,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyPinState = false;
 
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && $mAuthenticateResult['token'] === 'auth')
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
@@ -192,7 +192,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function onAfterAuthenticate($aArgs, &$mResult)
 	{
-		if (!self::$VerifyPinState && $mResult && is_array($mResult) && $mResult['token'] === 'auth')
+		if (!self::$VerifyPinState && $mResult && is_array($mResult) && isset($mResult['token']))
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
