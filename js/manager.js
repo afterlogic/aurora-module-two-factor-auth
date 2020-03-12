@@ -23,7 +23,8 @@ module.exports = function (oAppData) {
 				Settings.HashModuleName,
 				TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
 			]);
-			App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', function (oParams) {
+
+			var onAfterlLoginFormConstructView = function (oParams) {
 				var
 					oLoginScreenView = oParams.View,
 					Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
@@ -44,6 +45,11 @@ module.exports = function (oAppData) {
 					}
 					oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
 
+						if (oRequest.Parameters.Domain != undefined)
+						{
+							oRequest.Parameters.Login = oRequest.Parameters.Login + '@' + oRequest.Parameters.Domain;
+						}
+
 						//if TwoFactorAuth enabled - trying to verify user token
 						if (oResponse.Result && oResponse.Result.TwoFactorAuth)
 						{
@@ -58,9 +64,11 @@ module.exports = function (oAppData) {
 						{
 							fOldOnSystemLoginResponse(oResponse, oRequest);
 						}
-					};
+					}
 				}
-			});
+			}.bind(this);
+			App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
+			App.subscribeEvent('MailLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
 		}
 	};
 };
