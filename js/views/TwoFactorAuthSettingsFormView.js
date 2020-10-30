@@ -21,7 +21,7 @@ function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
-	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth());
+	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth);
 	this.isPasswordVerified = ko.observable(false);
 	this.isShowSecret = ko.observable(false);
 	this.isValidatingPin = ko.observable(false);
