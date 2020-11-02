@@ -21,6 +21,8 @@ function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
+	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
+
 	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth);
 	this.isPasswordVerified = ko.observable(false);
 	this.isShowSecret = ko.observable(false);
@@ -34,21 +36,22 @@ _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.
 
 CTwoFactorAuthSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFactorAuthSettingsFormView';
 
-CTwoFactorAuthSettingsFormView.prototype.confirmePassword = function ()
+CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 {
 	Popups.showPopup(ConfirmPasswordPopup, [
-		_.bind(this.onConfirmePassword, this),
+		_.bind(this.onConfirmPassword, this),
 		'EnableTwoFactorAuth'
 	]);
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onConfirmePassword = function (Response)
+CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (Response)
 {
 	if(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode)
 	{
 		this.QRCodeSrc(Response.Result.QRcode);
 		this.secret(Response.Result.Secret);
 		this.isShowSecret(true);
+		this.disableShowRecommendation();
 	}
 };
 
@@ -66,6 +69,14 @@ CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
 		this
 	);
 };
+
+CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
+{
+	this.showRecommendationToConfigure(false);
+	Ajax.send('TwoFactorAuth', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
+		Settings.update(false);
+	});
+}
 
 CTwoFactorAuthSettingsFormView.prototype.onValidatingPinResponse = function (Response)
 {

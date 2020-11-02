@@ -21,7 +21,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function init()
 	{
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
-				'Secret'	=> ['string', '', false, true]
+				'Secret' => ['string', '', false, true],
+                'ShowRecommendationToConfigure' => ['bool', true],
 			]
 		);
 
@@ -40,13 +41,32 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!empty($oUser) && $oUser->isNormalOrTenant())
 		{
+            $bShowRecommendationToConfigure = $this->getConfig('ShowRecommendationToConfigure', false);
+            if ($bShowRecommendationToConfigure)
+            {
+                $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
+            }
 			return [
-				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false
+				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
+                'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
 			];
 		}
 
 		return null;
 	}
+    public function UpdateSettings($ShowRecommendationToConfigure)
+    {
+        if ($this->getConfig('ShowRecommendationToConfigure', false))
+        {
+            $oUser = \Aurora\System\Api::getAuthenticatedUser();
+            if (!empty($oUser) && $oUser->isNormalOrTenant())
+            {
+                $oUser->{$this->GetName() . '::ShowRecommendationToConfigure'} = $ShowRecommendationToConfigure;
+                return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            }
+        }
+        return false;
+    }
 
 	/**
 	 * Verifies user's password and returns Secret and QR-code

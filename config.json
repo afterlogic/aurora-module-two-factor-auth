@@ -7,6 +7,10 @@
 		2,
 		"int"
 	],
+	"ShowRecommendationToConfigure": [
+		false,
+		"bool"
+	],
 	 "IncludeInMobile": [
 		true,
 		"bool"
