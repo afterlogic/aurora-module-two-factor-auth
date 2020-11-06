@@ -19,6 +19,7 @@ function CConfirmPasswordPopup()
 
 	this.onConfirm = null;
 	this.password = ko.observable('');
+	this.passwordFocus = ko.observable(true);
 	this.inPropgress = ko.observable(false);
 	this.action = '';
 }
@@ -31,6 +32,7 @@ CConfirmPasswordPopup.prototype.onOpen = function (onConfirm, sAction)
 {
 	this.onConfirm = onConfirm;
 	this.action = sAction;
+	this.passwordFocus(true);
 };
 
 CConfirmPasswordPopup.prototype.verifyPassword = function ()

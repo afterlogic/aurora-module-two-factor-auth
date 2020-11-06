@@ -9,7 +9,8 @@
 				<div class="item-content">
 					<div data-bind="css: {'item-inner': isMobile(), 'row': !isMobile()}">
 						<span class="item-title label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-						<input class="value input" type="text" spellcheck="false" maxlength="255" data-bind="value: pin, hasFocus: pinFocused" />
+						<input class="value input" type="text" spellcheck="false" maxlength="255"
+							   data-bind="value: pin, hasFocus: pinFocused, valueUpdate: 'afterkeydown', onEnter: verifyPin" />
 					</div>
 				</div>
 			</div>

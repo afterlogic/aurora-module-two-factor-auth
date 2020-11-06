@@ -6,6 +6,7 @@
  */
 
 namespace Aurora\Modules\TwoFactorAuth;
+use PragmaRX\Recovery\Recovery;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -16,51 +17,48 @@ namespace Aurora\Modules\TwoFactorAuth;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
-	public static $VerifyPinState = false;
-			
-	public function init()
-	{
-		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
-				'Secret' => ['string', '', false, true],
+    public static $VerifyPinState = false;
+
+    public function init()
+    {
+        $this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
+                'Secret' => ['string', '', false, true],
                 'ShowRecommendationToConfigure' => ['bool', true],
-			]
-		);
+            ]
+        );
 
-		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
-	}
+        $this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
+    }
 
-	/**
-	 * Obtains list of module settings for authenticated user.
-	 *
-	 * @return array
-	 */
-	public function GetSettings()
-	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
-		
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!empty($oUser) && $oUser->isNormalOrTenant())
-		{
+    /**
+     * Obtains list of module settings for authenticated user.
+     *
+     * @return array
+     */
+    public function GetSettings()
+    {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        if (!empty($oUser) && $oUser->isNormalOrTenant()) {
             $bShowRecommendationToConfigure = $this->getConfig('ShowRecommendationToConfigure', false);
-            if ($bShowRecommendationToConfigure)
-            {
-                $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
+            if ($bShowRecommendationToConfigure) {
+                $bShowRecommendationToConfigure = $oUser->{$this->GetName() . '::ShowRecommendationToConfigure'};
             }
-			return [
-				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
+            return [
+                'EnableTwoFactorAuth' => $oUser->{$this->GetName() . '::Secret'} ? true : false,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
-			];
-		}
+            ];
+        }
 
-		return null;
-	}
+        return null;
+    }
+
     public function UpdateSettings($ShowRecommendationToConfigure)
     {
-        if ($this->getConfig('ShowRecommendationToConfigure', false))
-        {
+        if ($this->getConfig('ShowRecommendationToConfigure', false)) {
             $oUser = \Aurora\System\Api::getAuthenticatedUser();
-            if (!empty($oUser) && $oUser->isNormalOrTenant())
-            {
+            if (!empty($oUser) && $oUser->isNormalOrTenant()) {
                 $oUser->{$this->GetName() . '::ShowRecommendationToConfigure'} = $ShowRecommendationToConfigure;
                 return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             }
@@ -68,141 +66,151 @@ class Module extends \Aurora\System\Module\AbstractModule
         return false;
     }
 
-	/**
-	 * Verifies user's password and returns Secret and QR-code
-	 *
-	 * @param string $Password
-	 * @return bool|array
-	 */
-	public function EnableTwoFactorAuth($Password)
-	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$mResult = false;
+    /**
+     * Verifies user's password and returns Secret and QR-code
+     *
+     * @param string $Password
+     * @return bool|array
+     */
+    public function EnableTwoFactorAuth($Password)
+    {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        $mResult = false;
 
-		if (!empty($Password))
-		{	
-			$mResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($mResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-				$sSecret = $oUser->{$this->GetName().'::Secret'} ? $oUser->{$this->GetName().'::Secret'} : $oGoogle->createSecret();
-				$sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
+        if (!empty($Password)) {
+            $mResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+            if ($mResult) {
+                $oUser = \Aurora\System\Api::getAuthenticatedUser();
+                $oGoogle = new \PHPGangsta_GoogleAuthenticator();
+                $sSecret = $oUser->{$this->GetName() . '::Secret'} ? $oUser->{$this->GetName() . '::Secret'} : $oGoogle->createSecret();
+                $sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
 
-				$mResult = [
-					'Secret' => $sSecret,
-					'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
-					'Enabled' => $oUser->{$this->GetName().'::Secret'} ? true : false
-				];
-			}
-		}
+                $mResult = [
+                    'Secret' => $sSecret,
+                    'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
+                    'Enabled' => $oUser->{$this->GetName() . '::Secret'} ? true : false
+                ];
+            }
+        }
 
-		return $mResult;
-	}
+        return $mResult;
+    }
 
-	/**
-	 * Verifies user's Pin and saves Secret in case of success
-	 *
-	 * @param string $Pin
-	 * @param string $Secret
-	 * @return boolean
-	 * @throws \Aurora\System\Exceptions\ApiException
-	 */
-	public function TwoFactorAuthSave($Pin, $Secret)
-	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+    /**
+     * Verifies user's Pin and saves Secret in case of success
+     *
+     * @param string $Pin
+     * @param string $Secret
+     * @return boolean
+     * @throws \Aurora\System\Exceptions\ApiException
+     */
+    public function TwoFactorAuthSave($Pin, $Secret)
+    {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-		$bResult = false;
-		if (!$Pin || !$Secret || empty($Pin) || empty($Secret))
-		{
-			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
-		}
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-		$oGoogle = new \PHPGangsta_GoogleAuthenticator();
+        $bResult = false;
+        if (!$Pin || !$Secret || empty($Pin) || empty($Secret)) {
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+        }
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        $iClockTolerance = $this->getConfig('ClockTolerance', 2);
+        $oGoogle = new \PHPGangsta_GoogleAuthenticator();
 
-		$oStatus = $oGoogle->verifyCode($Secret, $Pin, $iClockTolerance);
-		if ($oStatus === true)
-		{
-			$oUser->{$this->GetName().'::Secret'} = $Secret;
-			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-			$bResult = true;
-		}
+        $oStatus = $oGoogle->verifyCode($Secret, $Pin, $iClockTolerance);
+        if ($oStatus === true) {
+            $oUser->{$this->GetName() . '::Secret'} = $Secret;
+            \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            $bResult = true;
+        }
 
-		return $bResult;
-	}
+        return $bResult;
+    }
 
-	/**
-	 * Verifies user's Password and disables TwoFactorAuth in case of success
-	 *
-	 * @param string $Password
-	 * @return bool
-	 */
-	public function DisableTwoFactorAuth($Password)
-	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$bResult = false;
+    /**
+     * Verifies user's Password and disables TwoFactorAuth in case of success
+     *
+     * @param string $Password
+     * @return bool
+     */
+    public function DisableTwoFactorAuth($Password)
+    {
+        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        $bResult = false;
 
-		if (!empty($Password))
-		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				$oUser->{$this->GetName().'::Secret'} = "";
-				$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-			}
-		}
+        if (!empty($Password)) {
+            $bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+            if ($bVerificationResult) {
+                $oUser = \Aurora\System\Api::getAuthenticatedUser();
+                $oUser->{$this->GetName() . '::Secret'} = "";
+                $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+            }
+        }
 
-		return $bResult;
-	}
+        return $bResult;
+    }
 
-	/**
-	 * Verifies user's PIN and returns AuthToken in case of success
-	 *
-	 * @param string $Pin
-	 * @param int $UserId
-	 * @return bool|array
-	 * @throws \Aurora\System\Exceptions\ApiException
-	 * @throws \Aurora\System\Exceptions\BaseException
-	 */
-	public function VerifyPin($Pin, $Login, $Password)
-	{
-		$mResult = false;
+    /**
+     * Verifies user's PIN and returns AuthToken in case of success
+     *
+     * @param string $Pin
+     * @param int $UserId
+     * @return bool|array
+     * @throws \Aurora\System\Exceptions\ApiException
+     * @throws \Aurora\System\Exceptions\BaseException
+     */
+    public function VerifyPin($Pin, $Login, $Password)
+    {
+        $mResult = false;
 
-		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password))
-		{
-			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
-		}
+        if (!$Pin || empty($Pin) || empty($Login) || empty($Password)) {
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+        }
 
-		self::$VerifyPinState = true;		
-		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
-		self::$VerifyPinState = false;
+        self::$VerifyPinState = true;
+        $mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+        self::$VerifyPinState = false;
 
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
-		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
-			{
-				if ($oUser->{$this->GetName().'::Secret'})
-				{
-					$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-					$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-					$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
-					if ($oStatus)
-					{
-						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
-					}
-				}
-				else
-				{
-					throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
-				}
-			}
-		}
+        if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token'])) {
+            $oUser = \Aurora\System\Api::getUserById((int)$mAuthenticateResult['id']);
+            if ($oUser instanceof \Aurora\Modules\Core\Classes\User) {
+                if ($oUser->{$this->GetName() . '::Secret'}) {
+                    $oGoogle = new \PHPGangsta_GoogleAuthenticator();
+                    $iClockTolerance = $this->getConfig('ClockTolerance', 2);
+                    $oStatus = $oGoogle->verifyCode($oUser->{$this->GetName() . '::Secret'}, $Pin, $iClockTolerance);
+                    if ($oStatus) {
+                        $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+                    }
+                } else {
+                    throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+                }
+            }
+        }
 
-		return $mResult;
-	}
+        return $mResult;
+    }
+
+    public function GetBackupCodes()
+    {
+    }
+
+    public function GenerateBackupCodes()
+    {
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        if (!empty($oUser) && $oUser->isNormalOrTenant()) {
+            $oRecovery = new Recovery();
+            $aCodes = $oRecovery
+                ->setCount(10) // Generate 10 codes
+                ->setBlocks(2) // Every code must have 2 blocks
+                ->setChars(4) // Each block must have 4 chars
+                ->setBlockSeparator(' ')
+                ->uppercase()
+                ->toArray();
+            return [
+                'Datetime' => time(),
+                'Codes' => $aCodes
+            ];
+        }
+    }
 
 	/**
 	 * Checks if User has TwoFactorAuth enabled and return UserId instead of AuthToken

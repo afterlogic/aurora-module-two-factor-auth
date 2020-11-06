@@ -15,6 +15,7 @@ module.exports = {
 	HashModuleName: 'two-factor-auth',
 	EnableTwoFactorAuth: false,
 	ShowRecommendationToConfigure: true,
+	HasBackupCodes: false,
 
 	/**
 	 * Initializes settings from AppData object sections.
