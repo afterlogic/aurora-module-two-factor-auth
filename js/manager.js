@@ -23,52 +23,69 @@ module.exports = function (oAppData) {
 				Settings.HashModuleName,
 				TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
 			]);
+			
+			ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
+				function(resolve) {
+					require.ensure(
+						['modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'],
+						function() {
+							resolve(require('modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'));
+						},
+						'admin-bundle'
+					);
+				},
+				Settings.HashModuleName,
+				TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
+			]);
 
-			var onAfterlLoginFormConstructView = function (oParams) {
-				var
-					oLoginScreenView = oParams.View,
-					Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-					VerifyTokenPopup = require('modules/%ModuleName%/js/popups/VerifyTokenPopup.js')
-				;
+			if (App.getUserRole() === Enums.UserRole.Anonymous)
+			{
+				var onAfterlLoginFormConstructView = function (oParams) {
+					var
+						oLoginScreenView = oParams.View,
+						Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+						VerifyTokenPopup = require('modules/%ModuleName%/js/popups/VerifyTokenPopup.js')
+					;
 
-				if (oLoginScreenView)
-				{
-					// Do not completely replace previous onSystemLoginResponse, because it might be already changed by another plugin
-					var fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponse.bind(oLoginScreenView);
-					if (!_.isFunction(fOldOnSystemLoginResponse))
+					if (oLoginScreenView)
 					{
-						fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponseBase.bind(oLoginScreenView);
-					}
-					if (!_.isFunction(fOldOnSystemLoginResponse))
-					{
-						fOldOnSystemLoginResponse = function () {};
-					}
-					oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
+						// Do not completely replace previous onSystemLoginResponse, because it might be already changed by another plugin
+						var fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponse.bind(oLoginScreenView);
+						if (!_.isFunction(fOldOnSystemLoginResponse))
+						{
+							fOldOnSystemLoginResponse = oLoginScreenView.onSystemLoginResponseBase.bind(oLoginScreenView);
+						}
+						if (!_.isFunction(fOldOnSystemLoginResponse))
+						{
+							fOldOnSystemLoginResponse = function () {};
+						}
+						oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
 
-						if (oRequest.Parameters.Domain != undefined)
-						{
-							oRequest.Parameters.Login = oRequest.Parameters.Login + '@' + oRequest.Parameters.Domain;
-						}
+							if (oRequest.Parameters.Domain != undefined)
+							{
+								oRequest.Parameters.Login = oRequest.Parameters.Login + '@' + oRequest.Parameters.Domain;
+							}
 
-						//if TwoFactorAuth enabled - trying to verify user token
-						if (oResponse.Result && oResponse.Result.TwoFactorAuth)
-						{
-							Popups.showPopup(VerifyTokenPopup, [
-								_.bind(this.onSystemLoginResponseBase, this),
-								_.bind(function () { this.loading(false); }, this),
-								oRequest.Parameters.Login,
-								oRequest.Parameters.Password
-							]);
-						}
-						else
-						{
-							fOldOnSystemLoginResponse(oResponse, oRequest);
+							//if TwoFactorAuth enabled - trying to verify user token
+							if (oResponse.Result && oResponse.Result.TwoFactorAuth)
+							{
+								Popups.showPopup(VerifyTokenPopup, [
+									_.bind(this.onSystemLoginResponseBase, this),
+									_.bind(function () { this.loading(false); }, this),
+									oRequest.Parameters.Login,
+									oRequest.Parameters.Password
+								]);
+							}
+							else
+							{
+								fOldOnSystemLoginResponse(oResponse, oRequest);
+							}
 						}
 					}
-				}
-			}.bind(this);
-			App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
-			App.subscribeEvent('MailLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
+				}.bind(this);
+				App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
+				App.subscribeEvent('MailLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
+			}
 		}
 	};
 };
