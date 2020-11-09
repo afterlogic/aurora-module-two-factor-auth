@@ -17,12 +17,13 @@ namespace Aurora\Modules\TwoFactorAuth;
 class Module extends \Aurora\System\Module\AbstractModule
 {
 	public static $VerifyPinState = false;
-			
+
 	public function init()
 	{
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
 				'Secret' => ['string', '', false, true],
-                'ShowRecommendationToConfigure' => ['bool', true],
+				'ShowRecommendationToConfigure' => ['bool', true],
+				'IsEncryptedSecret' => ['bool', false]
 			]
 		);
 
@@ -37,7 +38,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function GetSettings()
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
-		
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!empty($oUser) && $oUser->isNormalOrTenant())
 		{
@@ -54,7 +55,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		return null;
 	}
-	
+
     public function UpdateSettings($ShowRecommendationToConfigure)
     {
         if ($this->getConfig('ShowRecommendationToConfigure', false))
@@ -77,7 +78,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function GetUserSettings($UserId)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
-		
+
 		$oUser = \Aurora\System\Api::getUserById($UserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 		{
@@ -97,7 +98,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function DisableUserTwoFactorAuth($UserId)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
-		
+
 		$oUser = \Aurora\System\Api::getUserById($UserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 		{
@@ -107,7 +108,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		return false;
 	}
-	
+
 	/**
 	 * Verifies user's password and returns Secret and QR-code
 	 *
@@ -120,13 +121,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$mResult = false;
 
 		if (!empty($Password))
-		{	
+		{
 			$mResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
 			if ($mResult)
 			{
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-				$sSecret = $oUser->{$this->GetName().'::Secret'} ? $oUser->{$this->GetName().'::Secret'} : $oGoogle->createSecret();
+				$sSecret = '';
+				if ($oUser->{$this->GetName().'::Secret'})
+				{
+					$sSecret = $oUser->{$this->GetName().'::Secret'};
+					if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
+					{
+						$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
+					}
+				}
+				else
+				{
+					$sSecret = $oGoogle->createSecret();;
+				}
 				$sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
 
 				$mResult = [
@@ -164,7 +177,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oStatus = $oGoogle->verifyCode($Secret, $Pin, $iClockTolerance);
 		if ($oStatus === true)
 		{
-			$oUser->{$this->GetName().'::Secret'} = $Secret;
+			$oUser->{$this->GetName().'::Secret'} = \Aurora\System\Utils::EncryptValue($Secret);
+			$oUser->{$this->GetName().'::IsEncryptedSecret'} = true;
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 			$bResult = true;
 		}
@@ -190,6 +204,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oUser->{$this->GetName().'::Secret'} = "";
+				$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
 				$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 			}
 		}
@@ -215,7 +230,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		self::$VerifyPinState = true;		
+		self::$VerifyPinState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyPinState = false;
 
@@ -226,9 +241,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 			{
 				if ($oUser->{$this->GetName().'::Secret'})
 				{
+					$sSecret = $oUser->{$this->GetName().'::Secret'};
+					if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
+					{
+						$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
+					}
 					$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 					$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-					$oStatus = $oGoogle->verifyCode($oUser->{$this->GetName().'::Secret'}, $Pin, $iClockTolerance);
+					$oStatus = $oGoogle->verifyCode($sSecret, $Pin, $iClockTolerance);
 					if ($oStatus)
 					{
 						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
