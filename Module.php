@@ -17,7 +17,7 @@ use PragmaRX\Recovery\Recovery;
  */
 class Module extends \Aurora\System\Module\AbstractModule
 {
-	public static $VerifyPinState = false;
+	public static $VerifyState = false;
 
 	public function init()
 	{
@@ -56,11 +56,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 			return [
 				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
+				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 				'BackupCodesCount' => count($aNotUsedBackupCodes),
 			];
 		}
 
-		return null;
+		return [
+			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
+		];
 	}
 
     public function UpdateSettings($ShowRecommendationToConfigure)
@@ -241,9 +244,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		self::$VerifyPinState = true;
+		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
-		self::$VerifyPinState = false;
+		self::$VerifyState = false;
 
 		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
 		{
@@ -300,7 +303,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 ->setBlockSeparator(' ')
                 ->uppercase()
                 ->toArray();
-$aCodes[2] = '';
+
 			$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aCodes));
 			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = time();
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
@@ -311,6 +314,45 @@ $aCodes[2] = '';
             ];
         }
     }
+	
+	public function VerifyBackupCode($BackupCode, $Login, $Password)
+	{
+		$mResult = false;
+
+		if (!$BackupCode || empty($BackupCode) || empty($Login)  || empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+
+		self::$VerifyState = true;
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyState = false;
+
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		{
+			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			{
+				$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+				$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
+				\Aurora\System\Api::Log($BackupCode, \Aurora\System\Enums\LogLevel::Full, 'codes-');
+				\Aurora\System\Api::Log($aBackupCodes, \Aurora\System\Enums\LogLevel::Full, 'codes-');
+				\Aurora\System\Api::Log(trim($BackupCode), \Aurora\System\Enums\LogLevel::Full, 'codes-');
+				$index = array_search(trim($BackupCode), $aBackupCodes);
+				\Aurora\System\Api::Log($index, \Aurora\System\Enums\LogLevel::Full, 'codes-');
+				if ($index !== false)
+				{
+					$aBackupCodes[$index] = '';
+					$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes));
+					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+					$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+					\Aurora\System\Api::Log($mResult, \Aurora\System\Enums\LogLevel::Full, 'codes-');
+				}
+			}
+		}
+
+		return $mResult;
+	}
 
 	/**
 	 * Checks if User has TwoFactorAuth enabled and return UserId instead of AuthToken
@@ -320,15 +362,16 @@ $aCodes[2] = '';
 	 */
 	public function onAfterAuthenticate($aArgs, &$mResult)
 	{
-		if (!self::$VerifyPinState && $mResult && is_array($mResult) && isset($mResult['token']))
+		if (!self::$VerifyState && $mResult && is_array($mResult) && isset($mResult['token']))
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				if ($oUser->{$this->GetName().'::Secret'} !== "")
+				if ($oUser->{$this->GetName().'::Secret'} !== '')
 				{
 					$mResult = [
-						'TwoFactorAuth' => true
+						'TwoFactorAuth' => true,
+						'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
 					];
 				}
 			}

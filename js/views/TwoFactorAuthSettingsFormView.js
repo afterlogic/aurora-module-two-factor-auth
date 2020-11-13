@@ -44,6 +44,10 @@ function CTwoFactorAuthSettingsFormView()
 	this.QRCodeSrc = ko.observable('');
 	this.secret = ko.observable('');
 	this.pin = ko.observable('');
+	
+	this.allowBackupCodes = ko.computed(function () {
+		return Settings.AllowBackupCodes && this.isEnabledTwoFactorAuth() && this.isShowSecret();
+	}, this);
 }
 
 _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -131,7 +135,7 @@ CTwoFactorAuthSettingsFormView.prototype.disable = function ()
 
 CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 {
-	if (this.isShowSecret())
+	if (this.allowBackupCodes())
 	{
 		Popups.showPopup(ShowBackupCodesPopup, [function (bGenerated, iBackupCodesCount) {
 			if (bGenerated)

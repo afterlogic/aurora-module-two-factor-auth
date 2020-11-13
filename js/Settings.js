@@ -7,6 +7,7 @@ var
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js')
 ;
 
@@ -15,6 +16,7 @@ module.exports = {
 	HashModuleName: 'two-factor-auth',
 	EnableTwoFactorAuth: false,
 	ShowRecommendationToConfigure: true,
+	AllowBackupCodes: false,
 	BackupCodesCount: false,
 
 	/**
@@ -25,11 +27,11 @@ module.exports = {
 	init: function (oAppData)
 	{
 		var oAppDataSection = _.extend({}, oAppData[this.ServerModuleName] || {}, oAppData['%ModuleName%'] || {});
-
 		if (!_.isEmpty(oAppDataSection))
 		{
 			this.EnableTwoFactorAuth = Types.pBool(oAppDataSection.EnableTwoFactorAuth, this.EnableTwoFactorAuth);
 			this.ShowRecommendationToConfigure = Types.pBool(oAppDataSection.ShowRecommendationToConfigure, this.ShowRecommendationToConfigure);
+			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.checkIfEnabled();
 		}
@@ -47,20 +49,23 @@ module.exports = {
 	
 	checkIfEnabled: function ()
 	{
-		var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
-		if (this.ShowRecommendationToConfigure && !this.EnableTwoFactorAuth && !bTfaSettingsOpened)
+		if (App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
 		{
-			setTimeout(function () {
-				Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED'));
-
-				$('.report_panel.loading a').on('click', function () {
-					Screens.hideLoading();
-				});
-
+			var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
+			if (!this.EnableTwoFactorAuth && !bTfaSettingsOpened)
+			{
 				setTimeout(function () {
-					Screens.hideLoading();
-				}, 10000);
-			}, 100);
+					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED'));
+
+					$('.report_panel.loading a').on('click', function () {
+						Screens.hideLoading();
+					});
+
+					setTimeout(function () {
+						Screens.hideLoading();
+					}, 10000);
+				}, 100);
+			}
 		}
 	}
 };

@@ -72,6 +72,7 @@ module.exports = function (oAppData) {
 								Popups.showPopup(VerifyTokenPopup, [
 									_.bind(this.onSystemLoginResponseBase, this),
 									_.bind(function () { this.loading(false); }, this),
+									oResponse.Result.HasBackupCodes,
 									oRequest.Parameters.Login,
 									oRequest.Parameters.Password
 								]);

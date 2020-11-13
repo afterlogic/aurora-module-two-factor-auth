@@ -4,11 +4,14 @@ var
 	_ = require('underscore'),
 	ko = require('knockout'),
 
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
+	
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
-	App = require('%PathToCoreWebclientModule%/js/App.js');
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
+	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+	
+	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
 /**
@@ -17,6 +20,10 @@ var
 function CVerifyTokenPopup()
 {
 	CAbstractPopup.call(this);
+	this.bAllowBackupCodes = Settings.AllowBackupCodes;
+	this.hasBackupCodes = ko.observable(false);
+	this.showBackupCodesVerivication = ko.observable(false);
+	this.backupCode = ko.observable(false);
 	
 	this.onConfirm = null;
 	this.onCancel = null;
@@ -33,12 +40,16 @@ _.extendOwn(CVerifyTokenPopup.prototype, CAbstractPopup.prototype);
 
 CVerifyTokenPopup.prototype.PopupTemplate = '%ModuleName%_VerifyTokenPopup';
 
-CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, Login, Password)
+CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, bHasBackupCodes, Login, Password)
 {
 	this.onConfirm = onConfirm;
 	this.onCancel = onCancel;
+	this.showBackupCodesVerivication(false);
+	this.hasBackupCodes(bHasBackupCodes);
+	this.backupCode('');
 	this.Login = Login;
 	this.Password = Password;
+	this.pin('');
 	this.pinFocused(true);
 };
 
@@ -86,6 +97,51 @@ CVerifyTokenPopup.prototype.cancelPopup = function ()
 		this.onCancel(false);
 	}
 	this.closePopup();
+};
+
+CVerifyTokenPopup.prototype.useBackupCode = function ()
+{
+	if (this.bAllowBackupCodes && this.hasBackupCodes())
+	{
+		this.showBackupCodesVerivication(true);
+	}
+};
+
+CVerifyTokenPopup.prototype.verifyBackupCode = function ()
+{
+	this.inPropgress(true);
+	Ajax.send(
+		'TwoFactorAuth',
+		'VerifyBackupCode', 
+		{
+			'BackupCode': this.backupCode(),
+			'Login': this.Login,
+			'Password': this.Password
+		},
+		this.onGetVerifyBackupCodeResponse,
+		this
+	);
+};
+
+CVerifyTokenPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
+{
+	var oResult = oResponse.Result;
+
+	if (oResult)
+	{
+		if (_.isFunction(this.onConfirm))
+		{
+			this.onConfirm(oResponse);
+		}
+		this.closePopup();
+		this.backupCode('');
+	}
+	else
+	{
+		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_BACKUP_CODE'));
+		this.backupCode('');
+	}
+	this.inPropgress(false);
 };
 
 module.exports = new CVerifyTokenPopup();

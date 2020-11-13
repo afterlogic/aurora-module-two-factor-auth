@@ -11,6 +11,10 @@
 		false,
 		"bool"
 	],
+	"AllowBackupCodes": [
+		false,
+		"bool"
+	],
 	 "IncludeInMobile": [
 		true,
 		"bool"
