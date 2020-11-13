@@ -26,9 +26,18 @@ function CTwoFactorAuthSettingsFormView()
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
-	this.hasBackupCodes = ko.observable(Settings.HasBackupCodes);
+	this.hasBackupCodes = ko.observable(false);
+	this.infoShowBackupCodes = ko.observable('');
+	this.populateSettings();
 
 	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth);
+	this.isEnabledTwoFactorAuth.subscribe(function () {
+		if (!this.isEnabledTwoFactorAuth())
+		{
+			Settings.updateBackupCodesCount(0);
+			this.populateSettings();
+		}
+	}, this);
 	this.isPasswordVerified = ko.observable(false);
 	this.isShowSecret = ko.observable(false);
 	this.isValidatingPin = ko.observable(false);
@@ -40,6 +49,12 @@ function CTwoFactorAuthSettingsFormView()
 _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
 
 CTwoFactorAuthSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFactorAuthSettingsFormView';
+
+CTwoFactorAuthSettingsFormView.prototype.populateSettings = function ()
+{
+	this.hasBackupCodes(Settings.BackupCodesCount > 0);
+	this.infoShowBackupCodes(this.hasBackupCodes() ? TextUtils.i18n('%MODULENAME%/INFO_SHOW_BACKUP_CODES', { 'COUNT': Settings.BackupCodesCount }) : '');
+};
 
 CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 {
@@ -79,9 +94,9 @@ CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 {
 	this.showRecommendationToConfigure(false);
 	Ajax.send('TwoFactorAuth', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
-		Settings.update(false);
+		Settings.updateShowRecommendation(false);
 	});
-}
+};
 
 CTwoFactorAuthSettingsFormView.prototype.onValidatingPinResponse = function (Response)
 {
@@ -118,7 +133,13 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 {
 	if (this.isShowSecret())
 	{
-		Popups.showPopup(ShowBackupCodesPopup, []);
+		Popups.showPopup(ShowBackupCodesPopup, [function (bGenerated, iBackupCodesCount) {
+			if (bGenerated)
+			{
+				Settings.updateBackupCodesCount(iBackupCodesCount);
+				this.populateSettings();
+			}
+		}.bind(this)]);
 	}
 };
 

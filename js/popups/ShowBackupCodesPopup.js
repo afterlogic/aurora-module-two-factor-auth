@@ -30,18 +30,22 @@ function CShowBackupCodesPopup()
 	this.backupCodes = ko.observableArray([]);
 
 	this.codesGeneratedDataInfo = ko.observable('');
+	this.codesWereGenerated = ko.observable(false);
+	this.fCallBack = null;
 
 	this.generatingBackupCodes = ko.observable(false);
-	this.generateBackupCodesCommand = Utils.createCommand(this, this.generateNewBackupCodes, function () { return !this.generatingBackupCodes(); });
+	this.generateBackupCodesCommand = Utils.createCommand(this, this.confirmGenerateNewBackupCodes, function () { return !this.generatingBackupCodes(); });
 }
 
 _.extendOwn(CShowBackupCodesPopup.prototype, CAbstractPopup.prototype);
 
 CShowBackupCodesPopup.prototype.PopupTemplate = '%ModuleName%_ShowBackupCodesPopup';
 
-CShowBackupCodesPopup.prototype.onOpen = function ()
+CShowBackupCodesPopup.prototype.onOpen = function (fCallBack)
 {
-	if (Settings.HasBackupCodes)
+	this.fCallBack = fCallBack;
+	this.codesWereGenerated(false);
+	if (Settings.BackupCodesCount > 0)
 	{
 		this.getBackupCodes();
 	}
@@ -53,20 +57,26 @@ CShowBackupCodesPopup.prototype.onOpen = function ()
 	}
 };
 
+CShowBackupCodesPopup.prototype.onClose = function ()
+{
+	if (_.isFunction(this.fCallBack))
+	{
+		this.fCallBack(this.codesWereGenerated(), this.backupCodes().length);
+	}
+};
+
 CShowBackupCodesPopup.prototype.getBackupCodes = function ()
 {
 	this.backupCodes([]);
 	this.codesGeneratedDataInfo('');
-	Ajax.send('TwoFactorAuth', 'GenerateBackupCodes', {}, function (Response) {
-		var aCodes = Response && Response.Result;
-		if (Types.isNonEmptyArray(aCodes))
-		{
-			this.backupCodes(aCodes);
-		}
+	this.generatingBackupCodes(true);
+	Ajax.send('TwoFactorAuth', 'GetBackupCodes', {}, function (Response) {
+		this.generatingBackupCodes(false);
+		this.parseBackupCodes(Response);
 	}, this);
 };
 
-CShowBackupCodesPopup.prototype.generateNewBackupCodes = function ()
+CShowBackupCodesPopup.prototype.confirmGenerateNewBackupCodes = function ()
 {
 	Popups.showPopup(ConfirmPopup, [TextUtils.i18n('%MODULENAME%/INFO_GET_NEW_CODES'),
 		function (bOk) {
@@ -84,19 +94,28 @@ CShowBackupCodesPopup.prototype.generateBackupCodes = function ()
 	this.generatingBackupCodes(true);
 	Ajax.send('TwoFactorAuth', 'GenerateBackupCodes', {}, function (Response) {
 		this.generatingBackupCodes(false);
-		var
-			oResult = Response && Response.Result,
-			aCodes = oResult && oResult.Codes
-		;
-		if (Types.isNonEmptyArray(aCodes))
+		this.parseBackupCodes(Response);
+		if (this.backupCodes().length > 0)
 		{
-			var oMoment = moment.unix(oResult.Datetime);
-			this.codesGeneratedDataInfo(TextUtils.i18n('%MODULENAME%/INFO_CODES_GENERATED_DATA', {
-				'DATA': oMoment.format('MMM D, YYYY')
-			}));
-			this.backupCodes(aCodes);
+			this.codesWereGenerated(true);
 		}
 	}, this);
+};
+
+CShowBackupCodesPopup.prototype.parseBackupCodes = function (Response)
+{
+	var
+		oResult = Response && Response.Result,
+		aCodes = oResult && oResult.Codes
+	;
+	if (Types.isNonEmptyArray(aCodes))
+	{
+		var oMoment = moment.unix(oResult.Datetime);
+		this.codesGeneratedDataInfo(TextUtils.i18n('%MODULENAME%/INFO_CODES_GENERATED_DATA', {
+			'DATA': oMoment.format('MMM D, YYYY')
+		}));
+		this.backupCodes(aCodes);
+	}
 };
 
 CShowBackupCodesPopup.prototype.getBackupCodesFileText = function ()

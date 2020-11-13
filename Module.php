@@ -24,7 +24,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
 				'Secret' => ['string', '', false, true],
 				'ShowRecommendationToConfigure' => ['bool', true],
-				'IsEncryptedSecret' => ['bool', false]
+				'IsEncryptedSecret' => ['bool', false],
+				'BackupCodes' => ['string', false],
+				'BackupCodesTimestamp' => ['string', false],
 			]
 		);
 
@@ -48,9 +50,13 @@ class Module extends \Aurora\System\Module\AbstractModule
             {
                 $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
             }
+			$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+			$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
+			$aNotUsedBackupCodes = array_filter($aBackupCodes, function($sCode) { return !empty($sCode); });
 			return [
 				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
+				'BackupCodesCount' => count($aNotUsedBackupCodes),
 			];
 		}
 
@@ -104,6 +110,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 		{
 			$oUser->{$this->GetName().'::Secret'} = '';
+			$oUser->{$this->GetName().'::BackupCodes'} = '';
+			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
 			return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 		}
 
@@ -206,6 +214,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oUser->{$this->GetName().'::Secret'} = "";
 				$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
+				$oUser->{$this->GetName().'::BackupCodes'} = '';
+				$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
 				$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 			}
 		}
@@ -267,6 +277,15 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function GetBackupCodes()
     {
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+		{
+			$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+            return [
+                'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
+                'Codes' => empty($sBackupCodes) ? [] : json_decode($sBackupCodes)
+            ];
+		}
     }
 
     public function GenerateBackupCodes()
@@ -281,9 +300,14 @@ class Module extends \Aurora\System\Module\AbstractModule
                 ->setBlockSeparator(' ')
                 ->uppercase()
                 ->toArray();
+$aCodes[2] = '';
+			$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aCodes));
+			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = time();
+			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+
             return [
-                'Datetime' => time(),
-                'Codes' => $aCodes
+                'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
+                'Codes' => $aCodes,
             ];
         }
     }

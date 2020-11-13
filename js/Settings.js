@@ -15,7 +15,7 @@ module.exports = {
 	HashModuleName: 'two-factor-auth',
 	EnableTwoFactorAuth: false,
 	ShowRecommendationToConfigure: true,
-	HasBackupCodes: false,
+	BackupCodesCount: false,
 
 	/**
 	 * Initializes settings from AppData object sections.
@@ -30,13 +30,19 @@ module.exports = {
 		{
 			this.EnableTwoFactorAuth = Types.pBool(oAppDataSection.EnableTwoFactorAuth, this.EnableTwoFactorAuth);
 			this.ShowRecommendationToConfigure = Types.pBool(oAppDataSection.ShowRecommendationToConfigure, this.ShowRecommendationToConfigure);
+			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.checkIfEnabled();
 		}
 	},
 
-	update: function (bShowRecommendationToConfigure)
+	updateShowRecommendation: function (bShowRecommendationToConfigure)
 	{
 		this.ShowRecommendationToConfigure = bShowRecommendationToConfigure;
+	},
+	
+	updateBackupCodesCount: function (iBackupCodesCount)
+	{
+		this.BackupCodesCount = iBackupCodesCount;
 	},
 	
 	checkIfEnabled: function ()
