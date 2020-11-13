@@ -6,6 +6,7 @@
  */
 
 namespace Aurora\Modules\TwoFactorAuth;
+use PragmaRX\Recovery\Recovery;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -263,6 +264,29 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		return $mResult;
 	}
+
+    public function GetBackupCodes()
+    {
+    }
+
+    public function GenerateBackupCodes()
+    {
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        if (!empty($oUser) && $oUser->isNormalOrTenant()) {
+            $oRecovery = new Recovery();
+            $aCodes = $oRecovery
+                ->setCount(10) // Generate 10 codes
+                ->setBlocks(2) // Every code must have 2 blocks
+                ->setChars(4) // Each block must have 4 chars
+                ->setBlockSeparator(' ')
+                ->uppercase()
+                ->toArray();
+            return [
+                'Datetime' => time(),
+                'Codes' => $aCodes
+            ];
+        }
+    }
 
 	/**
 	 * Checks if User has TwoFactorAuth enabled and return UserId instead of AuthToken

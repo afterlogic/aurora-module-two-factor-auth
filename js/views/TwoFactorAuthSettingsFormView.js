@@ -4,14 +4,18 @@ var
 	_ = require('underscore'),
 	ko = require('knockout'),
 
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
-	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
-	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+
+	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
+
 	ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
-	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
+	Settings = require('modules/%ModuleName%/js/Settings.js'),
+	ShowBackupCodesPopup = require('modules/%ModuleName%/js/popups/ShowBackupCodesPopup.js')
 ;
 
 /**
@@ -22,6 +26,7 @@ function CTwoFactorAuthSettingsFormView()
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
+	this.hasBackupCodes = ko.observable(Settings.HasBackupCodes);
 
 	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth);
 	this.isPasswordVerified = ko.observable(false);
@@ -107,6 +112,14 @@ CTwoFactorAuthSettingsFormView.prototype.disable = function ()
 		}, this),
 		'DisableTwoFactorAuth'
 	]);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
+{
+	if (this.isShowSecret())
+	{
+		Popups.showPopup(ShowBackupCodesPopup, []);
+	}
 };
 
 module.exports = new CTwoFactorAuthSettingsFormView();
