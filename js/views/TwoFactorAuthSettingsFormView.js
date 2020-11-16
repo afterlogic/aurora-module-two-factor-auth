@@ -51,6 +51,8 @@ function CTwoFactorAuthSettingsFormView()
 	this.allowBackupCodes = ko.computed(function () {
 		return Settings.AllowBackupCodes && this.isEnabledTwoFactorAuth() && this.isShowSecret();
 	}, this);
+
+	this.addingSecurityKey = ko.observable(false);
 }
 
 _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -150,9 +152,65 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 	}
 };
 
+function _base64ToArrayBuffer(base64) {
+	var binary_string = window.atob(base64);
+	var len = binary_string.length;
+	var bytes = new Uint8Array(len);
+	for (var i = 0; i < len; i++) {
+		bytes[i] = binary_string.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
+
+function _arrayBufferToBase64( buffer ) {
+	var binary = '';
+	var bytes = new Uint8Array( buffer );
+	var len = bytes.byteLength;
+	for (var i = 0; i < len; i++) {
+		binary += String.fromCharCode( bytes[ i ] );
+	}
+	return window.btoa( binary );
+}
+
 CTwoFactorAuthSettingsFormView.prototype.addSecurityKey = function ()
 {
-	
+	this.addingSecurityKey(true);
+	Ajax.send('TwoFactorAuth', 'RegisterSecurityKeyAuthenticatorBegin', {}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin = function (oResponse) {
+	this.addingSecurityKey(false);
+	if (oResponse && oResponse.Result)
+	{
+		var oCreateArgs = oResponse.Result;
+		oCreateArgs.publicKey.challenge = _base64ToArrayBuffer(oCreateArgs.publicKey.challenge);
+		oCreateArgs.publicKey.user.id = _base64ToArrayBuffer(oCreateArgs.publicKey.user.id);
+		console.log("CREATE ARGS", oCreateArgs);
+		navigator.credentials.create(oCreateArgs)
+			.then((cred) => {
+				console.log("NEW CREDENTIAL", cred);
+				var oParams = {
+					'Attestation': {
+						'attestationObject': _arrayBufferToBase64(cred.response.attestationObject),
+						'clientDataJSON': _arrayBufferToBase64(cred.response.clientDataJSON)
+					},
+					'RequestId': ''
+				};
+				Ajax.send('TwoFactorAuth', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
+					this.onRegisterSecurityKeyAuthenticatorFinish, this);
+			})
+			.catch((err) => {
+				console.log("ERROR", err);
+			});
+	}
+	else
+	{
+		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
+	}
+};
+
+CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorFinish = function (oResponse) {
+	console.log('oResponse', oResponse);
 };
 
 module.exports = new CTwoFactorAuthSettingsFormView();

@@ -379,9 +379,52 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 		}
 	}
-	
-	public function RegisterSecurityKeyStart()
+
+    public function RegisterSecurityKeyAuthenticatorBegin()
 	{
-		
+        $oModuleManager = \Aurora\System\Api::GetModuleManager();
+        $sSiteName = $oModuleManager->getModuleConfigValue('Core', 'SiteName');
+        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant()) {
+            $aCreateArgs = [
+                'publicKey' => [
+                    'attestation' => 'direct',
+                    'authenticatorSelection' => [
+                        'requireResidentKey' => false,
+                        'userVerification' => 'discouraged',
+
+                    ],
+                    'challenge' => \base64_encode(\random_bytes(32)),
+                    'excludeCredentials' => [],
+                    'pubKeyCredParams' => [
+                        [
+                            'alg' => -7, // ES256
+                            'type' => 'public-key',
+                        ],
+                        [
+                            'alg' => -257, // RS256
+                            'type' => 'public-key',
+                        ],
+                    ],
+                    'rp' => [
+                        'id' => $_SERVER['HTTP_HOST'],
+                        'name' => $sSiteName
+                    ],
+                    'timeout' => 90000,
+                    'user' => [
+                        'displayName' => $oUser->PublicId,
+                        'id' => \base64_encode($oUser->UUID),
+                        'name' => $oUser->PublicId,
+                    ],
+                ],
+            ];
+            return $aCreateArgs;
+        }
+        return false;
 	}
+
+    public function RegisterSecurityKeyAuthenticatorFinish($Attestation, $RequestId)
+    {
+        return $Attestation;
+    }
 }
