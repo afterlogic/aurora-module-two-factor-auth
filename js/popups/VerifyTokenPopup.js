@@ -21,6 +21,7 @@ function CVerifyTokenPopup()
 {
 	CAbstractPopup.call(this);
 	this.bAllowBackupCodes = Settings.AllowBackupCodes;
+	this.bAllowYubikey = Settings.AllowYubikey;
 	this.hasBackupCodes = ko.observable(false);
 	this.showBackupCodesVerivication = ko.observable(false);
 	this.backupCode = ko.observable(false);

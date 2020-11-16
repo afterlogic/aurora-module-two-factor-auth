@@ -18,6 +18,7 @@ module.exports = {
 	ShowRecommendationToConfigure: true,
 	AllowBackupCodes: false,
 	BackupCodesCount: false,
+	AllowYubikey: false,
 
 	/**
 	 * Initializes settings from AppData object sections.
@@ -33,6 +34,7 @@ module.exports = {
 			this.ShowRecommendationToConfigure = Types.pBool(oAppDataSection.ShowRecommendationToConfigure, this.ShowRecommendationToConfigure);
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
+			this.AllowYubikey = Types.pBool(oAppDataSection.AllowYubikey, this.AllowYubikey);
 			this.checkIfEnabled();
 		}
 	},

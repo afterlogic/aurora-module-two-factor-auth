@@ -57,12 +57,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
 				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
+				'AllowYubikey' => $this->getConfig('AllowYubikey', false),
 				'BackupCodesCount' => count($aNotUsedBackupCodes),
 			];
 		}
 
 		return [
 			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
+			'AllowYubikey' => $this->getConfig('AllowYubikey', false),
 		];
 	}
 
@@ -376,5 +378,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 		}
+	}
+	
+	public function RegisterSecurityKeyStart()
+	{
+		
 	}
 }

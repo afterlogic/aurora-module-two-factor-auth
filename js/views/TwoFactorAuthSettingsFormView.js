@@ -24,6 +24,9 @@ var
 function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
+	
+	this.bAllowYubikey = Settings.AllowYubikey;
+	this.tfaType = ko.observable('app');
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
 	this.hasBackupCodes = ko.observable(false);
@@ -145,6 +148,11 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 			}
 		}.bind(this)]);
 	}
+};
+
+CTwoFactorAuthSettingsFormView.prototype.addSecurityKey = function ()
+{
+	
 };
 
 module.exports = new CTwoFactorAuthSettingsFormView();

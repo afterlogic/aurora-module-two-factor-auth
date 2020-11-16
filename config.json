@@ -15,6 +15,10 @@
 		false,
 		"bool"
 	],
+	"AllowYubikey": [
+		false,
+		"bool"
+	],
 	 "IncludeInMobile": [
 		true,
 		"bool"

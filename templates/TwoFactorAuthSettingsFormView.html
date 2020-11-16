@@ -4,6 +4,7 @@
 
 <div class="panel_center">
 	<div class="fields">
+		<!-- password is not verified yet -->
 		<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth() && !isShowSecret()">
 			<div class="row hint">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH'}"></span>
@@ -29,40 +30,71 @@
 				</span>
 			</div>
 		</div>
+		
+		
+		<!-- password is verified -->
 		<div class="fieldset" data-bind="visible: isShowSecret()">
-			<div class="row hint">
-				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_USE'}"></span>
-			</div>
-			<div class="row buttons" data-bind="visible: isEnabledTwoFactorAuth()">
-				<span class="button" data-bind="click: disable" style="float: left;">
-					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
-				</span>
-			</div>
-			<div class="fieldgroup">
-				<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h2>
-				<span class="QRCode">
-					<img data-bind="attr: {src: QRCodeSrc}" />
-				</span>
-			</div>
-			<div class="fieldgroup">
-				<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h2>
-				<span class="secret" data-bind="text: secret"></span>
-			</div>
-			<div class="fieldgroup">
+			
+			<!-- ko if: bAllowYubikey -->
 				<div class="row hint">
-					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
+					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TFA_TYPE'}"></span>
 				</div>
-				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-				<input id="pin" class="value input" type="text" data-bind="value: pin, valueUpdate: 'afterkeydown', onEnter: validatePin">
+				<div class="row">
+					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE'}"></span>
+					<span class="value">
+						<select class="input" data-bind="value: tfaType">
+							<option value="app" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE_APP'}"></option>
+							<option value="yubikey" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE_YUBIKEY'}"></option>
+						</select>
+					</span>
+				</div>
+				<div class="row"></div>
+			<!-- /ko -->
+			<!-- ko if: tfaType() === 'app' -->
+				<div class="row hint">
+					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_USE'}"></span>
+				</div>
+				<div class="row buttons" data-bind="visible: isEnabledTwoFactorAuth()">
+					<span class="button" data-bind="click: disable" style="float: left;">
+						<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
+					</span>
+				</div>
+				<div class="fieldgroup">
+					<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h2>
+					<span class="QRCode">
+						<img data-bind="attr: {src: QRCodeSrc}" />
+					</span>
+				</div>
+				<div class="fieldgroup">
+					<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h2>
+					<span class="secret" data-bind="text: secret"></span>
+				</div>
+				<div class="fieldgroup">
+					<div class="row hint">
+						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
+					</div>
+					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
+					<input id="pin" class="value input" type="text" data-bind="value: pin, valueUpdate: 'afterkeydown', onEnter: validatePin">
+					<div class="buttons">
+						<span class="button" data-bind="click: validatePin, visible: !isValidatingPin()">
+							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
+						</span>
+						<span class="button" data-bind="visible: isValidatingPin()">
+							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}"></span>
+						</span>
+					</div>
+				</div>
+			<!-- /ko -->
+			<!-- ko if: tfaType() === 'yubikey' -->
+				<div class="row hint">
+					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_SECURITY_KEY'}"></span>
+				</div>
 				<div class="buttons">
-					<span class="button" data-bind="click: validatePin, visible: !isValidatingPin()">
-						<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
-					</span>
-					<span class="button" data-bind="visible: isValidatingPin()">
-						<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}"></span>
+					<span class="button" data-bind="click: addSecurityKey">
+						<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_ADD_SECURITY_KEY'}"></span>
 					</span>
 				</div>
-			</div>
+			<!-- /ko -->
 		</div>
 		<div class="fieldset" data-bind="visible: allowBackupCodes">
 			<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_BACKUP_CODES'}"></h2>
