@@ -6,10 +6,10 @@
 	<div class="fields">
 		<!-- password is not verified yet -->
 		<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth() && !isShowSecret()">
-			<div class="row hint">
+			<div class="row hint" style="margin: 0 -6px 12px;">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH'}"></span>
 			</div>
-			<div class="buttons" style="text-align: left;">
+			<div class="buttons" style="text-align: left; margin: 0;">
 				<span class="button" data-bind="click: confirmPassword">
 					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ENABLE_TWOFACTORAUTH'}"></span>
 				</span>
@@ -19,12 +19,10 @@
 			</div>
 		</div>
 		<div class="fieldset" data-bind="visible: isEnabledTwoFactorAuth() && !isShowSecret()">
-			<div class="row">
-				<div class="row hint">
-					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_ENABLED'}"></span>
-				</div>
+			<div class="row hint" style="margin: 0 -6px 12px;">
+				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_ENABLED'}"></span>
 			</div>
-			<div class="buttons" style="text-align: left;">
+			<div class="buttons" style="text-align: left; margin: 0;">
 				<span class="button" data-bind="click: confirmPassword">
 					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
 				</span>
@@ -33,24 +31,78 @@
 		
 		
 		<!-- password is verified -->
-		<div class="fieldset" data-bind="visible: isShowSecret()">
+		<!-- ko if: isShowSecret() && showOptions() -->
+			<div class="fieldset">
+				<div class="row hint" style="margin: 0 -6px;">
+					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_TWA_OPTIONS'}"></span>
+				</div>
+			</div>
+			<div class="fieldset">
+				<div class="fieldgroup">
+					<div class="row">
+						<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}" style="margin: 0;"></h3>
+					</div>
+					<div class="row hint" data-bind="visible: !isEnabledTwoFactorAuth()">
+						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP'}"></span>
+					</div>
+					<div class="row hint" data-bind="visible: isEnabledTwoFactorAuth">
+						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP_ENABLED'}"></span>
+					</div>
+					<div class="row buttons" style="text-align: left; margin: 0;">
+						<span class="button" data-bind="click: setupAuthenticatorApp, visible: !isEnabledTwoFactorAuth()">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
+						</span>
+						<span class="button" data-bind="click: setupAuthenticatorApp, visible: isEnabledTwoFactorAuth">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
+						</span>
+					</div>
+				</div>
+			</div>
+			<div class="fieldset" data-bind="visible: bAllowYubikey">
+				<div class="fieldgroup">
+					<div class="row">
+						<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEYS'}" style="margin: 0;"></h3>
+					</div>
+					<div class="row hint">
+						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEYS'}"></span>
+					</div>
+					<div class="row buttons" style="text-align: left; margin: 0;">
+						<span class="button" data-bind="click: addSecurityKey">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ADD_SECURITY_KEY'}"></span>
+						</span>
+					</div>
+				</div>
+			</div>
+			<div class="fieldset" data-bind="visible: allowBackupCodes">
+				<div class="fieldgroup">
+					<div class="row">
+						<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_BACKUP_CODES'}" style="margin: 0;"></h3>
+					</div>
+					<div class="row hint">
+						<span data-bind="i18n: {'key': '%MODULENAME%/INFO_SETUP_BACKUP_CODES'}, visible: !hasBackupCodes()"></span>
+					</div>
+					<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: !hasBackupCodes()">
+						<span class="button" data-bind="click: showBackupCodes">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
+						</span>
+					</div>
+					<div class="row hint">
+						<span data-bind="text: infoShowBackupCodes, visible: hasBackupCodes"></span>
+					</div>
+					<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: hasBackupCodes">
+						<span class="button" data-bind="click: showBackupCodes">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SHOW_CODES'}"></span>
+						</span>
+					</div>
+				</div>
+			</div>
+		<!-- /ko -->
 			
-			<!-- ko if: bAllowYubikey -->
-				<div class="row hint">
-					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TFA_TYPE'}"></span>
-				</div>
+		<!-- ko if: isShowSecret() && showAuthenticatorAppOption() -->
+			<div class="fieldset">
 				<div class="row">
-					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE'}"></span>
-					<span class="value">
-						<select class="input" data-bind="value: tfaType">
-							<option value="app" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE_APP'}"></option>
-							<option value="yubikey" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TFA_TYPE_YUBIKEY'}"></option>
-						</select>
-					</span>
+					<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}" style="margin: 0;"></h3>
 				</div>
-				<div class="row"></div>
-			<!-- /ko -->
-			<!-- ko if: tfaType() === 'app' -->
 				<div class="row hint">
 					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_USE'}"></span>
 				</div>
@@ -60,17 +112,17 @@
 					</span>
 				</div>
 				<div class="fieldgroup">
-					<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h2>
+					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h3>
 					<span class="QRCode">
 						<img data-bind="attr: {src: QRCodeSrc}" />
 					</span>
 				</div>
 				<div class="fieldgroup">
-					<h2 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h2>
+					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h3>
 					<span class="secret" data-bind="text: secret"></span>
 				</div>
 				<div class="fieldgroup">
-					<div class="row hint">
+					<div class="row hint" style="margin: 0 -6px 12px;">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
 					</div>
 					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
@@ -82,38 +134,12 @@
 						<span class="button" data-bind="visible: isValidatingPin()">
 							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}"></span>
 						</span>
+						<span class="button secondary_button" data-bind="click: cancelSetupAuthenticatorApp">
+							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}"></span>
+						</span>
 					</div>
 				</div>
-			<!-- /ko -->
-			<!-- ko if: tfaType() === 'yubikey' -->
-				<div class="row hint">
-					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_SECURITY_KEY'}"></span>
-				</div>
-				<div class="buttons">
-					<span class="button" data-bind="click: addSecurityKey">
-						<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ADD_SECURITY_KEY'}"></span>
-					</span>
-				</div>
-			<!-- /ko -->
-		</div>
-		<div class="fieldset" data-bind="visible: allowBackupCodes">
-			<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_BACKUP_CODES'}"></h2>
-			<div class="row hint">
-				<span data-bind="i18n: {'key': '%MODULENAME%/INFO_SETUP_BACKUP_CODES'}, visible: !hasBackupCodes()"></span>
 			</div>
-			<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: !hasBackupCodes()">
-				<span class="button" data-bind="click: showBackupCodes">
-					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
-				</span>
-			</div>
-			<div class="row hint">
-				<span data-bind="text: infoShowBackupCodes, visible: hasBackupCodes"></span>
-			</div>
-			<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: hasBackupCodes">
-				<span class="button" data-bind="click: showBackupCodes">
-					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SHOW_CODES'}"></span>
-				</span>
-			</div>
-		</div>
+		<!-- /ko -->
 	</div>
 </div>

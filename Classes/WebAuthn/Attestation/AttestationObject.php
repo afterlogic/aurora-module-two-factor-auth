@@ -76,7 +76,7 @@ class AttestationObject {
                 if ($certInfo['issuer']['CN']) {
                     $issuer .= \trim($certInfo['issuer']['CN']);
                 }
-                if ($certInfo['issuer']['O'] || $certInfo['issuer']['OU']) {
+                if (isset($certInfo['issuer']['O']) || isset($certInfo['issuer']['OU'])) {
                     $str = \trim($certInfo['issuer']['O']);
                     if (isset($certInfo['issuer']['OU'])) {
                         $str .= ' ' . $certInfo['issuer']['OU'];

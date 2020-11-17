@@ -389,7 +389,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				if ($oUser->{$this->GetName().'::Secret'} !== '' || $oUser->{$this->GetName().'::SecurityKeyData'} !== '')
+				// $oUser->{$this->GetName().'::SecurityKeyData'} somehow is false by default (for admin, for example), so $oUser->{$this->GetName().'::SecurityKeyData'} !== '' condition doesn't work
+				if ( !empty($oUser->{$this->GetName().'::Secret'}) || !empty($oUser->{$this->GetName().'::SecurityKeyData'}))
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
@@ -430,7 +431,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         return false;
 	}
 
-    public function RegisterSecurityKeyAuthenticatorFinish($Attestation, $RequestId)
+    public function RegisterSecurityKeyAuthenticatorFinish($Attestation)
     {
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
@@ -449,10 +450,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$aSecurityKeyData = [];
 			}
 			$aSecurityKeyData[] = $data;
-			$oUser->{$this->GetName().'::SecurityKeyData'} = \json_encode($aSecurityKeyData);
-			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-
-			return true;
+			$sEncodedSecurityKeyData  = \json_encode($aSecurityKeyData);
+			if ($sEncodedSecurityKeyData === false)
+			{
+				throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UnknownError, null, json_last_error_msg());
+			}
+			else
+			{
+				$oUser->{$this->GetName().'::SecurityKeyData'} = $sEncodedSecurityKeyData;
+				return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			}
+		}
+		else
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 	}
 

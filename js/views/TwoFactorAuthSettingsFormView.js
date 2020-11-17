@@ -7,6 +7,7 @@ var
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
@@ -26,7 +27,10 @@ function CTwoFactorAuthSettingsFormView()
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 	
 	this.bAllowYubikey = Settings.AllowYubikey;
-	this.tfaType = ko.observable('app');
+	this.showAuthenticatorAppOption = ko.observable(false);
+	this.showOptions = ko.computed(function () {
+		return this.bAllowYubikey && !this.showAuthenticatorAppOption();
+	}, this);
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
 	this.hasBackupCodes = ko.observable(false);
@@ -84,6 +88,16 @@ CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (Response)
 	}
 };
 
+CTwoFactorAuthSettingsFormView.prototype.setupAuthenticatorApp = function ()
+{
+	this.showAuthenticatorAppOption(true);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.cancelSetupAuthenticatorApp = function ()
+{
+	this.showAuthenticatorAppOption(false);
+};
+
 CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
 {
 	this.isValidatingPin(true);
@@ -133,6 +147,7 @@ CTwoFactorAuthSettingsFormView.prototype.disable = function ()
 			this.pin('');
 			this.isShowSecret(false);
 			this.isEnabledTwoFactorAuth(false);
+			this.cancelSetupAuthenticatorApp();
 		}, this),
 		'DisableTwoFactorAuth'
 	]);
@@ -193,8 +208,7 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 					'Attestation': {
 						'attestationObject': _arrayBufferToBase64(cred.response.attestationObject),
 						'clientDataJSON': _arrayBufferToBase64(cred.response.clientDataJSON)
-					},
-					'RequestId': ''
+					}
 				};
 				Ajax.send('TwoFactorAuth', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
 					this.onRegisterSecurityKeyAuthenticatorFinish, this);
@@ -210,7 +224,15 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 };
 
 CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorFinish = function (oResponse) {
-	console.log('oResponse', oResponse);
+	console.log(oResponse && oResponse.Result);
+	if (oResponse && oResponse.Result)
+	{
+		
+	}
+	else
+	{
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
+	}
 };
 
 module.exports = new CTwoFactorAuthSettingsFormView();
