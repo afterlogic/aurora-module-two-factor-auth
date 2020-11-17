@@ -215,11 +215,12 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 			})
 			.catch((err) => {
 				console.log("ERROR", err);
+				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
 			});
 	}
 	else
 	{
-		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
 	}
 };
 

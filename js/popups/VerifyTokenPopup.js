@@ -7,6 +7,7 @@ var
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
@@ -20,6 +21,10 @@ var
 function CVerifyTokenPopup()
 {
 	CAbstractPopup.call(this);
+
+	this.bAllowYubikey = Settings.AllowYubikey;
+	this.verifyingSecurityKey = ko.observable(false);
+
 	this.bAllowBackupCodes = Settings.AllowBackupCodes;
 	this.bAllowYubikey = Settings.AllowYubikey;
 	this.hasBackupCodes = ko.observable(false);
@@ -58,7 +63,7 @@ CVerifyTokenPopup.prototype.verifyPin = function ()
 {
 	this.inPropgress(true);
 	Ajax.send(
-		'TwoFactorAuth',
+		'%ModuleName%',
 		'VerifyPin', 
 		{
 			'Pin': this.pin(),
@@ -112,7 +117,7 @@ CVerifyTokenPopup.prototype.verifyBackupCode = function ()
 {
 	this.inPropgress(true);
 	Ajax.send(
-		'TwoFactorAuth',
+		'%ModuleName%',
 		'VerifyBackupCode', 
 		{
 			'BackupCode': this.backupCode(),
@@ -143,6 +148,83 @@ CVerifyTokenPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
 		this.backupCode('');
 	}
 	this.inPropgress(false);
+};
+
+function _base64ToArrayBuffer(base64) {
+	var binary_string = window.atob(base64);
+	var len = binary_string.length;
+	var bytes = new Uint8Array(len);
+	for (var i = 0; i < len; i++) {
+		bytes[i] = binary_string.charCodeAt(i);
+	}
+	return bytes.buffer;
+}
+
+function _arrayBufferToBase64( buffer ) {
+	var binary = '';
+	var bytes = new Uint8Array( buffer );
+	var len = bytes.byteLength;
+	for (var i = 0; i < len; i++) {
+		binary += String.fromCharCode( bytes[ i ] );
+	}
+	return window.btoa( binary );
+}
+
+CVerifyTokenPopup.prototype.verifySecurityKey = function ()
+{
+	this.verifyingSecurityKey(true);
+	Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorBegin', {}, this.onVerifySecurityKeyAuthenticatorBegin, this);
+};
+
+CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oResponse) {
+	this.verifyingSecurityKey(false);
+	if (oResponse && oResponse.Result)
+	{
+		var oGetArgs = oResponse.Result;
+		oGetArgs.publicKey.challenge = _base64ToArrayBuffer(oGetArgs.publicKey.challenge);
+		oGetArgs.publicKey.user.id = _base64ToArrayBuffer(oGetArgs.publicKey.user.id);
+		console.log("GET ARGS", oGetArgs);
+		navigator.credentials.get(oGetArgs)
+			.then((cred) => {
+				console.log("VERIFY CREDENTIAL", cred);
+				var oParams = {
+					'Login': this.Login,
+					'Password': this.Password,
+					'Attestation': {
+						id: cred.rawId ? _arrayBufferToBase64(cred.rawId) : null,
+						clientDataJSON: cred.response.clientDataJSON  ? _arrayBufferToBase64(cred.response.clientDataJSON) : null,
+						authenticatorData: cred.response.authenticatorData ? _arrayBufferToBase64(cred.response.authenticatorData) : null,
+						signature : cred.response.signature ? _arrayBufferToBase64(cred.response.signature) : null
+					}
+				};
+				Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorFinish', oParams,
+					this.onVerifySecurityKeyAuthenticatorFinish, this);
+			})
+			.catch((err) => {
+				console.log("ERROR", err);
+				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
+			});
+	}
+	else
+	{
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
+	}
+};
+
+CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (oResponse) {
+	console.log(oResponse && oResponse.Result);
+	if (oResponse && oResponse.Result)
+	{
+		if (_.isFunction(this.onConfirm))
+		{
+			this.onConfirm(oResponse);
+		}
+		this.closePopup();
+	}
+	else
+	{
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
+	}
 };
 
 module.exports = new CVerifyTokenPopup();
