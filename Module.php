@@ -8,6 +8,8 @@
 namespace Aurora\Modules\TwoFactorAuth;
 use PragmaRX\Recovery\Recovery;
 
+require_once('Classes/WebAuthn/WebAuthn.php');
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -19,6 +21,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 {
 	public static $VerifyState = false;
 
+	private $oWebAuthn = null;
+
 	public function init()
 	{
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
@@ -27,10 +31,26 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'IsEncryptedSecret' => ['bool', false],
 				'BackupCodes' => ['string', false],
 				'BackupCodesTimestamp' => ['string', false],
+				'Challenge' => ['string', false],
+				'SecurityKeyData' => ['text', false]
 			]
 		);
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
+
+		$this->oWebAuthn = new \WebAuthn\WebAuthn(
+			'WebAuthn Library',
+			$this->oHttp->GetHost(),
+			[
+				'android-key',
+				'android-safetynet',
+				'apple',
+				'fido-u2f',
+				'none',
+				'packed',
+				'tpm'
+			]
+		);
 	}
 
 	/**
@@ -316,7 +336,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             ];
         }
     }
-	
+
 	public function VerifyBackupCode($BackupCode, $Login, $Password)
 	{
 		$mResult = false;
@@ -369,11 +389,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				if ($oUser->{$this->GetName().'::Secret'} !== '')
+				if ($oUser->{$this->GetName().'::Secret'} !== '' || $oUser->{$this->GetName().'::SecurityKeyData'} !== '')
 				{
 					$mResult = [
-						'TwoFactorAuth' => true,
-						'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
+						'TwoFactorAuth' => [
+							'AuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
+							'SecurityKey' => ($oUser->{$this->GetName().'::SecurityKeyData'} !== ''),
+							'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
+						]
 					];
 				}
 			}
@@ -386,45 +409,127 @@ class Module extends \Aurora\System\Module\AbstractModule
         $sSiteName = $oModuleManager->getModuleConfigValue('Core', 'SiteName');
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
         if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant()) {
-            $aCreateArgs = [
-                'publicKey' => [
-                    'attestation' => 'direct',
-                    'authenticatorSelection' => [
-                        'requireResidentKey' => false,
-                        'userVerification' => 'discouraged',
 
-                    ],
-                    'challenge' => \base64_encode(\random_bytes(32)),
-                    'excludeCredentials' => [],
-                    'pubKeyCredParams' => [
-                        [
-                            'alg' => -7, // ES256
-                            'type' => 'public-key',
-                        ],
-                        [
-                            'alg' => -257, // RS256
-                            'type' => 'public-key',
-                        ],
-                    ],
-                    'rp' => [
-                        'id' => $_SERVER['HTTP_HOST'],
-                        'name' => $sSiteName
-                    ],
-                    'timeout' => 90000,
-                    'user' => [
-                        'displayName' => $oUser->PublicId,
-                        'id' => \base64_encode($oUser->UUID),
-                        'name' => $oUser->PublicId,
-                    ],
-                ],
-            ];
-            return $aCreateArgs;
+			$oCreateArgs = $this->oWebAuthn->getCreateArgs(
+				\base64_encode($oUser->UUID),
+				$oUser->PublicId,
+				$oUser->PublicId,
+				90,
+				false,
+				'discouraged',
+				null,
+				[]
+			);
+
+			$oCreateArgs->publicKey->user->id = \base64_encode($oCreateArgs->publicKey->user->id->getBinaryString());
+			$oCreateArgs->publicKey->challenge = \base64_encode($oCreateArgs->publicKey->challenge->getBinaryString());
+			$oUser->{$this->GetName().'::Challenge'} = $oCreateArgs->publicKey->challenge;
+			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			return $oCreateArgs;
         }
         return false;
 	}
 
     public function RegisterSecurityKeyAuthenticatorFinish($Attestation, $RequestId)
     {
-        return $Attestation;
-    }
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$data = $this->oWebAuthn->processCreate(
+				\base64_decode($Attestation['clientDataJSON']),
+				\base64_decode($Attestation['attestationObject']),
+				\base64_decode($oUser->{$this->GetName().'::Challenge'}),
+				false
+			);
+			$data->credentialId = \base64_encode($data->credentialId);
+			$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
+			$aSecurityKeyData = \json_decode($sSecurityKeyData);
+			if (!is_array($aSecurityKeyData))
+			{
+				$aSecurityKeyData = [];
+			}
+			$aSecurityKeyData[] = $data;
+			$oUser->{$this->GetName().'::SecurityKeyData'} = \json_encode($aSecurityKeyData);
+			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+
+			return true;
+		}
+	}
+
+	public function VerifySecurityKeyAuthenticatorBegin()
+	{
+		$getArgs = false;
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$ids = [];
+			$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
+			$aSecurityKeyData = \json_decode($sSecurityKeyData);
+			if (!s_array($aSecurityKeyData))
+			{
+				foreach ($aSecurityKeyData as $data)
+				{
+					$ids[] = \base64_decode($data->credentialId);
+				}
+			}
+
+			if (count($ids) > 0)
+			{
+				$getArgs = $this->oWebAuthn->getGetArgs(
+					$ids,
+					90
+				);
+			}
+		}
+
+		return $getArgs;
+	}
+
+	public function VerifySecurityKeyAuthenticatorFinish($Login, $Password, $Attestation, $RequestId)
+	{
+		$mResult = true;
+
+		self::$VerifyState = true;
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyState = false;
+
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		{
+			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			{
+				$clientDataJSON = base64_decode($Attestation->clientDataJSON);
+				$authenticatorData = base64_decode($Attestation->authenticatorData);
+				$signature = base64_decode($Attestation->signature);
+				$id = base64_decode($Attestation->id);
+				$credentialPublicKey = null;
+
+				$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
+
+				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
+				$aSecurityKeyData = \json_decode($sSecurityKeyData);
+				if (!s_array($aSecurityKeyData))
+				{
+					foreach ($aSecurityKeyData as $data)
+					{
+						if ($data->credentialId === $id)
+						{
+							$credentialPublicKey = $data->credentialPublicKey;
+							break;
+						}
+					}
+				}
+
+				if ($credentialPublicKey === null)
+				{
+					throw new Exception('Public Key for credential ID not found!');
+				}
+
+				// process the get request. throws WebAuthnException if it fails
+				$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, $userVerification === 'required');
+
+				$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+			}
+		}
+	}
 }
