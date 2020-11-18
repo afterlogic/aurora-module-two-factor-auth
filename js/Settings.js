@@ -19,6 +19,7 @@ module.exports = {
 	AllowBackupCodes: false,
 	BackupCodesCount: false,
 	AllowYubikey: false,
+	SecurityKeys: [],
 
 	/**
 	 * Initializes settings from AppData object sections.
@@ -35,6 +36,21 @@ module.exports = {
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowYubikey = Types.pBool(oAppDataSection.AllowYubikey, this.AllowYubikey);
+			this.SecurityKeys = [];
+			console.log('oAppDataSection.WebAuthKeysInfo', oAppDataSection.WebAuthKeysInfo);
+			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
+			{
+				_.each(oAppDataSection.WebAuthKeysInfo, function (aSecurityKeyData) {
+					if (Types.isNonEmptyArray(aSecurityKeyData, 2))
+					{
+						this.SecurityKeys.push({
+							'Id': aSecurityKeyData[0],
+							'Name': aSecurityKeyData[1]
+						});
+					}
+				}.bind(this));
+			}
+			console.log('this.SecurityKeys', this.SecurityKeys);
 			this.checkIfEnabled();
 		}
 	},

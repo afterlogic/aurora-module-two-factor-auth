@@ -34,7 +34,7 @@ function CVerifyTokenPopup()
 	this.onConfirm = null;
 	this.onCancel = null;
 	this.pin = ko.observable('');
-	this.inPropgress = ko.observable(false);
+	this.inProgress = ko.observable(false);
 	this.pinFocused = ko.observable(false);
 	this.isMobile = ko.observable(App.isMobile() || false);
 
@@ -61,7 +61,7 @@ CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, bHasBackupCo
 
 CVerifyTokenPopup.prototype.verifyPin = function ()
 {
-	this.inPropgress(true);
+	this.inProgress(true);
 	Ajax.send(
 		'%ModuleName%',
 		'VerifyPin', 
@@ -93,7 +93,7 @@ CVerifyTokenPopup.prototype.onGetVerifyResponse = function (oResponse)
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
 		this.pin('');
 	}
-	this.inPropgress(false);
+	this.inProgress(false);
 };
 
 CVerifyTokenPopup.prototype.cancelPopup = function ()
@@ -115,7 +115,7 @@ CVerifyTokenPopup.prototype.useBackupCode = function ()
 
 CVerifyTokenPopup.prototype.verifyBackupCode = function ()
 {
-	this.inPropgress(true);
+	this.inProgress(true);
 	Ajax.send(
 		'%ModuleName%',
 		'VerifyBackupCode', 
@@ -147,7 +147,7 @@ CVerifyTokenPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_BACKUP_CODE'));
 		this.backupCode('');
 	}
-	this.inPropgress(false);
+	this.inProgress(false);
 };
 
 function _base64ToArrayBuffer(base64) {

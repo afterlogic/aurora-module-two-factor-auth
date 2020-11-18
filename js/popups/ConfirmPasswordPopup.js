@@ -20,7 +20,7 @@ function CConfirmPasswordPopup()
 	this.onConfirm = null;
 	this.password = ko.observable('');
 	this.passwordFocus = ko.observable(true);
-	this.inPropgress = ko.observable(false);
+	this.inProgress = ko.observable(false);
 	this.action = '';
 }
 
@@ -37,9 +37,9 @@ CConfirmPasswordPopup.prototype.onOpen = function (onConfirm, sAction)
 
 CConfirmPasswordPopup.prototype.verifyPassword = function ()
 {
-	this.inPropgress(true);
+	this.inProgress(true);
 	Ajax.send(
-		'TwoFactorAuth',
+		'%ModuleName%',
 		this.action, 
 		{
 			'Password': this.password()
@@ -66,7 +66,7 @@ CConfirmPasswordPopup.prototype.onGetVerifyResponse = function (oResponse)
 	{
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PASSWORD'));
 	}
-	this.inPropgress(false);
+	this.inProgress(false);
 };
 
 module.exports = new CConfirmPasswordPopup();

@@ -8,6 +8,7 @@ var
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
+	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
@@ -16,6 +17,7 @@ var
 
 	ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
+	SetupSecurityKeyNamePopup = require('modules/%ModuleName%/js/popups/SetupSecurityKeyNamePopup.js'),
 	ShowBackupCodesPopup = require('modules/%ModuleName%/js/popups/ShowBackupCodesPopup.js')
 ;
 
@@ -31,6 +33,7 @@ function CTwoFactorAuthSettingsFormView()
 	this.showOptions = ko.computed(function () {
 		return this.bAllowYubikey && !this.showAuthenticatorAppOption();
 	}, this);
+	this.securityKeys = ko.observableArray(Settings.SecurityKeys);
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
 	this.hasBackupCodes = ko.observable(false);
@@ -51,6 +54,7 @@ function CTwoFactorAuthSettingsFormView()
 	this.QRCodeSrc = ko.observable('');
 	this.secret = ko.observable('');
 	this.pin = ko.observable('');
+	this.pinFocus = ko.observable(false);
 	
 	this.allowBackupCodes = ko.computed(function () {
 		return Settings.AllowBackupCodes && this.isEnabledTwoFactorAuth() && this.isShowSecret();
@@ -91,6 +95,7 @@ CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (Response)
 CTwoFactorAuthSettingsFormView.prototype.setupAuthenticatorApp = function ()
 {
 	this.showAuthenticatorAppOption(true);
+	this.pinFocus(true);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.cancelSetupAuthenticatorApp = function ()
@@ -102,7 +107,7 @@ CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
 {
 	this.isValidatingPin(true);
 	Ajax.send(
-		'TwoFactorAuth',
+		'%ModuleName%',
 		'TwoFactorAuthSave', 
 		{
 			'Pin': this.pin(),
@@ -116,7 +121,7 @@ CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
 CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 {
 	this.showRecommendationToConfigure(false);
-	Ajax.send('TwoFactorAuth', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
+	Ajax.send('%ModuleName%', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
 		Settings.updateShowRecommendation(false);
 	});
 };
@@ -131,6 +136,7 @@ CTwoFactorAuthSettingsFormView.prototype.onValidatingPinResponse = function (Res
 		this.pin('');
 		this.isShowSecret(false);
 		this.isEnabledTwoFactorAuth(true);
+		this.cancelSetupAuthenticatorApp();
 	}
 	else
 	{
@@ -138,16 +144,26 @@ CTwoFactorAuthSettingsFormView.prototype.onValidatingPinResponse = function (Res
 	}
 };
 
+CTwoFactorAuthSettingsFormView.prototype.onHide = function ()
+{
+	this.clear();
+};
+
+CTwoFactorAuthSettingsFormView.prototype.clear = function ()
+{
+	this.QRCodeSrc('');
+	this.secret('');
+	this.pin('');
+	this.isShowSecret(false);
+	this.isEnabledTwoFactorAuth(false);
+	this.cancelSetupAuthenticatorApp();
+};
+
 CTwoFactorAuthSettingsFormView.prototype.disable = function ()
 {
 	Popups.showPopup(ConfirmPasswordPopup, [
 		_.bind(function () {
-			this.QRCodeSrc('');
-			this.secret('');
-			this.pin('');
-			this.isShowSecret(false);
-			this.isEnabledTwoFactorAuth(false);
-			this.cancelSetupAuthenticatorApp();
+			this.clear();
 		}, this),
 		'DisableTwoFactorAuth'
 	]);
@@ -190,7 +206,7 @@ function _arrayBufferToBase64( buffer ) {
 CTwoFactorAuthSettingsFormView.prototype.addSecurityKey = function ()
 {
 	this.addingSecurityKey(true);
-	Ajax.send('TwoFactorAuth', 'RegisterSecurityKeyAuthenticatorBegin', {}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+	Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin = function (oResponse) {
@@ -210,12 +226,12 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 						'clientDataJSON': _arrayBufferToBase64(cred.response.clientDataJSON)
 					}
 				};
-				Ajax.send('TwoFactorAuth', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
+				Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
 					this.onRegisterSecurityKeyAuthenticatorFinish, this);
 			})
 			.catch((err) => {
-				console.log("ERROR", err);
-				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
+				console.log("ERROR", typeof err, err);
+//				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
 			});
 	}
 	else
@@ -224,16 +240,77 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 	}
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorFinish = function (oResponse) {
-	console.log(oResponse && oResponse.Result);
+CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorFinish = function (oResponse)
+{
 	if (oResponse && oResponse.Result)
 	{
-		
+		Popups.showPopup(SetupSecurityKeyNamePopup, [oResponse.Result, '', this.addCreatedSecurityKey.bind(this)]);
 	}
 	else
 	{
 		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
 	}
+};
+
+CTwoFactorAuthSettingsFormView.prototype.addCreatedSecurityKey = function (iId, sName)
+{
+	this.securityKeys.push({
+		'Id': iId,
+		'Name': sName,
+	});
+};
+
+CTwoFactorAuthSettingsFormView.prototype.askNewSecurityKeyName = function (iId, sName)
+{
+	Popups.showPopup(SetupSecurityKeyNamePopup, [iId, sName, this.updateSecurityKeyName.bind(this)]);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.updateSecurityKeyName = function (iId, sName)
+{
+	_.each(this.securityKeys(), function (oSecurityKey) {
+		if (oSecurityKey.Id === iId)
+		{
+			oSecurityKey.Name = sName;
+		}
+	});
+};
+
+CTwoFactorAuthSettingsFormView.prototype.askRemoveSecurityKey = function (iId, sName)
+{
+	var sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_REMOVE_SECURITY_KEY', {
+		'KEYNAME': sName
+	});
+	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bRemoveKey) {
+		if (bRemoveKey)
+		{
+			this.removeSecurityKey(iId);
+		}
+	}, this)]);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.removeSecurityKey = function (iId)
+{
+	Ajax.send(
+		'%ModuleName%',
+		'DeleteWebAuthnKey', 
+		{
+			'KeyId': iId,
+		},
+		function (oResponse) {
+			if (oResponse && oResponse.Result)
+			{
+				this.securityKeys(_.filter(this.securityKeys(), function (oSecurityKey) {
+					return oSecurityKey.Id !== iId
+				}));
+				Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_DELETE_SECURITY_KEY'));
+			}
+			else
+			{
+				Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_DELETE_SECURITY_KEY'));
+			}
+		},
+		this
+	);
 };
 
 module.exports = new CTwoFactorAuthSettingsFormView();

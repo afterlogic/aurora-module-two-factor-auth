@@ -15,8 +15,8 @@
 				</div>
 			</div>
 			<div class="buttons">
-				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_PIN'}, click: verifyPin, visible: !inPropgress()"></span>
-				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_PIN_IN_PROGRESS'}, visible: inPropgress()"></span>
+				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_PIN'}, click: verifyPin, visible: !inProgress()"></span>
+				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_PIN_IN_PROGRESS'}, visible: inProgress()"></span>
 				<span class="button contour_button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_SECURITY_KEY'}, click: verifySecurityKey, visible: bAllowYubikey && !verifyingSecurityKey()"></span>
 				<span class="button contour_button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_PIN_IN_PROGRESS'}, visible: bAllowYubikey && verifyingSecurityKey()"></span>
 				<span class="button contour_button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_USE_BACKUP_CODE'}, click: useBackupCode, visible: bAllowBackupCodes && hasBackupCodes()"></span>
@@ -36,8 +36,8 @@
 				</div>
 			</div>
 			<div class="buttons">
-				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_BACKUP_CODE'}, click: verifyBackupCode, visible: !inPropgress()"></span>
-				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_BACKUP_CODE_IN_PROGRESS'}, visible: inPropgress()"></span>
+				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_BACKUP_CODE'}, click: verifyBackupCode, visible: !inProgress()"></span>
+				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_BACKUP_CODE_IN_PROGRESS'}, visible: inProgress()"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
 		</div>

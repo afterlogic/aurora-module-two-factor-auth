@@ -70,7 +70,7 @@ CShowBackupCodesPopup.prototype.getBackupCodes = function ()
 	this.backupCodes([]);
 	this.codesGeneratedDataInfo('');
 	this.generatingBackupCodes(true);
-	Ajax.send('TwoFactorAuth', 'GetBackupCodes', {}, function (Response) {
+	Ajax.send('%ModuleName%', 'GetBackupCodes', {}, function (Response) {
 		this.generatingBackupCodes(false);
 		this.parseBackupCodes(Response);
 	}, this);
@@ -92,7 +92,7 @@ CShowBackupCodesPopup.prototype.confirmGenerateNewBackupCodes = function ()
 CShowBackupCodesPopup.prototype.generateBackupCodes = function ()
 {
 	this.generatingBackupCodes(true);
-	Ajax.send('TwoFactorAuth', 'GenerateBackupCodes', {}, function (Response) {
+	Ajax.send('%ModuleName%', 'GenerateBackupCodes', {}, function (Response) {
 		this.generatingBackupCodes(false);
 		this.parseBackupCodes(Response);
 		if (this.backupCodes().length > 0)
