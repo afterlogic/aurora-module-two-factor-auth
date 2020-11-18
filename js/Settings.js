@@ -37,7 +37,6 @@ module.exports = {
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowYubikey = Types.pBool(oAppDataSection.AllowYubikey, this.AllowYubikey);
 			this.SecurityKeys = [];
-			console.log('oAppDataSection.WebAuthKeysInfo', oAppDataSection.WebAuthKeysInfo);
 			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
 			{
 				_.each(oAppDataSection.WebAuthKeysInfo, function (aSecurityKeyData) {
@@ -45,12 +44,11 @@ module.exports = {
 					{
 						this.SecurityKeys.push({
 							'Id': aSecurityKeyData[0],
-							'Name': aSecurityKeyData[1]
+							'keyName': ko.observable(aSecurityKeyData[1])
 						});
 					}
 				}.bind(this));
 			}
-			console.log('this.SecurityKeys', this.SecurityKeys);
 			this.checkIfEnabled();
 		}
 	},

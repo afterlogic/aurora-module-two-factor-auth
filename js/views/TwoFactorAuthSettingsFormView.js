@@ -83,7 +83,6 @@ CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 
 CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (sEditVerificator, Response)
 {
-	console.log(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode);
 	if(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode)
 	{
 		this.sEditVerificator = sEditVerificator;
@@ -237,7 +236,6 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 			})
 			.catch((err) => {
 				console.log("ERROR", typeof err, err);
-//				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_ADD_SECURITY_KEY'));
 			});
 	}
 	else
@@ -262,13 +260,13 @@ CTwoFactorAuthSettingsFormView.prototype.addCreatedSecurityKey = function (iId, 
 {
 	this.securityKeys.push({
 		'Id': iId,
-		'Name': sName,
+		'keyName': ko.observable(sName),
 	});
 };
 
 CTwoFactorAuthSettingsFormView.prototype.askNewSecurityKeyName = function (iId, sName)
 {
-	Popups.showPopup(SetupSecurityKeyNamePopup, [iId, sName, this.updateSecurityKeyName.bind(this)]);
+	Popups.showPopup(SetupSecurityKeyNamePopup, [this.sEditVerificator, iId, sName, this.updateSecurityKeyName.bind(this)]);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.updateSecurityKeyName = function (iId, sName)
@@ -276,9 +274,10 @@ CTwoFactorAuthSettingsFormView.prototype.updateSecurityKeyName = function (iId, 
 	_.each(this.securityKeys(), function (oSecurityKey) {
 		if (oSecurityKey.Id === iId)
 		{
-			oSecurityKey.Name = sName;
+			oSecurityKey.keyName(sName);
 		}
 	});
+	this.securityKeys.valueHasMutated();
 };
 
 CTwoFactorAuthSettingsFormView.prototype.askRemoveSecurityKey = function (iId, sName)

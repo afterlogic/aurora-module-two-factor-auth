@@ -66,11 +66,15 @@
 					<div class="row hint">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEYS'}"></span>
 					</div>
-					<div class="row" data-bind="foreach: securityKeys">
-						<div>
-							<span data-bind="text: Name || '[Security Key]'"></span>
-							<a href="javascript: void(0);" data-bind="click: function () { $parent.askNewSecurityKeyName(Id, Name);}, i18n: {'key': '%MODULENAME%/ACTION_RENAME'}"></a>
-							<a href="javascript: void(0);" data-bind="click: function () { $parent.askRemoveSecurityKey(Id, Name); }, i18n: {'key': 'COREWEBCLIENT/ACTION_DELETE'}"></a>
+					<div class="row" data-bind="visible: securityKeys().length > 0">
+						<div class="items_list simple_list" style="margin: 0;">
+							<div data-bind="foreach: securityKeys">
+								<div class="item account">
+									<span class="title" data-bind="text: keyName() || '[Security Key]'"></span>
+									<span class="link fetcher" data-bind="click: function () { $parent.askRemoveSecurityKey(Id, keyName()); }, i18n: {'key': 'COREWEBCLIENT/ACTION_DELETE'}"></span>
+									<span class="link fetcher" data-bind="click: function () { $parent.askNewSecurityKeyName(Id, keyName());}, i18n: {'key': '%MODULENAME%/ACTION_RENAME'}"></span>
+								</div>
+							</div>
 						</div>
 					</div>
 					<div class="row buttons" style="text-align: left; margin: 0;">

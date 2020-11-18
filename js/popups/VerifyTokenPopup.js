@@ -215,7 +215,6 @@ CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oR
 };
 
 CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (oResponse) {
-	console.log(oResponse && oResponse.Result);
 	if (oResponse && oResponse.Result)
 	{
 		if (_.isFunction(this.onConfirm))
