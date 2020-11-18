@@ -467,29 +467,46 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	public function VerifySecurityKeyAuthenticatorBegin()
+	public function VerifySecurityKeyAuthenticatorBegin($Login, $Password)
 	{
 		$getArgs = false;
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-		{
-			$ids = [];
-			$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
-			$aSecurityKeyData = \json_decode($sSecurityKeyData);
-			if (!s_array($aSecurityKeyData))
-			{
-				foreach ($aSecurityKeyData as $data)
-				{
-					$ids[] = \base64_decode($data->credentialId);
-				}
-			}
 
-			if (count($ids) > 0)
+		self::$VerifyState = true;
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyState = false;
+
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		{
+			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 			{
-				$getArgs = $this->oWebAuthn->getGetArgs(
-					$ids,
-					90
-				);
+				$ids = [];
+				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
+				$aSecurityKeyData = \json_decode($sSecurityKeyData);
+				if (is_array($aSecurityKeyData))
+				{
+					foreach ($aSecurityKeyData as $data)
+					{
+						$ids[] = \base64_decode($data->credentialId);
+					}
+				}
+
+				if (count($ids) > 0)
+				{
+					$getArgs = $this->oWebAuthn->getGetArgs(
+						$ids,
+						90
+					);
+					$getArgs->publicKey->challenge = \base64_encode($getArgs->publicKey->challenge->getBinaryString());
+					if (is_array($getArgs->publicKey->allowCredentials))
+					{
+						foreach ($getArgs->publicKey->allowCredentials as $key => $val)
+						{
+							$val->id = \base64_encode($val->id->getBinaryString());
+							$getArgs->publicKey->allowCredentials[$key] = $val;
+						}
+					}
+				}
 			}
 		}
 
@@ -509,37 +526,41 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				$clientDataJSON = base64_decode($Attestation->clientDataJSON);
-				$authenticatorData = base64_decode($Attestation->authenticatorData);
-				$signature = base64_decode($Attestation->signature);
-				$id = base64_decode($Attestation->id);
+				$clientDataJSON = base64_decode($Attestation['clientDataJSON']);
+				$authenticatorData = base64_decode($Attestation['authenticatorData']);
+				$signature = base64_decode($Attestation['signature']);
+				$id = base64_decode($Attestation['id']);
 				$credentialPublicKey = null;
 
-				$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
+				$challenge =$oUser->{$this->GetName().'::Challenge'};
 
 				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
 				$aSecurityKeyData = \json_decode($sSecurityKeyData);
-				if (!s_array($aSecurityKeyData))
+				if (is_array($aSecurityKeyData))
 				{
 					foreach ($aSecurityKeyData as $data)
 					{
-						if ($data->credentialId === $id)
+						if (\base64_decode($data->credentialId) === $id)
 						{
-							$credentialPublicKey = $data->credentialPublicKey;
+							$credentialPublicKey = \base64_decode($data->credentialPublicKey);
 							break;
 						}
 					}
 				}
 
-				if ($credentialPublicKey === null)
+				if ($credentialPublicKey !== null)
 				{
-					throw new Exception('Public Key for credential ID not found!');
+					try
+					{
+						// process the get request. throws WebAuthnException if it fails
+						$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
+						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+					}
+					catch (\Exception $oEx)
+					{
+						$mResult = false;
+					}
 				}
-
-				// process the get request. throws WebAuthnException if it fails
-				$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, $userVerification === 'required');
-
-				$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 			}
 		}
 	}

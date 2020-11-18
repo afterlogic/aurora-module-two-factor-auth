@@ -173,7 +173,7 @@ function _arrayBufferToBase64( buffer ) {
 CVerifyTokenPopup.prototype.verifySecurityKey = function ()
 {
 	this.verifyingSecurityKey(true);
-	Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorBegin', {}, this.onVerifySecurityKeyAuthenticatorBegin, this);
+	Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorBegin', {'Login': this.Login, 'Password': this.Password}, this.onVerifySecurityKeyAuthenticatorBegin, this);
 };
 
 CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oResponse) {
@@ -182,7 +182,10 @@ CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oR
 	{
 		var oGetArgs = oResponse.Result;
 		oGetArgs.publicKey.challenge = _base64ToArrayBuffer(oGetArgs.publicKey.challenge);
-		oGetArgs.publicKey.user.id = _base64ToArrayBuffer(oGetArgs.publicKey.user.id);
+		oGetArgs.publicKey.allowCredentials.forEach(element => {
+			element.id = _base64ToArrayBuffer(element.id);
+		});
+
 		console.log("GET ARGS", oGetArgs);
 		navigator.credentials.get(oGetArgs)
 			.then((cred) => {
