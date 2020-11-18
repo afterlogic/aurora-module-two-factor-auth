@@ -31,8 +31,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'IsEncryptedSecret' => ['bool', false],
 				'BackupCodes' => ['string', '', false],
 				'BackupCodesTimestamp' => ['string', '', false],
-				'Challenge' => ['string', '', false],
-				'SecurityKeyData' => ['text', '', false]
+				'Challenge' => ['string', '', false]
+//				'SecurityKeyData' => ['text', '', false]
 			]
 		);
 
@@ -73,12 +73,27 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
 			$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
 			$aNotUsedBackupCodes = array_filter($aBackupCodes, function($sCode) { return !empty($sCode); });
+
+			$aWebAuthKeysInfo = [];
+			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['Name'])
+				->where(['UserId' => $oUser->EntityId])
+				->exec();
+			foreach ($aWebAuthnKeys as $oWebAuthnKey)
+			{
+				$aWebAuthKeysInfo[] = [
+					$oWebAuthnKey->EntityId,
+					$oWebAuthnKey->Name
+				];
+			}
+
 			return [
 				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
 				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 				'AllowYubikey' => $this->getConfig('AllowYubikey', false),
 				'BackupCodesCount' => count($aNotUsedBackupCodes),
+				'WebAuthKeysInfo' => $aWebAuthKeysInfo
 			];
 		}
 
@@ -389,13 +404,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
+				$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+					->select(['KeyData'])
+					->where(['UserId' => $oUser->EntityId])
+					->count()
+					->exec();
+
 				// $oUser->{$this->GetName().'::SecurityKeyData'} somehow is false by default (for admin, for example), so $oUser->{$this->GetName().'::SecurityKeyData'} !== '' condition doesn't work
-				if ( !empty($oUser->{$this->GetName().'::Secret'}) || !empty($oUser->{$this->GetName().'::SecurityKeyData'}))
+				if ( !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0)
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
 							'AuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
-							'SecurityKey' => ($oUser->{$this->GetName().'::SecurityKeyData'} !== ''),
+							'SecurityKey' => ($iWebAuthnKeyCount > 0),
 							'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
 						]
 					];
@@ -444,22 +465,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 			);
 			$data->credentialId = \base64_encode($data->credentialId);
 			$data->AAGUID = \base64_encode($data->AAGUID);
-			$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
-			$aSecurityKeyData = \json_decode($sSecurityKeyData);
-			if (!is_array($aSecurityKeyData))
-			{
-				$aSecurityKeyData = [];
-			}
-			$aSecurityKeyData[] = $data;
-			$sEncodedSecurityKeyData  = \json_encode($aSecurityKeyData);
+
+			$sEncodedSecurityKeyData = \json_encode($data);
 			if ($sEncodedSecurityKeyData === false)
 			{
 				throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UnknownError, null, json_last_error_msg());
 			}
 			else
 			{
-				$oUser->{$this->GetName().'::SecurityKeyData'} = $sEncodedSecurityKeyData;
-				return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+				$oWebAuthnKey = new Classes\WebAuthnKey();
+				$oWebAuthnKey->UserId = $oUser->EntityId;
+				$oWebAuthnKey->KeyData = $sEncodedSecurityKeyData;
+				$oWebAuthnKey->CreationDateTime = time();
+
+				return $oWebAuthnKey->save();
 			}
 		}
 		else
@@ -482,13 +501,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 			{
 				$ids = [];
-				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
-				$aSecurityKeyData = \json_decode($sSecurityKeyData);
-				if (is_array($aSecurityKeyData))
+				$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+					->select(['KeyData'])
+					->where(['UserId' => $oUser->EntityId])
+					->exec();
+
+				if (is_array($aWebAuthnKeys))
 				{
-					foreach ($aSecurityKeyData as $data)
+					foreach ($aWebAuthnKeys as $oWebAuthnKey)
 					{
-						$ids[] = \base64_decode($data->credentialId);
+						$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+						$ids[] = \base64_decode($oKeyData->credentialId);
 					}
 				}
 
@@ -538,15 +561,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 				$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
 
-				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
-				$aSecurityKeyData = \json_decode($sSecurityKeyData);
-				if (is_array($aSecurityKeyData))
+				$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+					->select(['KeyData'])
+					->where(['UserId' => $oUser->EntityId])
+					->exec();
+
+				if (is_array($aWebAuthnKeys))
 				{
-					foreach ($aSecurityKeyData as $data)
+					foreach ($aWebAuthnKeys as $oWebAuthnKey)
 					{
-						if (\base64_decode($data->credentialId) === $id)
+						$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+						if (\base64_decode($oKeyData->credentialId) === $id)
 						{
-							$credentialPublicKey = $data->credentialPublicKey;
+							$credentialPublicKey = $oKeyData->credentialPublicKey;
 							break;
 						}
 					}
@@ -566,6 +593,55 @@ class Module extends \Aurora\System\Module\AbstractModule
 						$mResult = false;
 					}
 				}
+			}
+		}
+
+		return $mResult;
+	}
+
+	public function UpdateWebAuthnKeyName($KeyId, $Name)
+	{
+		$mResult = false;
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['KeyData'])
+				->where(
+					[
+						'UserId' => $oUser->EntityId,
+						'EntityId' => $KeyId
+					])
+				->one()
+				->exec();
+			if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+			{
+				$oWebAuthnKey->Name = $Name;
+				$mResult = !!$oWebAuthnKey->save();
+			}
+		}
+
+		return $mResult;
+	}
+
+	public function DeleteWebAuthnKey($KeyId)
+	{
+		$mResult = false;
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['KeyData'])
+				->where(
+					[
+						'UserId' => $oUser->EntityId,
+						'EntityId' => $KeyId
+					])
+				->one()
+				->exec();
+			if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+			{
+				$mResult = $oWebAuthnKey->delete();
 			}
 		}
 
