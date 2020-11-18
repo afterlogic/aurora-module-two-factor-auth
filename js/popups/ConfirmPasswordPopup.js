@@ -57,7 +57,7 @@ CConfirmPasswordPopup.prototype.onGetVerifyResponse = function (oResponse)
 	{
 		if (_.isFunction(this.onConfirm))
 		{
-			this.onConfirm(oResponse);
+			this.onConfirm(this.password(), oResponse);
 		}
 		this.closePopup();
 		this.password('');

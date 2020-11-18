@@ -48,7 +48,7 @@ function CTwoFactorAuthSettingsFormView()
 			this.populateSettings();
 		}
 	}, this);
-	this.isPasswordVerified = ko.observable(false);
+	this.sEditVerificator = '';
 	this.isShowSecret = ko.observable(false);
 	this.isValidatingPin = ko.observable(false);
 	this.QRCodeSrc = ko.observable('');
@@ -81,10 +81,12 @@ CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 	]);
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (Response)
+CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (sEditVerificator, Response)
 {
+	console.log(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode);
 	if(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode)
 	{
+		this.sEditVerificator = sEditVerificator;
 		this.QRCodeSrc(Response.Result.QRcode);
 		this.secret(Response.Result.Secret);
 		this.isShowSecret(true);
@@ -110,6 +112,7 @@ CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
 		'%ModuleName%',
 		'TwoFactorAuthSave', 
 		{
+			'Password': this.sEditVerificator,
 			'Pin': this.pin(),
 			'Secret': this.secret()
 		},
@@ -173,7 +176,7 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 {
 	if (this.allowBackupCodes())
 	{
-		Popups.showPopup(ShowBackupCodesPopup, [function (bGenerated, iBackupCodesCount) {
+		Popups.showPopup(ShowBackupCodesPopup, [this.sEditVerificator, function (bGenerated, iBackupCodesCount) {
 			if (bGenerated)
 			{
 				Settings.updateBackupCodesCount(iBackupCodesCount);
@@ -206,7 +209,9 @@ function _arrayBufferToBase64( buffer ) {
 CTwoFactorAuthSettingsFormView.prototype.addSecurityKey = function ()
 {
 	this.addingSecurityKey(true);
-	Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+	Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {
+		'Password': this.sEditVerificator
+	}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin = function (oResponse) {
@@ -221,6 +226,7 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 			.then((cred) => {
 				console.log("NEW CREDENTIAL", cred);
 				var oParams = {
+					'Password': this.sEditVerificator,
 					'Attestation': {
 						'attestationObject': _arrayBufferToBase64(cred.response.attestationObject),
 						'clientDataJSON': _arrayBufferToBase64(cred.response.clientDataJSON)
@@ -244,7 +250,7 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorFinis
 {
 	if (oResponse && oResponse.Result)
 	{
-		Popups.showPopup(SetupSecurityKeyNamePopup, [oResponse.Result, '', this.addCreatedSecurityKey.bind(this)]);
+		Popups.showPopup(SetupSecurityKeyNamePopup, [this.sEditVerificator, oResponse.Result, '', this.addCreatedSecurityKey.bind(this)]);
 	}
 	else
 	{
@@ -294,6 +300,7 @@ CTwoFactorAuthSettingsFormView.prototype.removeSecurityKey = function (iId)
 		'%ModuleName%',
 		'DeleteWebAuthnKey', 
 		{
+			'Password': this.sEditVerificator,
 			'KeyId': iId,
 		},
 		function (oResponse) {

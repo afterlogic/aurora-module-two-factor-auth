@@ -20,6 +20,7 @@ function CSetupSecurityKeyNamePopup()
 {
 	CAbstractPopup.call(this);
 
+	this.sEditVerificator = '';
 	this.sName = '';
 	this.iId = 0;
 	this.name = ko.observable('');
@@ -32,8 +33,9 @@ _.extendOwn(CSetupSecurityKeyNamePopup.prototype, CAbstractPopup.prototype);
 
 CSetupSecurityKeyNamePopup.prototype.PopupTemplate = '%ModuleName%_SetupSecurityKeyNamePopup';
 
-CSetupSecurityKeyNamePopup.prototype.onOpen = function (iId, sName, fCallback)
+CSetupSecurityKeyNamePopup.prototype.onOpen = function (sEditVerificator, iId, sName, fCallback)
 {
+	this.sEditVerificator = sEditVerificator;
 	this.iId = iId;
 	this.name(sName);
 	this.nameFocus(true);
@@ -48,6 +50,7 @@ CSetupSecurityKeyNamePopup.prototype.save = function ()
 		'%ModuleName%',
 		'UpdateWebAuthnKeyName', 
 		{
+			'Password': this.sEditVerificator,
 			'KeyId': this.iId,
 			'Name': this.name()
 		},

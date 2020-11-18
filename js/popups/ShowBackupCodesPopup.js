@@ -27,6 +27,8 @@ function CShowBackupCodesPopup()
 {
 	CAbstractPopup.call(this);
 	
+	this.sEditVerificator = '';
+	
 	this.backupCodes = ko.observableArray([]);
 
 	this.codesGeneratedDataInfo = ko.observable('');
@@ -41,8 +43,9 @@ _.extendOwn(CShowBackupCodesPopup.prototype, CAbstractPopup.prototype);
 
 CShowBackupCodesPopup.prototype.PopupTemplate = '%ModuleName%_ShowBackupCodesPopup';
 
-CShowBackupCodesPopup.prototype.onOpen = function (fCallBack)
+CShowBackupCodesPopup.prototype.onOpen = function (sEditVerificator, fCallBack)
 {
+	this.sEditVerificator = sEditVerificator;
 	this.fCallBack = fCallBack;
 	this.codesWereGenerated(false);
 	if (Settings.BackupCodesCount > 0)
@@ -70,7 +73,9 @@ CShowBackupCodesPopup.prototype.getBackupCodes = function ()
 	this.backupCodes([]);
 	this.codesGeneratedDataInfo('');
 	this.generatingBackupCodes(true);
-	Ajax.send('%ModuleName%', 'GetBackupCodes', {}, function (Response) {
+	Ajax.send('%ModuleName%', 'GetBackupCodes', {
+		'Password': this.sEditVerificator
+	}, function (Response) {
 		this.generatingBackupCodes(false);
 		this.parseBackupCodes(Response);
 	}, this);
@@ -92,7 +97,9 @@ CShowBackupCodesPopup.prototype.confirmGenerateNewBackupCodes = function ()
 CShowBackupCodesPopup.prototype.generateBackupCodes = function ()
 {
 	this.generatingBackupCodes(true);
-	Ajax.send('%ModuleName%', 'GenerateBackupCodes', {}, function (Response) {
+	Ajax.send('%ModuleName%', 'GenerateBackupCodes', {
+		'Password': this.sEditVerificator
+	}, function (Response) {
 		this.generatingBackupCodes(false);
 		this.parseBackupCodes(Response);
 		if (this.backupCodes().length > 0)
