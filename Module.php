@@ -29,10 +29,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'Secret' => ['string', '', false, true],
 				'ShowRecommendationToConfigure' => ['bool', true],
 				'IsEncryptedSecret' => ['bool', false],
-				'BackupCodes' => ['string', false],
-				'BackupCodesTimestamp' => ['string', false],
-				'Challenge' => ['string', false],
-				'SecurityKeyData' => ['text', false]
+				'BackupCodes' => ['string', '', false],
+				'BackupCodesTimestamp' => ['string', '', false],
+				'Challenge' => ['string', '', false],
+				'SecurityKeyData' => ['text', '', false]
 			]
 		);
 
@@ -443,6 +443,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				false
 			);
 			$data->credentialId = \base64_encode($data->credentialId);
+			$data->AAGUID = \base64_encode($data->AAGUID);
 			$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
 			$aSecurityKeyData = \json_decode($sSecurityKeyData);
 			if (!is_array($aSecurityKeyData))
