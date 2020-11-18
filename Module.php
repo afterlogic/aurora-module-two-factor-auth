@@ -507,6 +507,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 							$getArgs->publicKey->allowCredentials[$key] = $val;
 						}
 					}
+
+					$oUser->{$this->GetName().'::Challenge'} = $getArgs->publicKey->challenge;
+					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 				}
 			}
 		}
@@ -533,7 +536,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$id = base64_decode($Attestation['id']);
 				$credentialPublicKey = null;
 
-				$challenge =$oUser->{$this->GetName().'::Challenge'};
+				$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
 
 				$sSecurityKeyData = $oUser->{$this->GetName().'::SecurityKeyData'};
 				$aSecurityKeyData = \json_decode($sSecurityKeyData);
@@ -543,7 +546,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					{
 						if (\base64_decode($data->credentialId) === $id)
 						{
-							$credentialPublicKey = \base64_decode($data->credentialPublicKey);
+							$credentialPublicKey = $data->credentialPublicKey;
 							break;
 						}
 					}
@@ -559,10 +562,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 					}
 					catch (\Exception $oEx)
 					{
+						throw new \Aurora\System\Exceptions\ApiException(999, $oEx, $oEx->getMessage());
 						$mResult = false;
 					}
 				}
 			}
 		}
+
+		return $mResult;
 	}
 }
