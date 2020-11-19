@@ -36,6 +36,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 			]
 		);
 
+		\Aurora\System\Router::getInstance()->register(
+			self::GetName(),
+			'assetlinks',
+			[$this, 'EntryAssetlinks']
+		);
+
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
 
 		$this->oWebAuthn = new \WebAuthn\WebAuthn(
@@ -708,5 +714,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		return $mResult;
+	}
+
+	public function EntryAssetlinks()
+	{
+		@header('Content-Type: application/json; charset=utf-8');
+		echo '[
+	{
+		"relation": [
+			"delegate_permission/common.handle_all_urls",
+			"delegate_permission/common.get_login_creds"
+		],
+		"target": {
+			"namespace": "aurora_mail",
+			"package_name": "com.afterlogic.aurora.mail",
+			"sha256_cert_fingerprints": [
+				"7D:B1:0D:4E:F0:92:79:1F:80:C0:95:79:AE:BA:C1:B1:BF:7C:A7:E8:C4:C3:47:39:49:23:8C:BA:5F:CA:C1:A2"
+			]
+		}
+	}
+]';
 	}
 }
