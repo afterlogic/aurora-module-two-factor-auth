@@ -62,6 +62,11 @@ module.exports = {
 	{
 		this.BackupCodesCount = iBackupCodesCount;
 	},
+
+	updateAuthenticatorApp: function (bEnableTwoFactorAuth)
+	{
+		this.EnableTwoFactorAuth = !!bEnableTwoFactorAuth;
+	},
 	
 	checkIfEnabled: function ()
 	{

@@ -5,7 +5,7 @@
 <div class="panel_center">
 	<div class="fields">
 		<!-- password is not verified yet -->
-		<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth() && !isShowSecret()">
+		<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth() && !passwordVerified()">
 			<div class="row hint" style="margin: 0 -6px 12px;">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH'}"></span>
 			</div>
@@ -18,7 +18,7 @@
 				</span>
 			</div>
 		</div>
-		<div class="fieldset" data-bind="visible: isEnabledTwoFactorAuth() && !isShowSecret()">
+		<div class="fieldset" data-bind="visible: isEnabledTwoFactorAuth() && !passwordVerified()">
 			<div class="row hint" style="margin: 0 -6px 12px;">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_ENABLED'}"></span>
 			</div>
@@ -31,7 +31,7 @@
 		
 		
 		<!-- password is verified -->
-		<!-- ko if: isShowSecret() && showOptions() -->
+		<!-- ko if: passwordVerified() -->
 			<div class="fieldset">
 				<div class="row hint" style="margin: 0 -6px;">
 					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_TWA_OPTIONS'}"></span>
@@ -42,18 +42,21 @@
 					<div class="row">
 						<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}" style="margin: 0;"></h3>
 					</div>
-					<div class="row hint" data-bind="visible: !isEnabledTwoFactorAuth()">
+					<div class="row hint" data-bind="visible: !hasAuthenticatorApp()">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP'}"></span>
 					</div>
-					<div class="row hint" data-bind="visible: isEnabledTwoFactorAuth">
+					<div class="row hint" data-bind="visible: hasAuthenticatorApp">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP_ENABLED'}"></span>
 					</div>
 					<div class="row buttons" style="text-align: left; margin: 0;">
-						<span class="button" data-bind="click: setupAuthenticatorApp, visible: !isEnabledTwoFactorAuth()">
+						<span class="button" data-bind="click: setupAuthenticatorApp, visible: !hasAuthenticatorApp()">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
 						</span>
-						<span class="button" data-bind="click: setupAuthenticatorApp, visible: isEnabledTwoFactorAuth">
+						<span class="button" data-bind="click: setupAuthenticatorApp, visible: hasAuthenticatorApp">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
+						</span>
+						<span class="button" data-bind="click: disableAuthenticatorApp, visible: hasAuthenticatorApp()" style="margin-left: 10px;">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
 						</span>
 					</div>
 				</div>
@@ -116,50 +119,6 @@
 					<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: hasBackupCodes">
 						<span class="button" data-bind="click: showBackupCodes">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SHOW_CODES'}"></span>
-						</span>
-					</div>
-				</div>
-			</div>
-		<!-- /ko -->
-			
-		<!-- ko if: isShowSecret() && showAuthenticatorAppOption() -->
-			<div class="fieldset">
-				<div class="row">
-					<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}" style="margin: 0;"></h3>
-				</div>
-				<div class="row hint">
-					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_USE'}"></span>
-				</div>
-				<div class="row buttons" data-bind="visible: isEnabledTwoFactorAuth()">
-					<span class="button" data-bind="click: disable" style="float: left;">
-						<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
-					</span>
-				</div>
-				<div class="fieldgroup">
-					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h3>
-					<span class="QRCode">
-						<img data-bind="attr: {src: QRCodeSrc}" />
-					</span>
-				</div>
-				<div class="fieldgroup">
-					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h3>
-					<span class="secret" data-bind="text: secret"></span>
-				</div>
-				<div class="fieldgroup">
-					<div class="row hint" style="margin: 0 -6px 12px;">
-						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
-					</div>
-					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-					<input id="pin" class="value input" type="text" data-bind="value: pin, hasFocus: pinFocus, valueUpdate: 'afterkeydown', onEnter: validateAuthenticatorCode">
-					<div class="buttons">
-						<span class="button" data-bind="click: validateAuthenticatorCode, visible: !isValidatingAuthenticatorCode()">
-							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
-						</span>
-						<span class="button" data-bind="visible: isValidatingAuthenticatorCode()">
-							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}"></span>
-						</span>
-						<span class="button secondary_button" data-bind="click: cancelSetupAuthenticatorApp">
-							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}"></span>
 						</span>
 					</div>
 				</div>

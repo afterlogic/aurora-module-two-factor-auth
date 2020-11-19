@@ -30,20 +30,21 @@ var
 function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
-	
-	this.bAllowSecurityKeys = Settings.AllowYubikey;
-	this.showAuthenticatorAppOption = ko.observable(false);
-	this.showOptions = ko.computed(function () {
-		return this.bAllowSecurityKeys && !this.showAuthenticatorAppOption();
-	}, this);
-	this.securityKeys = ko.observableArray(Settings.SecurityKeys);
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
+
+	this.bAllowSecurityKeys = Settings.AllowYubikey;
+
+	this.securityKeys = ko.observableArray(Settings.SecurityKeys);
+
 	this.hasBackupCodes = ko.observable(false);
 	this.infoShowBackupCodes = ko.observable('');
-	this.populateSettings();
 
-	this.isEnabledTwoFactorAuth = ko.observable(Settings.EnableTwoFactorAuth);
+	this.hasAuthenticatorApp = ko.observable(Settings.EnableTwoFactorAuth);
+
+	this.isEnabledTwoFactorAuth = ko.computed(function () {
+		return this.hasAuthenticatorApp() || this.securityKeys().length > 0;
+	}, this);
 	this.isEnabledTwoFactorAuth.subscribe(function () {
 		if (!this.isEnabledTwoFactorAuth())
 		{
@@ -51,77 +52,54 @@ function CTwoFactorAuthSettingsFormView()
 			this.populateSettings();
 		}
 	}, this);
+
 	this.sEditVerificator = '';
-	this.isShowSecret = ko.observable(false);
-	this.isValidatingAuthenticatorCode = ko.observable(false);
-	this.QRCodeSrc = ko.observable('');
-	this.secret = ko.observable('');
-	this.pin = ko.observable('');
-	this.pinFocus = ko.observable(false);
-	
+	this.passwordVerified = ko.observable(false);
+
 	this.allowBackupCodes = ko.computed(function () {
-		return Settings.AllowBackupCodes && (this.isEnabledTwoFactorAuth() || this.securityKeys().length > 0) && this.isShowSecret();
+		return Settings.AllowBackupCodes && (this.hasAuthenticatorApp() || this.securityKeys().length > 0) && this.passwordVerified();
 	}, this);
 
 	this.addingSecurityKey = ko.observable(false);
+
+	this.populateSettings();
 }
 
 _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
 
 CTwoFactorAuthSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFactorAuthSettingsFormView';
 
+CTwoFactorAuthSettingsFormView.prototype.onShow = function () {
+	this.sEditVerificator = '';
+	this.passwordVerified(false);
+	this.populateSettings();
+};
+
 CTwoFactorAuthSettingsFormView.prototype.populateSettings = function ()
 {
+	this.showRecommendationToConfigure(Settings.ShowRecommendationToConfigure);
+
+	this.hasAuthenticatorApp(Settings.EnableTwoFactorAuth);
+
 	this.hasBackupCodes(Settings.BackupCodesCount > 0);
 	this.infoShowBackupCodes(this.hasBackupCodes() ? TextUtils.i18n('%MODULENAME%/INFO_SHOW_BACKUP_CODES', { 'COUNT': Settings.BackupCodesCount }) : '');
 };
 
 CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 {
-	Popups.showPopup(ConfirmPasswordPopup, [
-		_.bind(this.onConfirmPassword, this),
-		'EnableTwoFactorAuth'
-	]);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (sEditVerificator, Response)
-{
-	if(Response && Response.Result && Response.Result.Secret && Response.Result.QRcode)
-	{
+	Popups.showPopup(ConfirmPasswordPopup, [function (sEditVerificator) {
 		this.sEditVerificator = sEditVerificator;
-		this.QRCodeSrc(Response.Result.QRcode);
-		this.secret(Response.Result.Secret);
-		this.isShowSecret(true);
+		this.passwordVerified(true);
 		this.disableShowRecommendation();
-	}
+	}.bind(this)]);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.setupAuthenticatorApp = function ()
 {
-//	Popups.showPopup(ConfigureAuthenticatorAppPopup, [this.sEditVerificator]);
-	this.showAuthenticatorAppOption(true);
-	this.pinFocus(true);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.cancelSetupAuthenticatorApp = function ()
-{
-	this.showAuthenticatorAppOption(false);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.validateAuthenticatorCode= function ()
-{
-	this.isValidatingAuthenticatorCode(true);
-	Ajax.send(
-		'%ModuleName%',
-		'TwoFactorAuthSave', 
-		{
-			'Password': this.sEditVerificator,
-			'AuthenticatorCode': this.pin(),
-			'Secret': this.secret()
-		},
-		this.onValidatingAuthenticatorCodeResponse,
-		this
-	);
+	Popups.showPopup(ConfigureAuthenticatorAppPopup, [this.sEditVerificator, function () {
+		Settings.updateAuthenticatorApp(true);
+		this.populateSettings();
+	}.bind(this)]);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
@@ -129,45 +107,18 @@ CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 	this.showRecommendationToConfigure(false);
 	Ajax.send('%ModuleName%', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
 		Settings.updateShowRecommendation(false);
-	});
+		this.populateSettings();
+	}.bind(this));
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onValidatingAuthenticatorCodeResponse = function (Response)
+CTwoFactorAuthSettingsFormView.prototype.disableAuthenticatorApp = function ()
 {
-	this.isValidatingAuthenticatorCode(false);
-	if(Response && Response.Result)
-	{
-		this.clear();
-	}
-	else
-	{
-		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
-	}
-};
-
-CTwoFactorAuthSettingsFormView.prototype.onShow = function ()
-{
-	this.clear();
-};
-
-CTwoFactorAuthSettingsFormView.prototype.clear = function ()
-{
-	this.QRCodeSrc('');
-	this.secret('');
-	this.pin('');
-	this.isShowSecret(false);
-	this.isEnabledTwoFactorAuth(false);
-	this.cancelSetupAuthenticatorApp();
-};
-
-CTwoFactorAuthSettingsFormView.prototype.disable = function ()
-{
-	Popups.showPopup(ConfirmPasswordPopup, [
-		_.bind(function () {
-			this.clear();
-		}, this),
-		'DisableTwoFactorAuth'
-	]);
+	var oParameters = {
+		'Password': this.sEditVerificator
+	};
+	Ajax.send('%ModuleName%', 'DisableTwoFactorAuth', oParameters);
+	Settings.updateAuthenticatorApp(false);
+	this.populateSettings();
 };
 
 CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()

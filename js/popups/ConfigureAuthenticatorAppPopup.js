@@ -9,6 +9,7 @@ var
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js')
 ;
@@ -21,15 +22,18 @@ function CConfigureAuthenticatorAppPopup()
 	CAbstractPopup.call(this);
 	
 	this.sEditVerificator = null;
+	this.fSuccessCallback = null;
 
-	this.QRCodeSrc = ko.observable('');
-	this.secret = ko.observable('');
-	this.pin = ko.observable('');
-	this.pinFocus = ko.observable(false);
+	this.authenticatorQRCodeUrl = ko.observable('');
+	this.authenticatorSecret = ko.observable('');
+	this.authenticatorCode = ko.observable('');
+	this.authenticatorCodeFocus = ko.observable(false);
 	this.saveInProgress = ko.observable(false);
 	
 	this.saveCommand = Utils.createCommand(this, this.save, function () {
-		return Types.isNonEmptyString(this.QRCodeSrc()) && Types.isNonEmptyString(this.secret()) && Types.isNonEmptyString(this.pin());
+		return Types.isNonEmptyString(this.authenticatorQRCodeUrl())
+			&& Types.isNonEmptyString(this.authenticatorSecret())
+			&& Types.isNonEmptyString(this.authenticatorCode());
 	});
 }
 
@@ -37,18 +41,19 @@ _.extendOwn(CConfigureAuthenticatorAppPopup.prototype, CAbstractPopup.prototype)
 
 CConfigureAuthenticatorAppPopup.prototype.PopupTemplate = '%ModuleName%_ConfigureAuthenticatorAppPopup';
 
-CConfigureAuthenticatorAppPopup.prototype.onOpen = function (sEditVerificator)
+CConfigureAuthenticatorAppPopup.prototype.onOpen = function (sEditVerificator, fSuccessCallback)
 {
 	this.sEditVerificator = sEditVerificator;
-	this.QRCodeSrc('');
-	this.secret('');
-	this.pin('');
-	this.pinFocus(false);
+	this.fSuccessCallback = fSuccessCallback;
+	this.authenticatorQRCodeUrl('');
+	this.authenticatorSecret('');
+	this.authenticatorCode('');
+	this.authenticatorCodeFocus(false);
 	this.saveInProgress(false);
-	this.enableTwoFactorAuth();
+	this.getAuthenticatorAppData();
 };
 
-CConfigureAuthenticatorAppPopup.prototype.enableTwoFactorAuth = function ()
+CConfigureAuthenticatorAppPopup.prototype.getAuthenticatorAppData = function ()
 {
 	var oParameters = {
 		'Password': this.sEditVerificator
@@ -62,9 +67,8 @@ CConfigureAuthenticatorAppPopup.prototype.onEnableTwoFactorAuth = function (oRes
 
 	if(oResult && oResult.Secret && oResult.QRcode)
 	{
-		this.QRCodeSrc(oResult.QRcode);
-		this.secret(oResult.Secret);
-		this.isShowSecret(true);
+		this.authenticatorQRCodeUrl(oResult.QRcode);
+		this.authenticatorSecret(oResult.Secret);
 	}
 	else
 	{
@@ -76,8 +80,8 @@ CConfigureAuthenticatorAppPopup.prototype.save = function ()
 {
 	var oParameters = {
 		'Password': this.sEditVerificator,
-		'AuthenticatorCode': this.pin(),
-		'Secret': this.secret()
+		'AuthenticatorCode': this.authenticatorCode(),
+		'Secret': this.authenticatorSecret()
 	};
 	this.saveInProgress(true);
 	Ajax.send('%ModuleName%', 'TwoFactorAuthSave', oParameters, this.onTwoFactorAuthSave, this);
@@ -88,17 +92,16 @@ CConfigureAuthenticatorAppPopup.prototype.onTwoFactorAuthSave = function (Respon
 	this.saveInProgress(false);
 	if(Response && Response.Result)
 	{
-		this.clear();
+		if (_.isFunction(this.fSuccessCallback))
+		{
+			this.fSuccessCallback();
+		}
+		this.closePopup();
 	}
 	else
 	{
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
 	}
-};
-
-CConfigureAuthenticatorAppPopup.prototype.cancelSetupAuthenticatorApp = function ()
-{
-	this.showAuthenticatorAppOption(false);
 };
 
 module.exports = new CConfigureAuthenticatorAppPopup();
