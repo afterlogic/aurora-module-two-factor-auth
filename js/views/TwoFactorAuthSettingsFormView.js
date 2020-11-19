@@ -17,6 +17,7 @@ var
 
 	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
 	
+	ConfigureAuthenticatorAppPopup = require('modules/%ModuleName%/js/popups/ConfigureAuthenticatorAppPopup.js'),
 	ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	SetupSecurityKeyNamePopup = require('modules/%ModuleName%/js/popups/SetupSecurityKeyNamePopup.js'),
@@ -97,6 +98,7 @@ CTwoFactorAuthSettingsFormView.prototype.onConfirmPassword = function (sEditVeri
 
 CTwoFactorAuthSettingsFormView.prototype.setupAuthenticatorApp = function ()
 {
+//	Popups.showPopup(ConfigureAuthenticatorAppPopup, [this.sEditVerificator]);
 	this.showAuthenticatorAppOption(true);
 	this.pinFocus(true);
 };
