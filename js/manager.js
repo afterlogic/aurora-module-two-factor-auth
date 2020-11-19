@@ -44,7 +44,7 @@ module.exports = function (oAppData) {
 					var
 						oLoginScreenView = oParams.View,
 						Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-						VerifyTokenPopup = require('modules/%ModuleName%/js/popups/VerifyTokenPopup.js')
+						VerifySecondFactorPopup = require('modules/%ModuleName%/js/popups/VerifySecondFactorPopup.js')
 					;
 
 					if (oLoginScreenView)
@@ -67,12 +67,13 @@ module.exports = function (oAppData) {
 							}
 
 							//if TwoFactorAuth enabled - trying to verify user token
-							if (oResponse.Result && oResponse.Result.TwoFactorAuth)
+							var oTwoFactorAuthData = oResponse.Result && oResponse.Result.TwoFactorAuth;
+							if (oTwoFactorAuthData)
 							{
-								Popups.showPopup(VerifyTokenPopup, [
+								Popups.showPopup(VerifySecondFactorPopup, [
 									_.bind(this.onSystemLoginResponseBase, this),
 									_.bind(function () { this.loading(false); }, this),
-									oResponse.Result.HasBackupCodes,
+									oTwoFactorAuthData,
 									oRequest.Parameters.Login,
 									oRequest.Parameters.Password
 								]);

@@ -430,7 +430,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$mResult = [
 						'TwoFactorAuth' => [
 							'AuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
-							'SecurityKey' => ($iWebAuthnKeyCount > 0),
+							'HasSecurityKey' => ($iWebAuthnKeyCount > 0),
 							'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
 						]
 					];

@@ -18,7 +18,7 @@ var
 /**
  * @constructor
  */
-function CVerifyTokenPopup()
+function CVerifySecondFactorPopup()
 {
 	CAbstractPopup.call(this);
 
@@ -42,24 +42,28 @@ function CVerifyTokenPopup()
 	this.Password = null;
 }
 
-_.extendOwn(CVerifyTokenPopup.prototype, CAbstractPopup.prototype);
+_.extendOwn(CVerifySecondFactorPopup.prototype, CAbstractPopup.prototype);
 
-CVerifyTokenPopup.prototype.PopupTemplate = '%ModuleName%_VerifyTokenPopup';
+CVerifySecondFactorPopup.prototype.PopupTemplate = '%ModuleName%_VerifySecondFactorPopup';
 
-CVerifyTokenPopup.prototype.onOpen = function (onConfirm, onCancel, bHasBackupCodes, Login, Password)
+CVerifySecondFactorPopup.prototype.onOpen = function (onConfirm, onCancel, oTwoFactorAuthData, Login, Password)
 {
 	this.onConfirm = onConfirm;
 	this.onCancel = onCancel;
 	this.showBackupCodesVerivication(false);
-	this.hasBackupCodes(bHasBackupCodes);
+	this.hasBackupCodes(oTwoFactorAuthData.HasBackupCodes);
 	this.backupCode('');
 	this.Login = Login;
 	this.Password = Password;
 	this.pin('');
 	this.pinFocused(true);
+	if (oTwoFactorAuthData.HasSecurityKey)
+	{
+		this.verifySecurityKey();
+	}
 };
 
-CVerifyTokenPopup.prototype.verifyPin = function ()
+CVerifySecondFactorPopup.prototype.verifyPin = function ()
 {
 	this.inProgress(true);
 	Ajax.send(
@@ -75,7 +79,7 @@ CVerifyTokenPopup.prototype.verifyPin = function ()
 	);
 };
 
-CVerifyTokenPopup.prototype.onGetVerifyResponse = function (oResponse)
+CVerifySecondFactorPopup.prototype.onGetVerifyResponse = function (oResponse)
 {
 	var oResult = oResponse.Result;
 
@@ -96,7 +100,7 @@ CVerifyTokenPopup.prototype.onGetVerifyResponse = function (oResponse)
 	this.inProgress(false);
 };
 
-CVerifyTokenPopup.prototype.cancelPopup = function ()
+CVerifySecondFactorPopup.prototype.cancelPopup = function ()
 {
 	if (_.isFunction(this.onCancel))
 	{
@@ -105,7 +109,7 @@ CVerifyTokenPopup.prototype.cancelPopup = function ()
 	this.closePopup();
 };
 
-CVerifyTokenPopup.prototype.useBackupCode = function ()
+CVerifySecondFactorPopup.prototype.useBackupCode = function ()
 {
 	if (this.bAllowBackupCodes && this.hasBackupCodes())
 	{
@@ -113,7 +117,7 @@ CVerifyTokenPopup.prototype.useBackupCode = function ()
 	}
 };
 
-CVerifyTokenPopup.prototype.verifyBackupCode = function ()
+CVerifySecondFactorPopup.prototype.verifyBackupCode = function ()
 {
 	this.inProgress(true);
 	Ajax.send(
@@ -129,7 +133,7 @@ CVerifyTokenPopup.prototype.verifyBackupCode = function ()
 	);
 };
 
-CVerifyTokenPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
+CVerifySecondFactorPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
 {
 	var oResult = oResponse.Result;
 
@@ -170,13 +174,13 @@ function _arrayBufferToBase64( buffer ) {
 	return window.btoa( binary );
 }
 
-CVerifyTokenPopup.prototype.verifySecurityKey = function ()
+CVerifySecondFactorPopup.prototype.verifySecurityKey = function ()
 {
 	this.verifyingSecurityKey(true);
 	Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorBegin', {'Login': this.Login, 'Password': this.Password}, this.onVerifySecurityKeyAuthenticatorBegin, this);
 };
 
-CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oResponse) {
+CVerifySecondFactorPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oResponse) {
 	this.verifyingSecurityKey(false);
 	if (oResponse && oResponse.Result)
 	{
@@ -214,7 +218,7 @@ CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oR
 	}
 };
 
-CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (oResponse) {
+CVerifySecondFactorPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (oResponse) {
 	if (oResponse && oResponse.Result)
 	{
 		if (_.isFunction(this.onConfirm))
@@ -229,4 +233,4 @@ CVerifyTokenPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (o
 	}
 };
 
-module.exports = new CVerifyTokenPopup();
+module.exports = new CVerifySecondFactorPopup();
