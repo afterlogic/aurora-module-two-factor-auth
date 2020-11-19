@@ -595,6 +595,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					->where(['UserId' => $oUser->EntityId])
 					->exec();
 
+				$oWebAuthnKey = null;
 				if (is_array($aWebAuthnKeys))
 				{
 					foreach ($aWebAuthnKeys as $oWebAuthnKey)
@@ -615,6 +616,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 						// process the get request. throws WebAuthnException if it fails
 						$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
 						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+						if (isset($oWebAuthnKey))
+						{
+							$oWebAuthnKey->LastUsageDateTime = time();
+							$oWebAuthnKey->saveAttribute('LastUsageDateTime');
+						}
 					}
 					catch (\Exception $oEx)
 					{
