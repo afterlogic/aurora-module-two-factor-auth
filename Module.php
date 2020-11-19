@@ -203,19 +203,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 	}
 
 	/**
-	 * Verifies user's Pin and saves Secret in case of success
+	 * Verifies user's AuthenticatorCode and saves Secret in case of success
 	 *
-	 * @param string $Pin
+	 * @param string $AuthenticatorCode
 	 * @param string $Secret
 	 * @return boolean
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 */
-	public function TwoFactorAuthSave($Pin, $Secret)
+	public function TwoFactorAuthSave($AuthenticatorCode, $Secret)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		$bResult = false;
-		if (!$Pin || !$Secret || empty($Pin) || empty($Secret))
+		if (!$AuthenticatorCode || !$Secret || empty($AuthenticatorCode) || empty($Secret))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
@@ -223,7 +223,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$iClockTolerance = $this->getConfig('ClockTolerance', 2);
 		$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 
-		$oStatus = $oGoogle->verifyCode($Secret, $Pin, $iClockTolerance);
+		$oStatus = $oGoogle->verifyCode($Secret, $AuthenticatorCode, $iClockTolerance);
 		if ($oStatus === true)
 		{
 			$oUser->{$this->GetName().'::Secret'} = \Aurora\System\Utils::EncryptValue($Secret);
@@ -266,17 +266,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 	/**
 	 * Verifies user's PIN and returns AuthToken in case of success
 	 *
-	 * @param string $Pin
+	 * @param string $AuthenticatorCode
 	 * @param int $UserId
 	 * @return bool|array
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 * @throws \Aurora\System\Exceptions\BaseException
 	 */
-	public function VerifyPin($Pin, $Login, $Password)
+	public function VerifyAuthenticatorCode($AuthenticatorCode, $Login, $Password)
 	{
 		$mResult = false;
 
-		if (!$Pin || empty($Pin) || empty($Login)  || empty($Password))
+		if (!$AuthenticatorCode || empty($AuthenticatorCode) || empty($Login)  || empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
@@ -299,7 +299,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					}
 					$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 					$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-					$oStatus = $oGoogle->verifyCode($sSecret, $Pin, $iClockTolerance);
+					$oStatus = $oGoogle->verifyCode($sSecret, $AuthenticatorCode, $iClockTolerance);
 					if ($oStatus)
 					{
 						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
@@ -429,7 +429,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
-							'AuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
+							'HasAuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
 							'HasSecurityKey' => ($iWebAuthnKeyCount > 0),
 							'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
 						]
@@ -516,7 +516,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-	public function VerifySecurityKeyAuthenticatorBegin($Login, $Password)
+	public function VerifySecurityKeyBegin($Login, $Password)
 	{
 		$getArgs = false;
 
@@ -569,7 +569,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return $getArgs;
 	}
 
-	public function VerifySecurityKeyAuthenticatorFinish($Login, $Password, $Attestation, $RequestId)
+	public function VerifySecurityKeyFinish($Login, $Password, $Attestation, $RequestId)
 	{
 		$mResult = true;
 

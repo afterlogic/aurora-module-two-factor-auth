@@ -12,6 +12,8 @@ var
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
+	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
+	
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -21,216 +23,258 @@ var
 function CVerifySecondFactorPopup()
 {
 	CAbstractPopup.call(this);
-
-	this.bAllowYubikey = Settings.AllowYubikey;
-	this.verifyingSecurityKey = ko.observable(false);
-
-	this.bAllowBackupCodes = Settings.AllowBackupCodes;
-	this.bAllowYubikey = Settings.AllowYubikey;
-	this.hasBackupCodes = ko.observable(false);
-	this.showBackupCodesVerivication = ko.observable(false);
-	this.backupCode = ko.observable(false);
 	
-	this.onConfirm = null;
-	this.onCancel = null;
-	this.pin = ko.observable('');
-	this.inProgress = ko.observable(false);
-	this.pinFocused = ko.observable(false);
 	this.isMobile = ko.observable(App.isMobile() || false);
+	
+	this.fAfterVerify = null;
+	this.fOnCancel = null;
+	this.login = ko.observable(null);
+	this.sPassword = null;
+	
+	this.verificationPassed = ko.observable(false);
+	this.verificationPassed.subscribe(function () {
+		if (this.verificationPassed())
+		{
+			this.closePopup();
+		}
+	}, this);
+	
+	this.allOptionsVisible = ko.observable(false);
+	this.securityKeyVisible = ko.observable(false);
+	this.authenticatorAppVisible = ko.observable(false);
+	this.backupCodesVisible = ko.observable(false);
 
-	this.Login = null;
-	this.Password = null;
+	this.hasSecurityKey = ko.observable(false);
+	this.securityKeyInProgress = ko.observable(false);
+	this.securityKeyError = ko.observable(false);
+
+	this.hasAuthenticatorApp = ko.observable(false);
+	this.authenticatorCode = ko.observable('');
+	this.authenticatorCodeFocused = ko.observable(false);
+	this.authenticatorCodeInProgress = ko.observable(false);
+	
+	this.hasBackupCodes = ko.observable(false);
+	this.backupCode = ko.observable(false);
+	this.backupCodeFocus = ko.observable(false);
+	this.backupCodeInProgress = ko.observable(false);
 }
 
 _.extendOwn(CVerifySecondFactorPopup.prototype, CAbstractPopup.prototype);
 
 CVerifySecondFactorPopup.prototype.PopupTemplate = '%ModuleName%_VerifySecondFactorPopup';
 
-CVerifySecondFactorPopup.prototype.onOpen = function (onConfirm, onCancel, oTwoFactorAuthData, Login, Password)
+CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, oTwoFactorAuthData, sLogin, sPassword)
 {
-	this.onConfirm = onConfirm;
-	this.onCancel = onCancel;
-	this.showBackupCodesVerivication(false);
-	this.hasBackupCodes(oTwoFactorAuthData.HasBackupCodes);
+	this.fAfterVerify = fAfterVerify;
+	this.fOnCancel = fOnCancel;
+	this.login(sLogin);
+	this.sPassword = sPassword;
+	
+	this.hasSecurityKey(Settings.AllowYubikey && oTwoFactorAuthData.HasSecurityKey);
+	this.hasAuthenticatorApp(oTwoFactorAuthData.HasAuthenticatorApp);
+	this.hasBackupCodes(Settings.AllowBackupCodes && oTwoFactorAuthData.HasBackupCodes);
+	
+	this.verificationPassed(false);
+	this.authenticatorCode('');
+	this.authenticatorCodeInProgress(false);
 	this.backupCode('');
-	this.Login = Login;
-	this.Password = Password;
-	this.pin('');
-	this.pinFocused(true);
-	if (oTwoFactorAuthData.HasSecurityKey)
+	this.backupCodeInProgress(false);
+
+	this.allOptionsVisible(false);
+	this.securityKeyVisible(false);
+	this.authenticatorAppVisible(false);
+	this.backupCodesVisible(false);
+	if (this.hasSecurityKey())
 	{
+		this.useSecurityKey();
+	}
+	else if (this.hasAuthenticatorApp())
+	{
+		this.useAuthenticatorApp();
+	}
+};
+
+CVerifySecondFactorPopup.prototype.useOtherOption = function ()
+{
+	this.allOptionsVisible(true);
+	this.securityKeyVisible(false);
+	this.authenticatorAppVisible(false);
+	this.backupCodesVisible(false);
+};
+
+CVerifySecondFactorPopup.prototype.useSecurityKey = function ()
+{
+	if (this.hasSecurityKey())
+	{
+		this.allOptionsVisible(false);
+		this.securityKeyVisible(true);
+		this.authenticatorAppVisible(false);
+		this.backupCodesVisible(false);
 		this.verifySecurityKey();
 	}
 };
 
-CVerifySecondFactorPopup.prototype.verifyPin = function ()
+CVerifySecondFactorPopup.prototype.useAuthenticatorApp = function ()
 {
-	this.inProgress(true);
-	Ajax.send(
-		'%ModuleName%',
-		'VerifyPin', 
-		{
-			'Pin': this.pin(),
-			'Login': this.Login,
-			'Password': this.Password
-		},
-		this.onGetVerifyResponse,
-		this
-	);
+	if (this.hasAuthenticatorApp())
+	{
+		this.allOptionsVisible(false);
+		this.securityKeyVisible(false);
+		this.authenticatorAppVisible(true);
+		this.backupCodesVisible(false);
+		this.authenticatorCodeFocused(true);
+	}
 };
 
-CVerifySecondFactorPopup.prototype.onGetVerifyResponse = function (oResponse)
+CVerifySecondFactorPopup.prototype.useBackupCodes = function ()
+{
+	if (this.hasBackupCodes())
+	{
+		this.allOptionsVisible(false);
+		this.securityKeyVisible(false);
+		this.authenticatorAppVisible(false);
+		this.backupCodesVisible(true);
+		this.backupCodeFocus(true);
+	}
+};
+
+CVerifySecondFactorPopup.prototype.verifySecurityKey = function ()
+{
+	var oParameters = {
+		'Login': this.login(),
+		'Password': this.sPassword
+	};
+	this.securityKeyInProgress(true);
+	this.securityKeyError(false);
+	Ajax.send('%ModuleName%', 'VerifySecurityKeyBegin', oParameters, this.onVerifySecurityKeyBegin, this);
+};
+
+CVerifySecondFactorPopup.prototype.onVerifySecurityKeyBegin = function (oResponse)
+{
+	var oGetArgs = oResponse && oResponse.Result;
+	if (oGetArgs)
+	{
+		oGetArgs.publicKey.challenge = ConvertUtils.base64ToArrayBuffer(oGetArgs.publicKey.challenge);
+		oGetArgs.publicKey.allowCredentials.forEach(element => {
+			element.id = ConvertUtils.base64ToArrayBuffer(element.id);
+		});
+
+		navigator.credentials.get(oGetArgs)
+			.then((oCreds) => {
+				var
+					oCredsResponse = oCreds && oCreds.response,
+					oParameters = {
+						'Login': this.login(),
+						'Password': this.sPassword,
+						'Attestation': {
+							id: oCreds && oCreds.rawId ? ConvertUtils.arrayBufferToBase64(oCreds.rawId) : null,
+							clientDataJSON: oCredsResponse && oCredsResponse.clientDataJSON  ? ConvertUtils.arrayBufferToBase64(oCredsResponse.clientDataJSON) : null,
+							authenticatorData: oCredsResponse && oCredsResponse.authenticatorData ? ConvertUtils.arrayBufferToBase64(oCredsResponse.authenticatorData) : null,
+							signature : oCredsResponse && oCredsResponse.signature ? ConvertUtils.arrayBufferToBase64(oCredsResponse.signature) : null
+						}
+					}
+				;
+				Ajax.send('%ModuleName%', 'VerifySecurityKeyFinish', oParameters, this.onVerifySecurityKeyFinish, this);
+			})
+			.catch((err) => {
+				this.securityKeyInProgress(false);
+				this.securityKeyError(true);
+			});
+	}
+	else
+	{
+		this.securityKeyInProgress(false);
+		this.securityKeyError(true);
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
+	}
+};
+
+CVerifySecondFactorPopup.prototype.onVerifySecurityKeyFinish = function (oResponse)
+{
+	this.securityKeyInProgress(false);
+	if (oResponse && oResponse.Result)
+	{
+		if (_.isFunction(this.fAfterVerify))
+		{
+			this.fAfterVerify(oResponse);
+		}
+		this.verificationPassed(true);
+	}
+	else
+	{
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
+	}
+};
+
+CVerifySecondFactorPopup.prototype.verifyAuthenticatorCode = function ()
+{
+	var oParameters = {
+		'Login': this.login(),
+		'Password': this.sPassword,
+		'AuthenticatorCode': this.authenticatorCode()
+	};
+	this.authenticatorCodeInProgress(true);
+	Ajax.send('%ModuleName%', 'VerifyAuthenticatorCode', oParameters, this.onVerifyAuthenticatorCode, this);
+};
+
+CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorCode = function (oResponse)
 {
 	var oResult = oResponse.Result;
 
+	this.authenticatorCodeInProgress(false);
+	this.authenticatorCode('');
 	if (oResult)
 	{
-		if (_.isFunction(this.onConfirm))
+		if (_.isFunction(this.fAfterVerify))
 		{
-			this.onConfirm(oResponse);
+			this.fAfterVerify(oResponse);
 		}
-		this.closePopup();
-		this.pin('');
+		this.verificationPassed(true);
 	}
 	else
 	{
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
-		this.pin('');
-	}
-	this.inProgress(false);
-};
-
-CVerifySecondFactorPopup.prototype.cancelPopup = function ()
-{
-	if (_.isFunction(this.onCancel))
-	{
-		this.onCancel(false);
-	}
-	this.closePopup();
-};
-
-CVerifySecondFactorPopup.prototype.useBackupCode = function ()
-{
-	if (this.bAllowBackupCodes && this.hasBackupCodes())
-	{
-		this.showBackupCodesVerivication(true);
 	}
 };
 
 CVerifySecondFactorPopup.prototype.verifyBackupCode = function ()
 {
-	this.inProgress(true);
-	Ajax.send(
-		'%ModuleName%',
-		'VerifyBackupCode', 
-		{
-			'BackupCode': this.backupCode(),
-			'Login': this.Login,
-			'Password': this.Password
-		},
-		this.onGetVerifyBackupCodeResponse,
-		this
-	);
+	var oParameters = {
+		'Login': this.login(),
+		'Password': this.sPassword,
+		'BackupCode': this.backupCode()
+	};
+	this.backupCodeInProgress(true);
+	Ajax.send('%ModuleName%', 'VerifyBackupCode', oParameters, this.onVerifyBackupCode, this);
 };
 
-CVerifySecondFactorPopup.prototype.onGetVerifyBackupCodeResponse = function (oResponse)
+CVerifySecondFactorPopup.prototype.onVerifyBackupCode = function (oResponse)
 {
 	var oResult = oResponse.Result;
 
+	this.backupCodeInProgress(false);
+	this.backupCode('');
 	if (oResult)
 	{
-		if (_.isFunction(this.onConfirm))
+		if (_.isFunction(this.fAfterVerify))
 		{
-			this.onConfirm(oResponse);
+			this.fAfterVerify(oResponse);
 		}
-		this.closePopup();
-		this.backupCode('');
+		this.verificationPassed(true);
 	}
 	else
 	{
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_BACKUP_CODE'));
-		this.backupCode('');
 	}
-	this.inProgress(false);
 };
 
-function _base64ToArrayBuffer(base64) {
-	var binary_string = window.atob(base64);
-	var len = binary_string.length;
-	var bytes = new Uint8Array(len);
-	for (var i = 0; i < len; i++) {
-		bytes[i] = binary_string.charCodeAt(i);
-	}
-	return bytes.buffer;
-}
-
-function _arrayBufferToBase64( buffer ) {
-	var binary = '';
-	var bytes = new Uint8Array( buffer );
-	var len = bytes.byteLength;
-	for (var i = 0; i < len; i++) {
-		binary += String.fromCharCode( bytes[ i ] );
-	}
-	return window.btoa( binary );
-}
-
-CVerifySecondFactorPopup.prototype.verifySecurityKey = function ()
+CVerifySecondFactorPopup.prototype.cancelPopup = function ()
 {
-	this.verifyingSecurityKey(true);
-	Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorBegin', {'Login': this.Login, 'Password': this.Password}, this.onVerifySecurityKeyAuthenticatorBegin, this);
-};
-
-CVerifySecondFactorPopup.prototype.onVerifySecurityKeyAuthenticatorBegin = function (oResponse) {
-	this.verifyingSecurityKey(false);
-	if (oResponse && oResponse.Result)
+	if (_.isFunction(this.fOnCancel))
 	{
-		var oGetArgs = oResponse.Result;
-		oGetArgs.publicKey.challenge = _base64ToArrayBuffer(oGetArgs.publicKey.challenge);
-		oGetArgs.publicKey.allowCredentials.forEach(element => {
-			element.id = _base64ToArrayBuffer(element.id);
-		});
-
-		console.log("GET ARGS", oGetArgs);
-		navigator.credentials.get(oGetArgs)
-			.then((cred) => {
-				console.log("VERIFY CREDENTIAL", cred);
-				var oParams = {
-					'Login': this.Login,
-					'Password': this.Password,
-					'Attestation': {
-						id: cred.rawId ? _arrayBufferToBase64(cred.rawId) : null,
-						clientDataJSON: cred.response.clientDataJSON  ? _arrayBufferToBase64(cred.response.clientDataJSON) : null,
-						authenticatorData: cred.response.authenticatorData ? _arrayBufferToBase64(cred.response.authenticatorData) : null,
-						signature : cred.response.signature ? _arrayBufferToBase64(cred.response.signature) : null
-					}
-				};
-				Ajax.send('%ModuleName%', 'VerifySecurityKeyAuthenticatorFinish', oParams,
-					this.onVerifySecurityKeyAuthenticatorFinish, this);
-			})
-			.catch((err) => {
-				console.log("ERROR", err);
-				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
-			});
+		this.fOnCancel(false);
 	}
-	else
-	{
-		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
-	}
-};
-
-CVerifySecondFactorPopup.prototype.onVerifySecurityKeyAuthenticatorFinish = function (oResponse) {
-	if (oResponse && oResponse.Result)
-	{
-		if (_.isFunction(this.onConfirm))
-		{
-			this.onConfirm(oResponse);
-		}
-		this.closePopup();
-	}
-	else
-	{
-		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
-	}
+	this.closePopup();
 };
 
 module.exports = new CVerifySecondFactorPopup();

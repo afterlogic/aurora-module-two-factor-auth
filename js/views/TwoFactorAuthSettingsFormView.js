@@ -15,6 +15,8 @@ var
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
+	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
+	
 	ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	SetupSecurityKeyNamePopup = require('modules/%ModuleName%/js/popups/SetupSecurityKeyNamePopup.js'),
@@ -28,10 +30,10 @@ function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 	
-	this.bAllowYubikey = Settings.AllowYubikey;
+	this.bAllowSecurityKeys = Settings.AllowYubikey;
 	this.showAuthenticatorAppOption = ko.observable(false);
 	this.showOptions = ko.computed(function () {
-		return this.bAllowYubikey && !this.showAuthenticatorAppOption();
+		return this.bAllowSecurityKeys && !this.showAuthenticatorAppOption();
 	}, this);
 	this.securityKeys = ko.observableArray(Settings.SecurityKeys);
 
@@ -50,14 +52,15 @@ function CTwoFactorAuthSettingsFormView()
 	}, this);
 	this.sEditVerificator = '';
 	this.isShowSecret = ko.observable(false);
-	this.isValidatingPin = ko.observable(false);
+	this.isValidatingAuthenticatorCode = ko.observable(false);
 	this.QRCodeSrc = ko.observable('');
 	this.secret = ko.observable('');
 	this.pin = ko.observable('');
 	this.pinFocus = ko.observable(false);
 	
 	this.allowBackupCodes = ko.computed(function () {
-		return Settings.AllowBackupCodes && this.isEnabledTwoFactorAuth() && this.isShowSecret();
+		console.log('this.securityKeys()', this.securityKeys());
+		return Settings.AllowBackupCodes && (this.isEnabledTwoFactorAuth() || this.securityKeys().length > 0) && this.isShowSecret();
 	}, this);
 
 	this.addingSecurityKey = ko.observable(false);
@@ -104,18 +107,18 @@ CTwoFactorAuthSettingsFormView.prototype.cancelSetupAuthenticatorApp = function 
 	this.showAuthenticatorAppOption(false);
 };
 
-CTwoFactorAuthSettingsFormView.prototype.validatePin= function ()
+CTwoFactorAuthSettingsFormView.prototype.validateAuthenticatorCode= function ()
 {
-	this.isValidatingPin(true);
+	this.isValidatingAuthenticatorCode(true);
 	Ajax.send(
 		'%ModuleName%',
 		'TwoFactorAuthSave', 
 		{
 			'Password': this.sEditVerificator,
-			'Pin': this.pin(),
+			'AuthenticatorCode': this.pin(),
 			'Secret': this.secret()
 		},
-		this.onValidatingPinResponse,
+		this.onValidatingAuthenticatorCodeResponse,
 		this
 	);
 };
@@ -128,9 +131,9 @@ CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 	});
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onValidatingPinResponse = function (Response)
+CTwoFactorAuthSettingsFormView.prototype.onValidatingAuthenticatorCodeResponse = function (Response)
 {
-	this.isValidatingPin(false);
+	this.isValidatingAuthenticatorCode(false);
 	if(Response && Response.Result)
 	{
 		this.QRCodeSrc('');
@@ -185,26 +188,6 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 	}
 };
 
-function _base64ToArrayBuffer(base64) {
-	var binary_string = window.atob(base64);
-	var len = binary_string.length;
-	var bytes = new Uint8Array(len);
-	for (var i = 0; i < len; i++) {
-		bytes[i] = binary_string.charCodeAt(i);
-	}
-	return bytes.buffer;
-}
-
-function _arrayBufferToBase64( buffer ) {
-	var binary = '';
-	var bytes = new Uint8Array( buffer );
-	var len = bytes.byteLength;
-	for (var i = 0; i < len; i++) {
-		binary += String.fromCharCode( bytes[ i ] );
-	}
-	return window.btoa( binary );
-}
-
 CTwoFactorAuthSettingsFormView.prototype.addSecurityKey = function ()
 {
 	this.addingSecurityKey(true);
@@ -218,8 +201,8 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 	if (oResponse && oResponse.Result)
 	{
 		var oCreateArgs = oResponse.Result;
-		oCreateArgs.publicKey.challenge = _base64ToArrayBuffer(oCreateArgs.publicKey.challenge);
-		oCreateArgs.publicKey.user.id = _base64ToArrayBuffer(oCreateArgs.publicKey.user.id);
+		oCreateArgs.publicKey.challenge = ConvertUtils.base64ToArrayBuffer(oCreateArgs.publicKey.challenge);
+		oCreateArgs.publicKey.user.id = ConvertUtils.base64ToArrayBuffer(oCreateArgs.publicKey.user.id);
 		console.log("CREATE ARGS", oCreateArgs);
 		navigator.credentials.create(oCreateArgs)
 			.then((cred) => {
@@ -227,8 +210,8 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 				var oParams = {
 					'Password': this.sEditVerificator,
 					'Attestation': {
-						'attestationObject': _arrayBufferToBase64(cred.response.attestationObject),
-						'clientDataJSON': _arrayBufferToBase64(cred.response.clientDataJSON)
+						'attestationObject': ConvertUtils.arrayBufferToBase64(cred.response.attestationObject),
+						'clientDataJSON': ConvertUtils.arrayBufferToBase64(cred.response.clientDataJSON)
 					}
 				};
 				Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
