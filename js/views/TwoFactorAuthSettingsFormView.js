@@ -59,7 +59,6 @@ function CTwoFactorAuthSettingsFormView()
 	this.pinFocus = ko.observable(false);
 	
 	this.allowBackupCodes = ko.computed(function () {
-		console.log('this.securityKeys()', this.securityKeys());
 		return Settings.AllowBackupCodes && (this.isEnabledTwoFactorAuth() || this.securityKeys().length > 0) && this.isShowSecret();
 	}, this);
 
@@ -136,12 +135,7 @@ CTwoFactorAuthSettingsFormView.prototype.onValidatingAuthenticatorCodeResponse =
 	this.isValidatingAuthenticatorCode(false);
 	if(Response && Response.Result)
 	{
-		this.QRCodeSrc('');
-		this.secret('');
-		this.pin('');
-		this.isShowSecret(false);
-		this.isEnabledTwoFactorAuth(true);
-		this.cancelSetupAuthenticatorApp();
+		this.clear();
 	}
 	else
 	{
@@ -149,7 +143,7 @@ CTwoFactorAuthSettingsFormView.prototype.onValidatingAuthenticatorCodeResponse =
 	}
 };
 
-CTwoFactorAuthSettingsFormView.prototype.onHide = function ()
+CTwoFactorAuthSettingsFormView.prototype.onShow = function ()
 {
 	this.clear();
 };
@@ -203,10 +197,8 @@ CTwoFactorAuthSettingsFormView.prototype.onRegisterSecurityKeyAuthenticatorBegin
 		var oCreateArgs = oResponse.Result;
 		oCreateArgs.publicKey.challenge = ConvertUtils.base64ToArrayBuffer(oCreateArgs.publicKey.challenge);
 		oCreateArgs.publicKey.user.id = ConvertUtils.base64ToArrayBuffer(oCreateArgs.publicKey.user.id);
-		console.log("CREATE ARGS", oCreateArgs);
 		navigator.credentials.create(oCreateArgs)
 			.then((cred) => {
-				console.log("NEW CREDENTIAL", cred);
 				var oParams = {
 					'Password': this.sEditVerificator,
 					'Attestation': {
