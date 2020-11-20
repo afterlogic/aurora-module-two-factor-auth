@@ -6,6 +6,7 @@ var
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
@@ -16,7 +17,7 @@ var
 /**
  * @constructor
  */
-function CSetupSecurityKeyNamePopup()
+function CEditSecurityKeyPopup()
 {
 	CAbstractPopup.call(this);
 
@@ -26,40 +27,40 @@ function CSetupSecurityKeyNamePopup()
 	this.name = ko.observable('');
 	this.nameFocus = ko.observable(true);
 	this.inProgress = ko.observable(false);
-	this.allowCancel = ko.observable(false);
+	
+	this.saveCommand = Utils.createCommand(this, this.save, function () {
+		return Types.isNonEmptyString(this.name());
+	});
 }
 
-_.extendOwn(CSetupSecurityKeyNamePopup.prototype, CAbstractPopup.prototype);
+_.extendOwn(CEditSecurityKeyPopup.prototype, CAbstractPopup.prototype);
 
-CSetupSecurityKeyNamePopup.prototype.PopupTemplate = '%ModuleName%_SetupSecurityKeyNamePopup';
+CEditSecurityKeyPopup.prototype.PopupTemplate = '%ModuleName%_EditSecurityKeyPopup';
 
-CSetupSecurityKeyNamePopup.prototype.onOpen = function (sEditVerificator, iId, sName, fCallback)
+CEditSecurityKeyPopup.prototype.onOpen = function (sEditVerificator, iId, sName, fCallback)
 {
 	this.sEditVerificator = sEditVerificator;
 	this.iId = iId;
 	this.name(sName);
 	this.nameFocus(true);
-	this.allowCancel(!Types.isNonEmptyString(sName));
 	this.fCallback = fCallback;
 };
 
-CSetupSecurityKeyNamePopup.prototype.save = function ()
+CEditSecurityKeyPopup.prototype.save = function ()
 {
-	this.inProgress(true);
-	Ajax.send(
-		'%ModuleName%',
-		'UpdateWebAuthnKeyName', 
-		{
+	if (Types.isNonEmptyString(this.name()))
+	{
+		var oParameters = {
 			'Password': this.sEditVerificator,
 			'KeyId': this.iId,
 			'Name': this.name()
-		},
-		this.onUpdateWebAuthnKeyName,
-		this
-	);
+		};
+		this.inProgress(true);
+		Ajax.send('%ModuleName%', 'UpdateWebAuthnKeyName', oParameters, this.onUpdateWebAuthnKeyName, this);
+	}
 };
 
-CSetupSecurityKeyNamePopup.prototype.onUpdateWebAuthnKeyName = function (oResponse)
+CEditSecurityKeyPopup.prototype.onUpdateWebAuthnKeyName = function (oResponse)
 {
 	this.inProgress(false);
 	if (oResponse && oResponse.Result)
@@ -76,4 +77,4 @@ CSetupSecurityKeyNamePopup.prototype.onUpdateWebAuthnKeyName = function (oRespon
 	}
 };
 
-module.exports = new CSetupSecurityKeyNamePopup();
+module.exports = new CEditSecurityKeyPopup();

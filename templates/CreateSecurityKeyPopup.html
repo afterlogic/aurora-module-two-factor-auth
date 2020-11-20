@@ -1,0 +1,29 @@
+<div class="popup" style="display: none;">
+	<div class="mask"></div>
+	<div class="popup_panel">
+		<div class="fields">
+			<div class="fieldset">
+				<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_CREATE_SECURITY_KEY'}"></h1>
+				<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_CREATE_SECURITY_KEY'}, visible: securityKeyInProgress"></div>
+				<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_CREATE_SECURITY_KEY_CANCELED'}, visible: securityKeyCanceled"></h3>
+				<div style="text-align: center;" data-bind="visible: !securityKeyCanceled() && securityKeyInProgress()">
+					<img src="./static/styles/images/wait.gif" />
+				</div>
+				<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEY_NAME'}, visible: !securityKeyCanceled() && !securityKeyInProgress()"></div>
+				<div class="row" data-bind="visible: !securityKeyCanceled() && !securityKeyInProgress()">
+					<input class="value input" type="text" spellcheck="false" maxlength="255"
+						   data-bind="value: name, hasFocus: nameFocus, valueUpdate: 'afterkeydown', onEnter: save" />
+				</div>
+			</div>
+			<div class="buttons" data-bind="visible: !securityKeyInProgress()">
+				<span class="button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}, command: saveCommand, visible: !securityKeyCanceled() && !saveNameInProgress()"></span>
+				<span class="button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}, visible: !securityKeyCanceled() && saveNameInProgress()"></span>
+			</div>
+			<div class="buttons" data-bind="visible: securityKeyCanceled">
+				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_AGAIN'}, click: registerSecurityKey"></span>
+				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: closePopup"></span>
+			</div>
+		</div>
+	</div>
+	<span class="helper"></span>
+</div>

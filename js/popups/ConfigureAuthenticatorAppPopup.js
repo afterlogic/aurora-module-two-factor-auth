@@ -81,13 +81,16 @@ CConfigureAuthenticatorAppPopup.prototype.onEnableTwoFactorAuth = function (oRes
 
 CConfigureAuthenticatorAppPopup.prototype.save = function ()
 {
-	var oParameters = {
-		'Password': this.sEditVerificator,
-		'AuthenticatorCode': this.authenticatorCode(),
-		'Secret': this.authenticatorSecret()
-	};
-	this.saveInProgress(true);
-	Ajax.send('%ModuleName%', 'TwoFactorAuthSave', oParameters, this.onTwoFactorAuthSave, this);
+	if (Types.isNonEmptyString(this.authenticatorCode()))
+	{
+		var oParameters = {
+			'Password': this.sEditVerificator,
+			'AuthenticatorCode': this.authenticatorCode(),
+			'Secret': this.authenticatorSecret()
+		};
+		this.saveInProgress(true);
+		Ajax.send('%ModuleName%', 'TwoFactorAuthSave', oParameters, this.onTwoFactorAuthSave, this);
+	}
 };
 
 CConfigureAuthenticatorAppPopup.prototype.onTwoFactorAuthSave = function (Response)
