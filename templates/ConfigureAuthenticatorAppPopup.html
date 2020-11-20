@@ -5,28 +5,25 @@
 		<div class="fields">
 			<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}"></h1>
 			<div class="fieldset">
-				<div class="row">
-					<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}" style="margin: 0;"></h3>
-				</div>
 				<div class="row hint">
 					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_USE'}"></span>
 				</div>
 				<div class="fieldgroup">
 					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h3>
-					<span class="QRCode">
-						<img data-bind="attr: {src: authenticatorQRCodeUrl}" />
+					<span class="QRCode" style="display: inline-block; height: 200px;">
+						<img src="./static/styles/images/wait.gif" data-bind="visible: qrCodeIsLoading" style="margin: 90px; position: absolute;" />
+						<img data-bind="attr: {src: authenticatorQRCodeUrl}, visible: authenticatorQRCodeUrl, event: { load: function () { qrCodeIsLoading(false); } }" />
 					</span>
 				</div>
 				<div class="fieldgroup">
 					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h3>
-					<span class="secret" data-bind="text: authenticatorSecret"></span>
+					<span class="secret" data-bind="text: authenticatorSecret" style="display: inline-block; height: 14px;"></span>
 				</div>
 				<div class="fieldgroup">
 					<div class="row hint" style="margin: 0 -6px 12px;">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
 					</div>
-					<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PIN'}"></span>
-					<input autocomplete="false" class="value input" type="text" data-bind="value: authenticatorCode, hasFocus: authenticatorCodeFocus, valueUpdate: 'afterkeydown', onEnter: save">
+					<input autocomplete="false" class="input" type="text" data-bind="value: authenticatorCode, hasFocus: authenticatorCodeFocus, valueUpdate: 'afterkeydown', onEnter: save">
 					<div class="buttons">
 						<span class="button" data-bind="command: saveCommand, visible: !saveInProgress()">
 							<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>

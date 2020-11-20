@@ -29,7 +29,8 @@ function CConfigureAuthenticatorAppPopup()
 	this.authenticatorCode = ko.observable('');
 	this.authenticatorCodeFocus = ko.observable(false);
 	this.saveInProgress = ko.observable(false);
-	
+	this.qrCodeIsLoading = ko.observable(false);
+
 	this.saveCommand = Utils.createCommand(this, this.save, function () {
 		return Types.isNonEmptyString(this.authenticatorQRCodeUrl())
 			&& Types.isNonEmptyString(this.authenticatorSecret())
@@ -50,6 +51,7 @@ CConfigureAuthenticatorAppPopup.prototype.onOpen = function (sEditVerificator, f
 	this.authenticatorCode('');
 	this.authenticatorCodeFocus(false);
 	this.saveInProgress(false);
+	this.qrCodeIsLoading(true);
 	this.getAuthenticatorAppData();
 };
 
@@ -69,6 +71,7 @@ CConfigureAuthenticatorAppPopup.prototype.onEnableTwoFactorAuth = function (oRes
 	{
 		this.authenticatorQRCodeUrl(oResult.QRcode);
 		this.authenticatorSecret(oResult.Secret);
+		this.authenticatorCodeFocus(true);
 	}
 	else
 	{

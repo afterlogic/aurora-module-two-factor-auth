@@ -111,6 +111,17 @@ CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 	}.bind(this));
 };
 
+CTwoFactorAuthSettingsFormView.prototype.askDisableAuthenticatorApp = function ()
+{
+	var sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_DISABLE_AUTHENTICATOR_APP');
+	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bDisableAuthenticatorApp) {
+		if (bDisableAuthenticatorApp)
+		{
+			this.disableAuthenticatorApp();
+		}
+	}, this)]);
+};
+
 CTwoFactorAuthSettingsFormView.prototype.disableAuthenticatorApp = function ()
 {
 	var oParameters = {
