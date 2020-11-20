@@ -9,8 +9,9 @@
 		</div>
 		
 		<div class="fields" data-bind="visible: securityKeyVisible">
-			<div style="text-align: center;">
-				<img src="./static/styles/images/wait.gif" data-bind="visible: securityKeyInProgress" />
+			<div style="text-align: center;" data-bind="visible: securityKeyInProgress">
+				<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEY_VERIFICATION'}"></div>
+				<img src="./static/styles/images/wait.gif" />
 			</div>
 			
 			<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError"></h2>

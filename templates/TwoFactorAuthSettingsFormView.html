@@ -50,9 +50,6 @@
 					<div class="row hint">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP'}"></span>
 					</div>
-					<div class="row hint" data-bind="visible: hasAuthenticatorApp">
-						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP_ENABLED'}"></span>
-					</div>
 					<div class="row buttons" style="text-align: left; margin: 0;">
 						<span class="button" data-bind="click: setupAuthenticatorApp, visible: !hasAuthenticatorApp()">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
