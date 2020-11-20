@@ -14,13 +14,14 @@
 			</div>
 			
 			<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError"></h2>
-			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError"></div>
-			
+			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError() && hasSeveralOptions()"></div>
+			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION_NO_OTHER_OPTIONS'}, visible: securityKeyError() && !hasSeveralOptions()"></div>
+
 			<div class="buttons" data-bind="visible: securityKeyError">
 				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_AGAIN'}, click: verifySecurityKey"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
-			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: securityKeyError">
+			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: securityKeyError() && hasSeveralOptions()">
 				<div class="item-content">
 					<span class="link" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_ANOTHER_WAY'}, click: useOtherOption"></span>
 				</div>
@@ -42,7 +43,7 @@
 				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_IN_PROGRESS'}, visible: authenticatorCodeInProgress()"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
-			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;">
+			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: hasSeveralOptions">
 				<div class="item-content">
 					<span class="link" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_ANOTHER_WAY'}, click: useOtherOption"></span>
 				</div>
@@ -80,7 +81,7 @@
 				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_IN_PROGRESS'}, visible: backupCodeInProgress()"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
-			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;">
+			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: hasSeveralOptions">
 				<div class="item-content">
 					<span class="link" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_ANOTHER_WAY'}, click: useOtherOption"></span>
 				</div>

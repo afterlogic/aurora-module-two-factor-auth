@@ -57,6 +57,23 @@ function CVerifySecondFactorPopup()
 	this.backupCode = ko.observable(false);
 	this.backupCodeFocus = ko.observable(false);
 	this.backupCodeInProgress = ko.observable(false);
+
+	this.hasSeveralOptions = ko.computed(function () {
+		var iOptionsCount = 0;
+		if (this.hasSecurityKey())
+		{
+			iOptionsCount++;
+		}
+		if (this.hasAuthenticatorApp())
+		{
+			iOptionsCount++;
+		}
+		if (this.hasBackupCodes())
+		{
+			iOptionsCount++;
+		}
+		return iOptionsCount > 1;
+	}, this);
 }
 
 _.extendOwn(CVerifySecondFactorPopup.prototype, CAbstractPopup.prototype);
