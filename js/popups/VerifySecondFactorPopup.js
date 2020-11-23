@@ -5,15 +5,16 @@ var
 	ko = require('knockout'),
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	
+
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
+
 	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
-	
+
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -23,26 +24,31 @@ var
 function CVerifySecondFactorPopup()
 {
 	CAbstractPopup.call(this);
-	
+
 	this.isMobile = ko.observable(App.isMobile() || false);
-	
+
 	this.fAfterVerify = null;
 	this.fOnCancel = null;
 	this.login = ko.observable(null);
 	this.sPassword = null;
-	
+
 	this.verificationPassed = ko.observable(false);
 	this.verificationPassed.subscribe(function () {
-		if (this.verificationPassed())
-		{
-			this.closePopup();
-		}
+		// if (this.verificationPassed())
+		// {
+		// 	this.closePopup();
+		// }
 	}, this);
-	
+
+	this.trustThisBrowser = ko.observable(false);
+	this.verifySecurityKeyResponse = null;
+
 	this.allOptionsVisible = ko.observable(false);
 	this.securityKeyVisible = ko.observable(false);
 	this.authenticatorAppVisible = ko.observable(false);
 	this.backupCodesVisible = ko.observable(false);
+
+	this.trustDeviceVisible = ko.observable(true);
 
 	this.hasSecurityKey = ko.observable(false);
 	this.securityKeyInProgress = ko.observable(false);
@@ -52,7 +58,7 @@ function CVerifySecondFactorPopup()
 	this.authenticatorCode = ko.observable('');
 	this.authenticatorCodeFocused = ko.observable(false);
 	this.authenticatorCodeInProgress = ko.observable(false);
-	
+
 	this.hasBackupCodes = ko.observable(false);
 	this.backupCode = ko.observable(false);
 	this.backupCodeFocus = ko.observable(false);
@@ -86,11 +92,11 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	this.fOnCancel = fOnCancel;
 	this.login(sLogin);
 	this.sPassword = sPassword;
-	
+
 	this.hasSecurityKey(Settings.AllowYubikey && oTwoFactorAuthData.HasSecurityKey);
 	this.hasAuthenticatorApp(oTwoFactorAuthData.HasAuthenticatorApp);
 	this.hasBackupCodes(Settings.AllowBackupCodes && oTwoFactorAuthData.HasBackupCodes);
-	
+
 	this.verificationPassed(false);
 	this.authenticatorCode('');
 	this.authenticatorCodeInProgress(false);
@@ -191,6 +197,7 @@ CVerifySecondFactorPopup.prototype.onVerifySecurityKeyBegin = function (oRespons
 						}
 					}
 				;
+				this.verifySecurityKeyResponse = null;
 				Ajax.send('%ModuleName%', 'VerifySecurityKeyFinish', oParameters, this.onVerifySecurityKeyFinish, this);
 			})
 			.catch((err) => {
@@ -211,10 +218,11 @@ CVerifySecondFactorPopup.prototype.onVerifySecurityKeyFinish = function (oRespon
 	this.securityKeyInProgress(false);
 	if (oResponse && oResponse.Result)
 	{
-		if (_.isFunction(this.fAfterVerify))
-		{
-			this.fAfterVerify(oResponse);
-		}
+		// if (_.isFunction(this.fAfterVerify))
+		// {
+		// 	this.fAfterVerify(oResponse);
+		// }
+		this.verifySecurityKeyResponse = oResponse;
 		this.verificationPassed(true);
 	}
 	else
@@ -242,10 +250,10 @@ CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorCode = function (oRespon
 	this.authenticatorCode('');
 	if (oResult)
 	{
-		if (_.isFunction(this.fAfterVerify))
-		{
-			this.fAfterVerify(oResponse);
-		}
+		// if (_.isFunction(this.fAfterVerify))
+		// {
+		// 	this.fAfterVerify(oResponse);
+		// }
 		this.verificationPassed(true);
 	}
 	else
@@ -273,10 +281,10 @@ CVerifySecondFactorPopup.prototype.onVerifyBackupCode = function (oResponse)
 	this.backupCode('');
 	if (oResult)
 	{
-		if (_.isFunction(this.fAfterVerify))
-		{
-			this.fAfterVerify(oResponse);
-		}
+		// if (_.isFunction(this.fAfterVerify))
+		// {
+		// 	this.fAfterVerify(oResponse);
+		// }
 		this.verificationPassed(true);
 	}
 	else
@@ -292,6 +300,32 @@ CVerifySecondFactorPopup.prototype.cancelPopup = function ()
 		this.fOnCancel(false);
 	}
 	this.closePopup();
+};
+
+CVerifySecondFactorPopup.prototype.afterVerify = function ()
+{
+	if (this.trustThisBrowser())
+	{
+		Ajax.send('%ModuleName%', 'TrustDevice', {
+			'Login': this.login(),
+			'Password': this.sPassword,
+			'DeviceId': Utils.getUUID(),
+			'DeviceName': 'DeviceName'
+			}, function (oResponse) {
+				if (_.isFunction(this.fAfterVerify))
+				{
+					this.fAfterVerify(this.verifySecurityKeyResponse);
+				}
+			},
+		this);
+	}
+	else
+	{
+		if (_.isFunction(this.fAfterVerify))
+		{
+			this.fAfterVerify(this.verifySecurityKeyResponse);
+		}
+	}
 };
 
 module.exports = new CVerifySecondFactorPopup();

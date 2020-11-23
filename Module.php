@@ -430,8 +430,27 @@ class Module extends \Aurora\System\Module\AbstractModule
 					->count()
 					->exec();
 
-				// $oUser->{$this->GetName().'::SecurityKeyData'} somehow is false by default (for admin, for example), so $oUser->{$this->GetName().'::SecurityKeyData'} !== '' condition doesn't work
-				if ( !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0)
+				$bTrustedDevice = false;
+				$sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
+				if ($sDeviceId)
+				{
+					$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $sDeviceId);
+					if ($oTrustedDevice)
+					{
+						if ($oTrustedDevice->ExpirationDateTime < time())
+						{
+							$bTrustedDevice = true;
+							$oTrustedDevice->LastUsageDateTime = time();
+							$oTrustedDevice->save();
+						}
+						else
+						{
+							$oTrustedDevice->delete();
+						}
+					}
+				}
+
+				if ((!empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0) && !$bTrustedDevice)
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
@@ -734,5 +753,94 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 ]';
+	}
+
+	public function TrustDevice($Login, $Password, $DeviceId, $DeviceName)
+	{
+		$mResult = false;
+
+		self::$VerifyState = true;
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyState = false;
+
+		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		{
+			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+			{
+				$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
+				if (!$oTrustedDevice)
+				{
+					$oTrustedDevice = new Classes\TrustedDevices();
+					$oTrustedDevice->DeviceId = $DeviceId;
+					$oTrustedDevice->CreationDateTime = time();
+				}
+				$oTrustedDevice->UserId = $oUser->EntityId;
+				$oTrustedDevice->DeviceName = $DeviceName;
+				$iTrustedDevicesLifetime = $this->getConfig('TrustedDevicesLifetime', 0);
+				$oTrustedDevice->LastUsageDateTime = time();
+				$oTrustedDevice->ExpirationDateTime = time() + $iTrustedDevicesLifetime * 24 * 60 * 60;
+
+				$mResult = $oTrustedDevice->save();
+			}
+		}
+
+		return $mResult;
+	}
+
+	public function DoNotTrustDevice($DeviceId)
+	{
+		$mResult = false;
+		$oTrustedDevice = $this->GetTrustedDevice($DeviceId);
+		if ($oTrustedDevice)
+		{
+			$mResult = $oTrustedDevice->delete();
+		}
+
+		return $mResult;
+	}
+
+	private function getTrustedDeviceByUserId($UserId, $DeviceId)
+	{
+		return (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
+		->where(
+			[
+				'UserId' => $UserId,
+				'DeviceId' => $DeviceId
+			]
+		)
+		->one()
+		->exec();
+	}
+	public function GetTrustedDevice($DeviceId)
+	{
+		$mResult = false;
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+
+		if ($oUser)
+		{
+			$mResult = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
+		}
+
+		return $mResult;
+	}
+
+	public function GetTrustedDevices()
+	{
+		$aTrustedDevices = [];
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+
+		if ($oUser)
+		{
+			$aTrustedDevices = (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
+			->where(
+				[
+					'UserId' => $iUserId
+				]
+			)
+			->exec();
+		}
+
+		return $aTrustedDevices;
 	}
 }
