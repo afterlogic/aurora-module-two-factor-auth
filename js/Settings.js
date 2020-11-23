@@ -20,10 +20,11 @@ module.exports = {
 	BackupCodesCount: false,
 	AllowYubikey: false,
 	SecurityKeys: [],
+	TrustedDevicesLifetime: 0,
 
 	/**
 	 * Initializes settings from AppData object sections.
-	 * 
+	 *
 	 * @param {Object} oAppData Object contained modules settings.
 	 */
 	init: function (oAppData)
@@ -36,6 +37,7 @@ module.exports = {
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowYubikey = Types.pBool(oAppDataSection.AllowYubikey, this.AllowYubikey);
+			this.TrustedDevicesLifetime = Types.pInt(oAppDataSection.TrustedDevicesLifetime, this.TrustedDevicesLifetime);
 			this.SecurityKeys = [];
 			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
 			{
@@ -57,7 +59,7 @@ module.exports = {
 	{
 		this.ShowRecommendationToConfigure = bShowRecommendationToConfigure;
 	},
-	
+
 	updateBackupCodesCount: function (iBackupCodesCount)
 	{
 		this.BackupCodesCount = iBackupCodesCount;
@@ -67,7 +69,7 @@ module.exports = {
 	{
 		this.EnableTwoFactorAuth = !!bEnableTwoFactorAuth;
 	},
-	
+
 	checkIfEnabled: function ()
 	{
 		if (App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
