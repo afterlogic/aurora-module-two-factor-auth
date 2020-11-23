@@ -117,6 +117,7 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	{
 		this.useAuthenticatorApp();
 	}
+	this.trustDeviceVisible(Settings.TrustedDevicesLifetime > 0);
 };
 
 CVerifySecondFactorPopup.prototype.useOtherOption = function ()
@@ -320,7 +321,7 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 			'Login': this.login(),
 			'Password': this.sPassword,
 			'DeviceId': Utils.getUUID(),
-			'DeviceName': 'DeviceName'
+			'DeviceName': navigator.userAgent
 			}, function (oResponse) {
 				if (_.isFunction(this.fAfterVerify))
 				{

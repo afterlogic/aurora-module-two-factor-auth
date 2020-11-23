@@ -106,6 +106,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return [
 			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 			'AllowYubikey' => $this->getConfig('AllowYubikey', false),
+			'TrustedDevicesLifetime' => $this->getConfig('TrustedDevicesLifetime', 0)
 		];
 	}
 
@@ -437,7 +438,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $sDeviceId);
 					if ($oTrustedDevice)
 					{
-						if ($oTrustedDevice->ExpirationDateTime < time())
+						if ($oTrustedDevice->ExpirationDateTime > time())
 						{
 							$bTrustedDevice = true;
 							$oTrustedDevice->LastUsageDateTime = time();

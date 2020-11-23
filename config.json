@@ -33,6 +33,6 @@
 	],
 	"TrustedDevicesLifetime": [
 		0,
-		"string"
+		"int"
 	]
 }
