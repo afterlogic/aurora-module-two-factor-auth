@@ -53,6 +53,8 @@ function CVerifySecondFactorPopup()
 	this.hasSecurityKey = ko.observable(false);
 	this.securityKeyInProgress = ko.observable(false);
 	this.securityKeyError = ko.observable(false);
+	this.bSecurityKeysNotSupportedError = !(navigator.credentials && navigator.credentials.get);
+	this.bIsHttps = window.location.protocol === 'https:';
 
 	this.hasAuthenticatorApp = ko.observable(false);
 	this.authenticatorCode = ko.observable('');
@@ -163,13 +165,21 @@ CVerifySecondFactorPopup.prototype.useBackupCodes = function ()
 
 CVerifySecondFactorPopup.prototype.verifySecurityKey = function ()
 {
-	var oParameters = {
-		'Login': this.login(),
-		'Password': this.sPassword
-	};
-	this.securityKeyInProgress(true);
-	this.securityKeyError(false);
-	Ajax.send('%ModuleName%', 'VerifySecurityKeyBegin', oParameters, this.onVerifySecurityKeyBegin, this);
+	if (!this.bSecurityKeysNotSupportedError)
+	{
+		var oParameters = {
+			'Login': this.login(),
+			'Password': this.sPassword
+		};
+		this.securityKeyInProgress(true);
+		this.securityKeyError(false);
+		Ajax.send('%ModuleName%', 'VerifySecurityKeyBegin', oParameters, this.onVerifySecurityKeyBegin, this);
+	}
+	else
+	{
+		this.securityKeyInProgress(false);
+		this.securityKeyError(true);
+	}
 };
 
 CVerifySecondFactorPopup.prototype.onVerifySecurityKeyBegin = function (oResponse)

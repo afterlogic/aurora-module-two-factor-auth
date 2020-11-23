@@ -1,6 +1,6 @@
 <div class="popup" style="display: none;">
 	<div class="mask"></div>
-	<div class="popup_panel">
+	<div class="popup_panel" style="max-width: 600px;">
 		<span class="close" data-bind="click: cancelPopup"></span>
 		<div class="fields">
 			<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_TWA_VERIFICATION'}"></h1>
@@ -25,19 +25,27 @@
 				<img src="./static/styles/images/wait.gif" />
 			</div>
 			
-			<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError"></h2>
-			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION'}, visible: securityKeyError() && hasSeveralOptions()"></div>
-			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION_NO_OTHER_OPTIONS'}, visible: securityKeyError() && !hasSeveralOptions()"></div>
+			<!-- ko if: securityKeyError -->
+				<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEY_ERROR_VERIFICATION'}"></h2>
+				<!-- ko if: bSecurityKeysNotSupportedError -->
+					<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_HTTPS_NEEDED'}, visible: !bIsHttps"></div>
+					<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_NOT_SUPPORTED'}, visible: bIsHttps"></div>
+				<!-- /ko -->
+				<!-- ko if: !bSecurityKeysNotSupportedError -->
+					<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION'}, visible: hasSeveralOptions()"></div>
+					<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_SECURITY_KEY_ERROR_VERIFICATION_NO_OTHER_OPTIONS'}, visible: !hasSeveralOptions()"></div>
+				<!-- /ko -->
 
-			<div class="buttons" data-bind="visible: securityKeyError">
-				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_AGAIN'}, click: verifySecurityKey"></span>
-				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
-			</div>
-			<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: securityKeyError() && hasSeveralOptions()">
-				<div class="item-content">
-					<span class="link" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_ANOTHER_WAY'}, click: useOtherOption"></span>
+				<div class="buttons">
+					<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_AGAIN'}, click: verifySecurityKey(), visible: !bSecurityKeysNotSupportedError"></span>
+					<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 				</div>
-			</div>
+				<div class="fieldset list-block" style="text-align: right; margin-top: 15px;" data-bind="visible: hasSeveralOptions()">
+					<div class="item-content">
+						<span class="link" data-bind="i18n: {'key': '%MODULENAME%/ACTION_TRY_ANOTHER_WAY'}, click: useOtherOption"></span>
+					</div>
+				</div>
+			<!-- /ko -->
 		</div>
 		
 		<div class="fields" data-bind="visible: authenticatorAppVisible">

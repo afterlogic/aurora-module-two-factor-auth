@@ -23,6 +23,9 @@ function CCreateSecurityKeyPopup()
 {
 	CAbstractPopup.call(this);
 
+	this.bSecurityKeysNotSupportedError = !(navigator.credentials && navigator.credentials.create);
+	this.bIsHttps = window.location.protocol === 'https:';
+	
 	this.sEditVerificator = '';
 	this.sName = '';
 	this.iId = 0;
@@ -30,6 +33,7 @@ function CCreateSecurityKeyPopup()
 	this.nameFocus = ko.observable(true);
 	this.saveNameInProgress = ko.observable(false);
 	this.securityKeyInProgress = ko.observable(false);
+	this.securityKeyError = ko.observable(false);
 	this.securityKeyCanceled = ko.observable(false);
 	
 	this.saveCommand = Utils.createCommand(this, this.save, function () {
@@ -49,13 +53,22 @@ CCreateSecurityKeyPopup.prototype.onOpen = function (sEditVerificator, fCallback
 };
 
 CCreateSecurityKeyPopup.prototype.registerSecurityKey = function (oResponse) {
-	this.iId = 0;
-	this.name('');
-	this.securityKeyInProgress(true);
-	this.securityKeyCanceled(false);
-	Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {
-		'Password': this.sEditVerificator
-	}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+	if (!this.bSecurityKeysNotSupportedError)
+	{
+		this.iId = 0;
+		this.name('');
+		this.securityKeyInProgress(true);
+		this.securityKeyError(false);
+		this.securityKeyCanceled(false);
+		Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {
+			'Password': this.sEditVerificator
+		}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+	}
+	else
+	{
+		this.securityKeyInProgress(false);
+		this.securityKeyError(true);
+	}
 };
 
 CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyAuthenticatorBegin = function (oResponse) {
