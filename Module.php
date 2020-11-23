@@ -58,7 +58,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			]
 		);
 	}
-
+	
 	/**
 	 * Obtains list of module settings for authenticated user.
 	 *
@@ -76,29 +76,24 @@ class Module extends \Aurora\System\Module\AbstractModule
             {
                 $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
             }
-			$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
-			$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
-			$aNotUsedBackupCodes = array_filter($aBackupCodes, function($sCode) { return !empty($sCode); });
 
-			$aWebAuthKeysInfo = [];
-			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-				->select(['Name'])
-				->where(['UserId' => $oUser->EntityId])
-				->exec();
-			foreach ($aWebAuthnKeys as $oWebAuthnKey)
+			$bAuthenticatorAppEnabled = $oUser->{$this->GetName().'::Secret'} ? true : false;
+			$aWebAuthKeysInfo = $this->getConfig('AllowYubikey', false) ? $this->_getWebAuthKeysInfo($oUser) : [];
+			$iBackupCodesCount = 0;
+			if ($bAuthenticatorAppEnabled || count($aWebAuthKeysInfo) > 0)
 			{
-				$aWebAuthKeysInfo[] = [
-					$oWebAuthnKey->EntityId,
-					$oWebAuthnKey->Name
-				];
+				$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+				$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
+				$aNotUsedBackupCodes = array_filter($aBackupCodes, function($sCode) { return !empty($sCode); });
+				$iBackupCodesCount = count($aNotUsedBackupCodes);
 			}
-
+			
 			return [
-				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
+				'EnableTwoFactorAuth' => $bAuthenticatorAppEnabled,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
 				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 				'AllowYubikey' => $this->getConfig('AllowYubikey', false),
-				'BackupCodesCount' => count($aNotUsedBackupCodes),
+				'BackupCodesCount' => $iBackupCodesCount,
 				'WebAuthKeysInfo' => $aWebAuthKeysInfo
 			];
 		}
@@ -261,9 +256,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$oUser = \Aurora\System\Api::getAuthenticatedUser();
 				$oUser->{$this->GetName().'::Secret'} = "";
 				$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
-				$oUser->{$this->GetName().'::BackupCodes'} = '';
-				$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
 				$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+				$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
 			}
 		}
 
@@ -716,6 +710,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
 					{
 						$mResult = $oWebAuthnKey->delete();
+						$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
 					}
 				}
 			}
@@ -843,5 +838,45 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		return $aTrustedDevices;
+	}
+	
+	protected function _getWebAuthKeysInfo($oUser)
+	{
+		$aWebAuthKeysInfo = [];
+		
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['Name'])
+				->where(['UserId' => $oUser->EntityId])
+				->exec();
+			foreach ($aWebAuthnKeys as $oWebAuthnKey)
+			{
+				$aWebAuthKeysInfo[] = [
+					$oWebAuthnKey->EntityId,
+					$oWebAuthnKey->Name
+				];
+			}
+		}
+		
+		return $aWebAuthKeysInfo;
+	}
+
+	protected function _removeBackupCodesIfSecondFactorDisabled($oUser)
+	{
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
+			$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['KeyData'])
+				->where(['UserId' => $oUser->EntityId])
+				->count()
+				->exec();
+			if (empty($oUser->{$this->GetName().'::Secret'}) && $iWebAuthnKeyCount === 0)
+			{
+				$oUser->{$this->GetName().'::BackupCodes'} = '';
+				$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
+				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			}
+		}
 	}
 }
