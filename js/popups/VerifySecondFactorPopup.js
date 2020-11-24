@@ -32,16 +32,19 @@ function CVerifySecondFactorPopup()
 	this.login = ko.observable(null);
 	this.sPassword = null;
 
-	this.verificationPassed = ko.observable(false);
-	this.verificationPassed.subscribe(function () {
-		// if (this.verificationPassed())
-		// {
-		// 	this.closePopup();
-		// }
+	this.verificationResponse = ko.observable(null);
+	this.verificationPassed = ko.computed(function () {
+		return this.verificationResponse() !== null;
+	}, this);
+	this.verificationResponse.subscribe(function () {
+		 if (this.verificationPassed() && !this.trustDeviceVisible())
+		 {
+			this.afterVerify();
+			this.closePopup();
+		 }
 	}, this);
 
 	this.trustThisBrowser = ko.observable(false);
-	this.verifySecurityKeyResponse = null;
 
 	this.allOptionsVisible = ko.observable(false);
 	this.securityKeyVisible = ko.observable(false);
@@ -99,7 +102,7 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	this.hasAuthenticatorApp(oTwoFactorAuthData.HasAuthenticatorApp);
 	this.hasBackupCodes(Settings.AllowBackupCodes && oTwoFactorAuthData.HasBackupCodes);
 
-	this.verificationPassed(false);
+	this.verificationResponse(null);
 	this.authenticatorCode('');
 	this.authenticatorCodeInProgress(false);
 	this.backupCode('');
@@ -208,7 +211,6 @@ CVerifySecondFactorPopup.prototype.onVerifySecurityKeyBegin = function (oRespons
 						}
 					}
 				;
-				this.verifySecurityKeyResponse = null;
 				Ajax.send('%ModuleName%', 'VerifySecurityKeyFinish', oParameters, this.onVerifySecurityKeyFinish, this);
 			})
 			.catch((err) => {
@@ -229,12 +231,7 @@ CVerifySecondFactorPopup.prototype.onVerifySecurityKeyFinish = function (oRespon
 	this.securityKeyInProgress(false);
 	if (oResponse && oResponse.Result)
 	{
-		// if (_.isFunction(this.fAfterVerify))
-		// {
-		// 	this.fAfterVerify(oResponse);
-		// }
-		this.verifySecurityKeyResponse = oResponse;
-		this.verificationPassed(true);
+		this.verificationResponse(oResponse);
 	}
 	else
 	{
@@ -261,11 +258,7 @@ CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorCode = function (oRespon
 	this.authenticatorCode('');
 	if (oResult)
 	{
-		// if (_.isFunction(this.fAfterVerify))
-		// {
-		// 	this.fAfterVerify(oResponse);
-		// }
-		this.verificationPassed(true);
+		this.verificationResponse(oResponse);
 	}
 	else
 	{
@@ -292,11 +285,7 @@ CVerifySecondFactorPopup.prototype.onVerifyBackupCode = function (oResponse)
 	this.backupCode('');
 	if (oResult)
 	{
-		// if (_.isFunction(this.fAfterVerify))
-		// {
-		// 	this.fAfterVerify(oResponse);
-		// }
-		this.verificationPassed(true);
+		this.verificationResponse(oResponse);
 	}
 	else
 	{
@@ -322,20 +311,11 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 			'Password': this.sPassword,
 			'DeviceId': Utils.getUUID(),
 			'DeviceName': navigator.userAgent
-			}, function (oResponse) {
-				if (_.isFunction(this.fAfterVerify))
-				{
-					this.fAfterVerify(this.verifySecurityKeyResponse);
-				}
-			},
-		this);
+		});
 	}
-	else
+	if (_.isFunction(this.fAfterVerify))
 	{
-		if (_.isFunction(this.fAfterVerify))
-		{
-			this.fAfterVerify(this.verifySecurityKeyResponse);
-		}
+		this.fAfterVerify(this.verificationResponse());
 	}
 };
 
