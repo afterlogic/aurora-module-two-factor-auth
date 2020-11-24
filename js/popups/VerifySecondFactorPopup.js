@@ -262,7 +262,7 @@ CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorCode = function (oRespon
 	}
 	else
 	{
-		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
+		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_CODE'));
 	}
 };
 

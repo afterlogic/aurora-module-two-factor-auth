@@ -106,7 +106,7 @@ CConfigureAuthenticatorAppPopup.prototype.onTwoFactorAuthSave = function (Respon
 	}
 	else
 	{
-		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PIN'));
+		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_WRONG_CODE'));
 	}
 };
 
