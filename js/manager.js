@@ -3,8 +3,10 @@
 var
 	_ = require('underscore'),
 
-	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
+	
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -18,25 +20,28 @@ module.exports = function (oAppData) {
 		 * @param {Object} ModulesManager
 		 */
 		start: function (ModulesManager) {
-			ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
-				function () { return require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js'); },
-				Settings.HashModuleName,
-				TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
-			]);
-			
-			ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
-				function(resolve) {
-					require.ensure(
-						['modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'],
-						function() {
-							resolve(require('modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'));
-						},
-						'admin-bundle'
-					);
-				},
-				Settings.HashModuleName,
-				TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
-			]);
+			if (!App.isMobile())
+			{
+				ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
+					function () { return require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js'); },
+					Settings.HashModuleName,
+					TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
+				]);
+
+				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
+					function(resolve) {
+						require.ensure(
+							['modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'],
+							function() {
+								resolve(require('modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'));
+							},
+							'admin-bundle'
+						);
+					},
+					Settings.HashModuleName,
+					TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
+				]);
+			}
 
 			if (App.getUserRole() === Enums.UserRole.Anonymous)
 			{
