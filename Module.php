@@ -131,8 +131,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser = \Aurora\System\Api::getUserById($UserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 		{
+			$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['KeyData'])
+				->where(['UserId' => $oUser->EntityId])
+				->count()
+				->exec();
 			return [
-				'EnableTwoFactorAuth' => $oUser->{$this->GetName().'::Secret'} ? true : false,
+				'EnableTwoFactorAuth' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
 			];
 		}
 
@@ -152,9 +157,22 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 		{
 			$oUser->{$this->GetName().'::Secret'} = '';
+			$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
+			
+			$oUser->{$this->GetName().'::Challenge'} = '';
+			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+				->select(['Name'])
+				->where(['UserId' => $oUser->EntityId])
+				->exec();
+			$bResult = true;
+			foreach ($aWebAuthnKeys as $oWebAuthnKey)
+			{
+				$bResult = $bResult && $oWebAuthnKey->delete();
+			}
+			
 			$oUser->{$this->GetName().'::BackupCodes'} = '';
 			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
-			return \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			return $bResult && \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 		}
 
 		return false;
