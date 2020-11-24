@@ -1,6 +1,6 @@
 <div class="popup" style="display: none;">
 	<div class="mask"></div>
-	<div class="popup_panel" style="max-width: 600px;">
+	<div class="popup_panel popup_configure_authenticator_app">
 		<span class="close" data-bind="click: cancelPopup"></span>
 		<div class="fields">
 			<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}"></h1>
@@ -10,17 +10,17 @@
 				</div>
 				<div class="fieldgroup">
 					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_QR_CODE'}"></h3>
-					<span class="QRCode" style="display: inline-block; height: 200px;">
-						<img src="./static/styles/images/wait.gif" data-bind="visible: qrCodeIsLoading" style="margin: 90px; position: absolute;" />
+					<div class="authenticator_app_qr_code">
+						<div class="authenticator_app_qr_code_inprogress" data-bind="visible: qrCodeIsLoading"></div>
 						<img data-bind="attr: {src: authenticatorQRCodeUrl}, visible: authenticatorQRCodeUrl, event: { load: function () { qrCodeIsLoading(false); } }" />
-					</span>
+					</div>
 				</div>
 				<div class="fieldgroup">
 					<h3 data-bind="i18n: {'key': '%MODULENAME%/LABEL_SECRET_KEY'}"></h3>
-					<span class="secret" data-bind="text: authenticatorSecret" style="display: inline-block; height: 14px;"></span>
+					<div class="authenticator_app_secret" data-bind="text: authenticatorSecret"></div>
 				</div>
 				<div class="fieldgroup">
-					<div class="row hint" style="margin: 0 -6px 12px;">
+					<div class="row hint">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_PIN_DESCRIPTION'}"></span>
 					</div>
 					<input autocomplete="false" class="input" type="text" data-bind="value: authenticatorCode, hasFocus: authenticatorCodeFocus, valueUpdate: 'afterkeydown', onEnter: save">

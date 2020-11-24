@@ -5,10 +5,8 @@
 			<div class="fieldset">
 				<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_CREATE_SECURITY_KEY'}"></h1>
 				<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_CREATE_SECURITY_KEY'}, visible: securityKeyInProgress"></div>
+				<div class="block_security_key_inprogress" data-bind="visible: securityKeyInProgress"></div>
 				<h3 data-bind="i18n: {'key': '%MODULENAME%/HEADING_CREATE_SECURITY_KEY_CANCELED'}, visible: securityKeyCanceled"></h3>
-				<div style="text-align: center;" data-bind="visible: securityKeyInProgress()">
-					<img src="./static/styles/images/wait.gif" />
-				</div>
 				
 				<!-- ko if: securityKeyError -->
 					<h2 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEY_ERROR_VERIFICATION'}"></h2>

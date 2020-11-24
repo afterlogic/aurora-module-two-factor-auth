@@ -1,6 +1,6 @@
 <div class="popup" style="display: none;">
 	<div class="mask" data-bind="click: cancelPopup"></div>
-	<div class="popup_panel">
+	<div class="popup_panel popup_show_backup_codes">
 		<span class="close" data-bind="click: cancelPopup"></span>
 		<div class="fields">
 			<h1 data-bind="i18n: {'key': '%MODULENAME%/HEADING_SAVE_CODES'}"></h1>
@@ -18,8 +18,8 @@
 				</div>
 			</div>
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_USE_CODE_ONCE'}"></div>
-			<div class="hint" data-bind="text: codesGeneratedDataInfo" style="min-height: 14px;"></div>
-			<div class="buttons big_single_button" style="text-align: center">
+			<div class="hint" data-bind="text: codesGeneratedDataInfo"></div>
+			<div class="buttons big_single_button">
 				<span class="button contour_button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_GET_NEW_CODES'}, command: generateBackupCodesCommand"></span>
 			</div>
 			<div class="buttons">

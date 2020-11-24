@@ -6,10 +6,10 @@
 	<div class="fields">
 		<!-- password is not verified yet -->
 		<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth() && !passwordVerified()">
-			<div class="row hint" style="margin: 0 -6px 12px;">
+			<div class="row hint">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH'}"></span>
 			</div>
-			<div class="buttons" style="text-align: left; margin: 0;">
+			<div class="buttons">
 				<span class="button" data-bind="click: confirmPassword">
 					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ENABLE_TWOFACTORAUTH'}"></span>
 				</span>
@@ -19,10 +19,10 @@
 			</div>
 		</div>
 		<div class="fieldset" data-bind="visible: isEnabledTwoFactorAuth() && !passwordVerified()">
-			<div class="row hint" style="margin: 0 -6px 12px;">
+			<div class="row hint">
 				<span data-bind="i18n: {'key': '%MODULENAME%/HINT_ABOUT_TWOFACTORAUTH_ENABLED'}"></span>
 			</div>
-			<div class="buttons" style="text-align: left; margin: 0;">
+			<div class="buttons">
 				<span class="button" data-bind="click: confirmPassword">
 					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
 				</span>
@@ -33,14 +33,14 @@
 		<!-- password is verified -->
 		<!-- ko if: passwordVerified() -->
 			<div class="fieldset">
-				<div class="row hint" style="margin: 0 -6px;">
+				<div class="row hint">
 					<span data-bind="i18n: {'key': '%MODULENAME%/HINT_TWA_OPTIONS'}"></span>
 				</div>
 			</div>
 			<div class="fieldset">
 				<div class="fieldgroup">
 					<div class="row">
-						<h3 style="margin: 0;">
+						<h3>
 							<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_AUTHENTICATOR_APP'}"></span>
 							<label class="custom_checkbox round checked" data-bind="visible: hasAuthenticatorApp">
 								<span class="icon"></span>
@@ -50,14 +50,14 @@
 					<div class="row hint">
 						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_AUTHENTICATOR_APP'}"></span>
 					</div>
-					<div class="row buttons" style="text-align: left; margin: 0;">
+					<div class="row buttons">
 						<span class="button" data-bind="click: setupAuthenticatorApp, visible: !hasAuthenticatorApp()">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
 						</span>
 						<span class="button" data-bind="click: setupAuthenticatorApp, visible: hasAuthenticatorApp">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
 						</span>
-						<span class="button" data-bind="click: askDisableAuthenticatorApp, visible: hasAuthenticatorApp()" style="margin-left: 10px;">
+						<span class="button" data-bind="click: askDisableAuthenticatorApp, visible: hasAuthenticatorApp()">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
 						</span>
 					</div>
@@ -66,7 +66,7 @@
 			<div class="fieldset" data-bind="visible: bAllowSecurityKeys">
 				<div class="fieldgroup">
 					<div class="row">
-						<h3 style="margin: 0;">
+						<h3>
 							<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEYS'}"></span>
 							<label class="custom_checkbox round checked" data-bind="visible: securityKeys().length > 0">
 								<span class="icon"></span>
@@ -100,7 +100,7 @@
 							</div>
 						</div>
 					</div>
-					<div class="row buttons" style="text-align: left; margin: 0;">
+					<div class="row buttons">
 						<span class="button" data-bind="click: addSecurityKey">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ADD_SECURITY_KEY'}"></span>
 						</span>
@@ -110,7 +110,7 @@
 			<div class="fieldset" data-bind="visible: allowBackupCodes">
 				<div class="fieldgroup">
 					<div class="row">
-						<h3 style="margin: 0;">
+						<h3>
 							<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_BACKUP_CODES'}"></span>
 							<label class="custom_checkbox round checked" data-bind="visible: hasBackupCodes">
 								<span class="icon"></span>
@@ -120,7 +120,7 @@
 					<div class="row hint">
 						<span data-bind="i18n: {'key': '%MODULENAME%/INFO_SETUP_BACKUP_CODES'}, visible: !hasBackupCodes()"></span>
 					</div>
-					<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: !hasBackupCodes()">
+					<div class="buttons" data-bind="visible: !hasBackupCodes()">
 						<span class="button" data-bind="click: showBackupCodes">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SETUP'}"></span>
 						</span>
@@ -128,7 +128,7 @@
 					<div class="row hint">
 						<span data-bind="text: infoShowBackupCodes, visible: hasBackupCodes"></span>
 					</div>
-					<div class="buttons" style="text-align: left; margin-bottom: 0;" data-bind="visible: hasBackupCodes">
+					<div class="buttons" data-bind="visible: hasBackupCodes">
 						<span class="button" data-bind="click: showBackupCodes">
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SHOW_CODES'}"></span>
 						</span>
