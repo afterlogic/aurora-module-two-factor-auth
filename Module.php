@@ -496,7 +496,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 						90,
 						false,
 						'discouraged',
-						null,
+						true,
 						[]
 					);
 
