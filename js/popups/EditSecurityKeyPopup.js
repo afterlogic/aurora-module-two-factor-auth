@@ -53,14 +53,14 @@ CEditSecurityKeyPopup.prototype.save = function ()
 		var oParameters = {
 			'Password': this.sEditVerificator,
 			'KeyId': this.iId,
-			'Name': this.name()
+			'NewName': this.name()
 		};
 		this.inProgress(true);
-		Ajax.send('%ModuleName%', 'UpdateWebAuthnKeyName', oParameters, this.onUpdateWebAuthnKeyName, this);
+		Ajax.send('%ModuleName%', 'UpdateSecurityKeyName', oParameters, this.onUpdateSecurityKeyNameResponse, this);
 	}
 };
 
-CEditSecurityKeyPopup.prototype.onUpdateWebAuthnKeyName = function (oResponse)
+CEditSecurityKeyPopup.prototype.onUpdateSecurityKeyNameResponse = function (oResponse)
 {
 	this.inProgress(false);
 	if (oResponse && oResponse.Result)

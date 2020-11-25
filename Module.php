@@ -31,8 +31,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'IsEncryptedSecret' => ['bool', false],
 				'BackupCodes' => ['string', '', false],
 				'BackupCodesTimestamp' => ['string', '', false],
-				'Challenge' => ['string', '', false]
-//				'SecurityKeyData' => ['text', '', false]
+				'Challenge' => ['string', '', false],
 			]
 		);
 
@@ -78,7 +77,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
 
 			$bAuthenticatorAppEnabled = $oUser->{$this->GetName().'::Secret'} ? true : false;
-			$aWebAuthKeysInfo = $this->getConfig('AllowYubikey', false) ? $this->_getWebAuthKeysInfo($oUser) : [];
+			$aWebAuthKeysInfo = $this->getConfig('AllowSecurityKeys', false) ? $this->_getWebAuthKeysInfo($oUser) : [];
 			$iBackupCodesCount = 0;
 			if ($bAuthenticatorAppEnabled || count($aWebAuthKeysInfo) > 0)
 			{
@@ -89,24 +88,26 @@ class Module extends \Aurora\System\Module\AbstractModule
 			}
 			
 			return [
-				'EnableTwoFactorAuth' => $bAuthenticatorAppEnabled,
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
+				'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
+				'WebAuthKeysInfo' => $aWebAuthKeysInfo,
+				'AuthenticatorAppEnabled' => $bAuthenticatorAppEnabled,
 				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
-				'AllowYubikey' => $this->getConfig('AllowYubikey', false),
 				'BackupCodesCount' => $iBackupCodesCount,
-				'WebAuthKeysInfo' => $aWebAuthKeysInfo
 			];
 		}
 
 		return [
 			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
-			'AllowYubikey' => $this->getConfig('AllowYubikey', false),
+			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
 			'TrustedDevicesLifetime' => $this->getConfig('TrustedDevicesLifetime', 0)
 		];
 	}
 
     public function UpdateSettings($ShowRecommendationToConfigure)
     {
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
         if ($this->getConfig('ShowRecommendationToConfigure', false))
         {
             $oUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -121,6 +122,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	/**
 	 * Obtains user settings. Method is allowed for superadmin only.
+	 * 
 	 * @param int $UserId
 	 * @return array|null
 	 */
@@ -137,7 +139,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				->count()
 				->exec();
 			return [
-				'EnableTwoFactorAuth' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
+				'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
 			];
 		}
 
@@ -146,6 +148,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	/**
 	 * Disables two factor authentication for specified user. Method is allowed for superadmin only.
+	 * 
 	 * @param int $UserId
 	 * @return boolean
 	 */
@@ -184,66 +187,83 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @param string $Password
 	 * @return bool|array
 	 */
-	public function EnableTwoFactorAuth($Password)
+	public function RegisterAuthenticatorAppBegin($Password)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$mResult = false;
-
-		if (!empty($Password))
+		
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
 		{
-			$mResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($mResult)
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$oGoogle = new \PHPGangsta_GoogleAuthenticator();
+		$sSecret = '';
+		if ($oUser->{$this->GetName().'::Secret'})
+		{
+			$sSecret = $oUser->{$this->GetName().'::Secret'};
+			if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
 			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-				$sSecret = '';
-				if ($oUser->{$this->GetName().'::Secret'})
-				{
-					$sSecret = $oUser->{$this->GetName().'::Secret'};
-					if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
-					{
-						$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
-					}
-				}
-				else
-				{
-					$sSecret = $oGoogle->createSecret();;
-				}
-				$sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
-
-				$mResult = [
-					'Secret' => $sSecret,
-					'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
-					'Enabled' => $oUser->{$this->GetName().'::Secret'} ? true : false
-				];
+				$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
 			}
 		}
+		else
+		{
+			$sSecret = $oGoogle->createSecret();;
+		}
+		$sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
 
-		return $mResult;
+		return [
+			'Secret' => $sSecret,
+			'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
+			'Enabled' => $oUser->{$this->GetName().'::Secret'} ? true : false
+		];
 	}
 
 	/**
-	 * Verifies user's AuthenticatorCode and saves Secret in case of success
+	 * Verifies user's Code and saves Secret in case of success
 	 *
-	 * @param string $AuthenticatorCode
+	 * @param string $Password
+	 * @param string $Code
 	 * @param string $Secret
 	 * @return boolean
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 */
-	public function TwoFactorAuthSave($AuthenticatorCode, $Secret)
+	public function RegisterAuthenticatorAppFinish($Password, $Code, $Secret)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-		$bResult = false;
-		if (!$AuthenticatorCode || !$Secret || empty($AuthenticatorCode) || empty($Secret))
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password) || empty($Code) || empty($Secret))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$bResult = false;
 		$iClockTolerance = $this->getConfig('ClockTolerance', 2);
 		$oGoogle = new \PHPGangsta_GoogleAuthenticator();
 
-		$oStatus = $oGoogle->verifyCode($Secret, $AuthenticatorCode, $iClockTolerance);
+		$oStatus = $oGoogle->verifyCode($Secret, $Code, $iClockTolerance);
 		if ($oStatus === true)
 		{
 			$oUser->{$this->GetName().'::Secret'} = \Aurora\System\Utils::EncryptValue($Secret);
@@ -261,41 +281,48 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @param string $Password
 	 * @return bool
 	 */
-	public function DisableTwoFactorAuth($Password)
+	public function DisableAuthenticatorApp($Password)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$bResult = false;
-
-		if (!empty($Password))
+		
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				$oUser->{$this->GetName().'::Secret'} = "";
-				$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
-				$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-				$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$oUser->{$this->GetName().'::Secret'} = "";
+		$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
+		$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+		$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
 
 		return $bResult;
 	}
 
 	/**
-	 * Verifies user's PIN and returns AuthToken in case of success
+	 * Verifies Authenticator code and returns AuthToken in case of success
 	 *
-	 * @param string $AuthenticatorCode
+	 * @param string $Code
 	 * @param int $UserId
 	 * @return bool|array
 	 * @throws \Aurora\System\Exceptions\ApiException
 	 * @throws \Aurora\System\Exceptions\BaseException
 	 */
-	public function VerifyAuthenticatorCode($AuthenticatorCode, $Login, $Password)
+	public function VerifyAuthenticatorAppCode($Code, $Login, $Password)
 	{
-		$mResult = false;
-
-		if (!$AuthenticatorCode || empty($AuthenticatorCode) || empty($Login)  || empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		if (empty($Code) || empty($Login)  || empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
@@ -303,93 +330,139 @@ class Module extends \Aurora\System\Module\AbstractModule
 		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyState = false;
-
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+		}
+
+		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$mResult = false;
+		if ($oUser->{$this->GetName().'::Secret'})
+		{
+			$sSecret = $oUser->{$this->GetName().'::Secret'};
+			if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
 			{
-				if ($oUser->{$this->GetName().'::Secret'})
-				{
-					$sSecret = $oUser->{$this->GetName().'::Secret'};
-					if ($oUser->{$this->GetName().'::IsEncryptedSecret'})
-					{
-						$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
-					}
-					$oGoogle = new \PHPGangsta_GoogleAuthenticator();
-					$iClockTolerance = $this->getConfig('ClockTolerance', 2);
-					$oStatus = $oGoogle->verifyCode($sSecret, $AuthenticatorCode, $iClockTolerance);
-					if ($oStatus)
-					{
-						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
-					}
-				}
-				else
-				{
-					throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
-				}
+				$sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
 			}
+			$oGoogle = new \PHPGangsta_GoogleAuthenticator();
+			$iClockTolerance = $this->getConfig('ClockTolerance', 2);
+			$oStatus = $oGoogle->verifyCode($sSecret, $Code, $iClockTolerance);
+			if ($oStatus)
+			{
+				$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+			}
+		}
+		else
+		{
+			throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
 		}
 
 		return $mResult;
 	}
 
+	/**
+	 * Verifies user's password and returns backup codes generated earlier.
+	 * 
+	 * @param string $Password
+	 * @return array|boolean
+	 */
     public function GetBackupCodes($Password)
     {
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowBackupCodes', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
-				{
-					$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
-					return [
-						'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
-						'Codes' => empty($sBackupCodes) ? [] : json_decode($sBackupCodes)
-					];
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+		return [
+			'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
+			'Codes' => empty($sBackupCodes) ? [] : json_decode($sBackupCodes)
+		];
     }
 
+	/**
+	 * Verifies user's password, generates backup codes and returns them.
+	 * 
+	 * @param string $Password
+	 * @return array|boolean
+	 */
     public function GenerateBackupCodes($Password)
     {
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowBackupCodes', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if (!empty($oUser) && $oUser->isNormalOrTenant()) {
-					$oRecovery = new Recovery();
-					$aCodes = $oRecovery
-						->setCount(10) // Generate 10 codes
-						->setBlocks(2) // Every code must have 2 blocks
-						->setChars(4) // Each block must have 4 chars
-						->setBlockSeparator(' ')
-						->uppercase()
-						->toArray();
-
-					$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aCodes));
-					$oUser->{$this->GetName().'::BackupCodesTimestamp'} = time();
-					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-
-					return [
-						'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
-						'Codes' => $aCodes,
-					];
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$oRecovery = new Recovery();
+		$aCodes = $oRecovery
+			->setCount(10) // Generate 10 codes
+			->setBlocks(2) // Every code must have 2 blocks
+			->setChars(4) // Each block must have 4 chars
+			->setBlockSeparator(' ')
+			->uppercase()
+			->toArray();
+
+		$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aCodes));
+		$oUser->{$this->GetName().'::BackupCodesTimestamp'} = time();
+		\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+
+		return [
+			'Datetime' => $oUser->{$this->GetName().'::BackupCodesTimestamp'},
+			'Codes' => $aCodes,
+		];
     }
 
 	public function VerifyBackupCode($BackupCode, $Login, $Password)
 	{
-		$mResult = false;
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		if (!$this->getConfig('AllowBackupCodes', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
-		if (!$BackupCode || empty($BackupCode) || empty($Login)  || empty($Password))
+		if (empty($BackupCode) || empty($Login)  || empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
@@ -397,30 +470,28 @@ class Module extends \Aurora\System\Module\AbstractModule
 		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyState = false;
-
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
-			{
-				$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
-				$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
-				\Aurora\System\Api::Log($BackupCode, \Aurora\System\Enums\LogLevel::Full, 'codes-');
-				\Aurora\System\Api::Log($aBackupCodes, \Aurora\System\Enums\LogLevel::Full, 'codes-');
-				\Aurora\System\Api::Log(trim($BackupCode), \Aurora\System\Enums\LogLevel::Full, 'codes-');
-				$index = array_search(trim($BackupCode), $aBackupCodes);
-				\Aurora\System\Api::Log($index, \Aurora\System\Enums\LogLevel::Full, 'codes-');
-				if ($index !== false)
-				{
-					$aBackupCodes[$index] = '';
-					$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes));
-					\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-					$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
-					\Aurora\System\Api::Log($mResult, \Aurora\System\Enums\LogLevel::Full, 'codes-');
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
+		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$mResult = false;
+		$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
+		$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
+		$index = array_search(trim($BackupCode), $aBackupCodes);
+		if ($index !== false)
+		{
+			$aBackupCodes[$index] = '';
+			$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes));
+			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+		}
 		return $mResult;
 	}
 
@@ -477,276 +548,383 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
-    public function RegisterSecurityKeyAuthenticatorBegin($Password)
+	/**
+	 * Verifies user's password and returns arguments for security key registration.
+	 * 
+	 * @param string $Password
+	 * @return array|boolean
+	 */
+    public function RegisterSecurityKeyBegin($Password)
 	{
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oModuleManager = \Aurora\System\Api::GetModuleManager();
-				$sSiteName = $oModuleManager->getModuleConfigValue('Core', 'SiteName');
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant()) {
-
-					$oCreateArgs = $this->oWebAuthn->getCreateArgs(
-						\base64_encode($oUser->UUID),
-						$oUser->PublicId,
-						$oUser->PublicId,
-						90,
-						false,
-						'discouraged',
-						true,
-						[]
-					);
-
-					$oCreateArgs->publicKey->user->id = \base64_encode($oCreateArgs->publicKey->user->id->getBinaryString());
-					$oCreateArgs->publicKey->challenge = \base64_encode($oCreateArgs->publicKey->challenge->getBinaryString());
-					$oUser->{$this->GetName().'::Challenge'} = $oCreateArgs->publicKey->challenge;
-					$oUser->saveAttribute($this->GetName().'::Challenge');
-
-					return $oCreateArgs;
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
-        return false;
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$oCreateArgs = $this->oWebAuthn->getCreateArgs(
+			\base64_encode($oUser->UUID),
+			$oUser->PublicId,
+			$oUser->PublicId,
+			90,
+			false,
+			'discouraged',
+			true,
+			[]
+		);
+
+		$oCreateArgs->publicKey->user->id = \base64_encode($oCreateArgs->publicKey->user->id->getBinaryString());
+		$oCreateArgs->publicKey->challenge = \base64_encode($oCreateArgs->publicKey->challenge->getBinaryString());
+		$oUser->{$this->GetName().'::Challenge'} = $oCreateArgs->publicKey->challenge;
+		$oUser->saveAttribute($this->GetName().'::Challenge');
+
+		return $oCreateArgs;
 	}
 
-    public function RegisterSecurityKeyAuthenticatorFinish($Attestation, $Password)
+	/**
+	 * Verifies user's password and finishes security key registration.
+	 * 
+	 * @param array $Attestation
+	 * @param string $Password
+	 * @return boolean
+	 * @throws \Aurora\System\Exceptions\ApiException
+	 */
+    public function RegisterSecurityKeyFinish($Attestation, $Password)
     {
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-				{
-					$data = $this->oWebAuthn->processCreate(
-						\base64_decode($Attestation['clientDataJSON']),
-						\base64_decode($Attestation['attestationObject']),
-						\base64_decode($oUser->{$this->GetName().'::Challenge'}),
-						false
-					);
-					$data->credentialId = \base64_encode($data->credentialId);
-					$data->AAGUID = \base64_encode($data->AAGUID);
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
-					$sEncodedSecurityKeyData = \json_encode($data);
-					if ($sEncodedSecurityKeyData === false)
-					{
-						throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UnknownError, null, json_last_error_msg());
-					}
-					else
-					{
-						$oWebAuthnKey = new Classes\WebAuthnKey();
-						$oWebAuthnKey->UserId = $oUser->EntityId;
-						$oWebAuthnKey->KeyData = $sEncodedSecurityKeyData;
-						$oWebAuthnKey->CreationDateTime = time();
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password) || empty($Attestation))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$data = $this->oWebAuthn->processCreate(
+			\base64_decode($Attestation['clientDataJSON']),
+			\base64_decode($Attestation['attestationObject']),
+			\base64_decode($oUser->{$this->GetName().'::Challenge'}),
+			false
+		);
+		$data->credentialId = \base64_encode($data->credentialId);
+		$data->AAGUID = \base64_encode($data->AAGUID);
 
-						return $oWebAuthnKey->save();
-					}
-				}
-				else
-				{
-					throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
-				}
-			}
+		$sEncodedSecurityKeyData = \json_encode($data);
+		if ($sEncodedSecurityKeyData === false)
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UnknownError, null, json_last_error_msg());
+		}
+		else
+		{
+			$oWebAuthnKey = new Classes\WebAuthnKey();
+			$oWebAuthnKey->UserId = $oUser->EntityId;
+			$oWebAuthnKey->KeyData = $sEncodedSecurityKeyData;
+			$oWebAuthnKey->CreationDateTime = time();
+
+			return $oWebAuthnKey->save();
 		}
 	}
 
+	/**
+	 * Authenticates user and returns arguments for security key verification.
+	 * 
+	 * @param string $Login
+	 * @param string $Password
+	 * @return array|boolean
+	 */
 	public function VerifySecurityKeyBegin($Login, $Password)
 	{
-		$getArgs = false;
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyState = false;
-
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+		}
+
+		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$mGetArgs = false;
+		$aIds = [];
+		$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+			->select(['KeyData'])
+			->where(['UserId' => $oUser->EntityId])
+			->exec();
+
+		if (is_array($aWebAuthnKeys))
+		{
+			foreach ($aWebAuthnKeys as $oWebAuthnKey)
 			{
-				$ids = [];
-				$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-					->select(['KeyData'])
-					->where(['UserId' => $oUser->EntityId])
-					->exec();
-
-				if (is_array($aWebAuthnKeys))
-				{
-					foreach ($aWebAuthnKeys as $oWebAuthnKey)
-					{
-						$oKeyData = \json_decode($oWebAuthnKey->KeyData);
-						$ids[] = \base64_decode($oKeyData->credentialId);
-					}
-				}
-
-				if (count($ids) > 0)
-				{
-					$getArgs = $this->oWebAuthn->getGetArgs(
-						$ids,
-						90
-					);
-					$getArgs->publicKey->challenge = \base64_encode($getArgs->publicKey->challenge->getBinaryString());
-					if (is_array($getArgs->publicKey->allowCredentials))
-					{
-						foreach ($getArgs->publicKey->allowCredentials as $key => $val)
-						{
-							$val->id = \base64_encode($val->id->getBinaryString());
-							$getArgs->publicKey->allowCredentials[$key] = $val;
-						}
-					}
-
-					$oUser->{$this->GetName().'::Challenge'} = $getArgs->publicKey->challenge;
-					$oUser->saveAttribute($this->GetName().'::Challenge');
-				}
+				$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+				$aIds[] = \base64_decode($oKeyData->credentialId);
 			}
 		}
 
-		return $getArgs;
+		if (count($aIds) > 0)
+		{
+			$mGetArgs = $this->oWebAuthn->getGetArgs(
+				$aIds,
+				90
+			);
+			$mGetArgs->publicKey->challenge = \base64_encode($mGetArgs->publicKey->challenge->getBinaryString());
+			if (is_array($mGetArgs->publicKey->allowCredentials))
+			{
+				foreach ($mGetArgs->publicKey->allowCredentials as $key => $val)
+				{
+					$val->id = \base64_encode($val->id->getBinaryString());
+					$mGetArgs->publicKey->allowCredentials[$key] = $val;
+				}
+			}
+
+			$oUser->{$this->GetName().'::Challenge'} = $mGetArgs->publicKey->challenge;
+			$oUser->saveAttribute($this->GetName().'::Challenge');
+		}
+
+		return $mGetArgs;
 	}
 
-	public function VerifySecurityKeyFinish($Login, $Password, $Attestation, $RequestId)
+	/**
+	 * Authenticates user and finishes security key verification.
+	 * 
+	 * @param string $Login
+	 * @param string $Password
+	 * @param array $Attestation
+	 * @return boolean
+	 * @throws \Aurora\System\Exceptions\ApiException
+	 */
+	public function VerifySecurityKeyFinish($Login, $Password, $Attestation)
 	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		self::$VerifyState = true;
+		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
+		self::$VerifyState = false;
+		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+		}
+
+		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
 		$mResult = true;
+		$clientDataJSON = base64_decode($Attestation['clientDataJSON']);
+		$authenticatorData = base64_decode($Attestation['authenticatorData']);
+		$signature = base64_decode($Attestation['signature']);
+		$id = base64_decode($Attestation['id']);
+		$credentialPublicKey = null;
 
-		self::$VerifyState = true;
-		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
-		self::$VerifyState = false;
+		$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
 
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+			->select(['KeyData'])
+			->where(['UserId' => $oUser->EntityId])
+			->exec();
+
+		$oWebAuthnKey = null;
+		if (is_array($aWebAuthnKeys))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			foreach ($aWebAuthnKeys as $oWebAuthnKey)
 			{
-				$clientDataJSON = base64_decode($Attestation['clientDataJSON']);
-				$authenticatorData = base64_decode($Attestation['authenticatorData']);
-				$signature = base64_decode($Attestation['signature']);
-				$id = base64_decode($Attestation['id']);
-				$credentialPublicKey = null;
-
-				$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
-
-				$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-					->select(['KeyData'])
-					->where(['UserId' => $oUser->EntityId])
-					->exec();
-
-				$oWebAuthnKey = null;
-				if (is_array($aWebAuthnKeys))
+				$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+				if (\base64_decode($oKeyData->credentialId) === $id)
 				{
-					foreach ($aWebAuthnKeys as $oWebAuthnKey)
-					{
-						$oKeyData = \json_decode($oWebAuthnKey->KeyData);
-						if (\base64_decode($oKeyData->credentialId) === $id)
-						{
-							$credentialPublicKey = $oKeyData->credentialPublicKey;
-							break;
-						}
-					}
+					$credentialPublicKey = $oKeyData->credentialPublicKey;
+					break;
 				}
+			}
+		}
 
-				if ($credentialPublicKey !== null)
+		if ($credentialPublicKey !== null)
+		{
+			try
+			{
+				// process the get request. throws WebAuthnException if it fails
+				$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
+				$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+				if (isset($oWebAuthnKey))
 				{
-					try
-					{
-						// process the get request. throws WebAuthnException if it fails
-						$this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
-						$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
-						if (isset($oWebAuthnKey))
-						{
-							$oWebAuthnKey->LastUsageDateTime = time();
-							$oWebAuthnKey->saveAttribute('LastUsageDateTime');
-						}
-					}
-					catch (\Exception $oEx)
-					{
-						throw new \Aurora\System\Exceptions\ApiException(999, $oEx, $oEx->getMessage());
-						$mResult = false;
-					}
+					$oWebAuthnKey->LastUsageDateTime = time();
+					$oWebAuthnKey->saveAttribute('LastUsageDateTime');
 				}
+			}
+			catch (\Exception $oEx)
+			{
+				$mResult = false;
+				throw new \Aurora\System\Exceptions\ApiException(999, $oEx, $oEx->getMessage());
 			}
 		}
 
 		return $mResult;
 	}
 
-	public function UpdateWebAuthnKeyName($KeyId, $Name, $Password)
+	/**
+	 * Verifies user's password and changes security key name.
+	 * 
+	 * @param int $KeyId
+	 * @param string $NewName
+	 * @param string $Password
+	 * @return boolean
+	 */
+	public function UpdateSecurityKeyName($KeyId, $NewName, $Password)
 	{
-		$mResult = false;
-
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-				{
-					$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-						->select(['KeyData'])
-						->where(
-							[
-								'UserId' => $oUser->EntityId,
-								'EntityId' => $KeyId
-							])
-						->one()
-						->exec();
-					if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
-					{
-						$oWebAuthnKey->Name = $Name;
-						$mResult = $oWebAuthnKey->saveAttribute('Name');
-					}
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password) || empty($KeyId) || empty($NewName))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$mResult = false;
+		$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+			->select(['KeyData'])
+			->where(
+				[
+					'UserId' => $oUser->EntityId,
+					'EntityId' => $KeyId
+				])
+			->one()
+			->exec();
+		if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+		{
+			$oWebAuthnKey->Name = $NewName;
+			$mResult = $oWebAuthnKey->saveAttribute('Name');
 		}
 		return $mResult;
 	}
 
-	public function DeleteWebAuthnKey($KeyId, $Password)
+	/**
+	 * Verifies user's password and removes secutiry key.
+	 * 
+	 * @param int $KeyId
+	 * @param string $Password
+	 * @return boolean
+	 */
+	public function DeleteSecurityKey($KeyId, $Password)
 	{
-		$mResult = false;
-
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
-			$bVerificationResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
-			if ($bVerificationResult)
-			{
-				$oUser = \Aurora\System\Api::getAuthenticatedUser();
-				if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-				{
-					$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-						->select(['KeyData'])
-						->where(
-							[
-								'UserId' => $oUser->EntityId,
-								'EntityId' => $KeyId
-							])
-						->one()
-						->exec();
-					if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
-					{
-						$mResult = $oWebAuthnKey->delete();
-						$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
-					}
-				}
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password) || empty($KeyId))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$mResult = false;
+		$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+			->select(['KeyData'])
+			->where(
+				[
+					'UserId' => $oUser->EntityId,
+					'EntityId' => $KeyId
+				])
+			->one()
+			->exec();
+		if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+		{
+			$mResult = $oWebAuthnKey->delete();
+			$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
+		}
 		return $mResult;
 	}
 
+	/**
+	 * Verifies user's password.
+	 * 
+	 * @param string $Password
+	 * @return boolean
+	 */
 	public function VerifyPassword($Password)
 	{
-		$mResult = false;
-
-		if (!empty($Password))
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (empty($Password))
 		{
-			$mResult = \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
-
-		return $mResult;
+		
+		return \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
 	}
 
 	public function EntryAssetlinks()
@@ -771,39 +949,47 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function TrustDevice($Login, $Password, $DeviceId, $DeviceName)
 	{
-		$mResult = false;
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		if (!$this->getConfig('TrustedDevicesLifetime', 0) > 0)
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyState = false;
-
-		if ($mAuthenticateResult && is_array($mAuthenticateResult) && isset($mAuthenticateResult['token']))
+		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
-			{
-				$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
-				if (!$oTrustedDevice)
-				{
-					$oTrustedDevice = new Classes\TrustedDevices();
-					$oTrustedDevice->DeviceId = $DeviceId;
-					$oTrustedDevice->CreationDateTime = time();
-				}
-				$oTrustedDevice->UserId = $oUser->EntityId;
-				$oTrustedDevice->DeviceName = $DeviceName;
-				$iTrustedDevicesLifetime = $this->getConfig('TrustedDevicesLifetime', 0);
-				$oTrustedDevice->LastUsageDateTime = time();
-				$oTrustedDevice->ExpirationDateTime = time() + $iTrustedDevicesLifetime * 24 * 60 * 60;
-
-				$mResult = $oTrustedDevice->save();
-			}
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		return $mResult;
+		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
+		if (!$oTrustedDevice)
+		{
+			$oTrustedDevice = new Classes\TrustedDevices();
+			$oTrustedDevice->DeviceId = $DeviceId;
+			$oTrustedDevice->CreationDateTime = time();
+		}
+		$oTrustedDevice->UserId = $oUser->EntityId;
+		$oTrustedDevice->DeviceName = $DeviceName;
+		$iTrustedDevicesLifetime = $this->getConfig('TrustedDevicesLifetime', 0);
+		$oTrustedDevice->LastUsageDateTime = time();
+		$oTrustedDevice->ExpirationDateTime = time() + $iTrustedDevicesLifetime * 24 * 60 * 60;
+
+		return $oTrustedDevice->save();
 	}
 
 	public function DoNotTrustDevice($DeviceId)
 	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
 		$mResult = false;
 		$oTrustedDevice = $this->GetTrustedDevice($DeviceId);
 		if ($oTrustedDevice)
@@ -828,6 +1014,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 	}
 	public function GetTrustedDevice($DeviceId)
 	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
 		$mResult = false;
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 
@@ -841,6 +1029,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function GetTrustedDevices()
 	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
 		$aTrustedDevices = [];
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 

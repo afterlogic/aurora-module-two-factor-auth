@@ -98,7 +98,7 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	this.login(sLogin);
 	this.sPassword = sPassword;
 
-	this.hasSecurityKey(Settings.AllowYubikey && oTwoFactorAuthData.HasSecurityKey);
+	this.hasSecurityKey(Settings.AllowSecurityKeys && oTwoFactorAuthData.HasSecurityKey);
 	this.hasAuthenticatorApp(oTwoFactorAuthData.HasAuthenticatorApp);
 	this.hasBackupCodes(Settings.AllowBackupCodes && oTwoFactorAuthData.HasBackupCodes);
 
@@ -244,13 +244,13 @@ CVerifySecondFactorPopup.prototype.verifyAuthenticatorCode = function ()
 	var oParameters = {
 		'Login': this.login(),
 		'Password': this.sPassword,
-		'AuthenticatorCode': this.authenticatorCode()
+		'Code': this.authenticatorCode()
 	};
 	this.authenticatorCodeInProgress(true);
-	Ajax.send('%ModuleName%', 'VerifyAuthenticatorCode', oParameters, this.onVerifyAuthenticatorCode, this);
+	Ajax.send('%ModuleName%', 'VerifyAuthenticatorAppCode', oParameters, this.onVerifyAuthenticatorAppCodeResponse, this);
 };
 
-CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorCode = function (oResponse)
+CVerifySecondFactorPopup.prototype.onVerifyAuthenticatorAppCodeResponse = function (oResponse)
 {
 	var oResult = oResponse.Result;
 

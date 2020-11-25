@@ -7,7 +7,7 @@
 			<div class="row hint">
 				<span data-bind="html: tfaStatusForUserText"></span>
 			</div>
-			<div class="buttons" style="text-align: left;" data-bind="visible: enableTwoFactorAuth">
+			<div class="buttons" style="text-align: left;" data-bind="visible: twoFactorAuthEnabled">
 				<span class="button" data-bind="click: comfirmDisableUserTfa">
 					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE_TFA'}"></span>
 				</span>

@@ -60,9 +60,9 @@ CCreateSecurityKeyPopup.prototype.registerSecurityKey = function (oResponse) {
 		this.securityKeyInProgress(true);
 		this.securityKeyError(false);
 		this.securityKeyCanceled(false);
-		Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorBegin', {
+		Ajax.send('%ModuleName%', 'RegisterSecurityKeyBegin', {
 			'Password': this.sEditVerificator
-		}, this.onRegisterSecurityKeyAuthenticatorBegin, this);
+		}, this.onRegisterSecurityKeyBeginResponse, this);
 	}
 	else
 	{
@@ -71,7 +71,7 @@ CCreateSecurityKeyPopup.prototype.registerSecurityKey = function (oResponse) {
 	}
 };
 
-CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyAuthenticatorBegin = function (oResponse) {
+CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyBeginResponse = function (oResponse) {
 	if (oResponse && oResponse.Result)
 	{
 		var oCreateArgs = oResponse.Result;
@@ -86,8 +86,8 @@ CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyAuthenticatorBegin = func
 						'clientDataJSON': ConvertUtils.arrayBufferToBase64(cred.response.clientDataJSON)
 					}
 				};
-				Ajax.send('%ModuleName%', 'RegisterSecurityKeyAuthenticatorFinish', oParams,
-					this.onRegisterSecurityKeyAuthenticatorFinish, this);
+				Ajax.send('%ModuleName%', 'RegisterSecurityKeyFinish', oParams,
+					this.onRegisterSecurityKeyFinishResponse, this);
 			})
 			.catch((err) => {
 				this.securityKeyInProgress(false);
@@ -103,7 +103,7 @@ CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyAuthenticatorBegin = func
 	}
 };
 
-CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyAuthenticatorFinish = function (oResponse)
+CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyFinishResponse = function (oResponse)
 {
 	this.securityKeyInProgress(false);
 	if (oResponse && oResponse.Result)
@@ -125,14 +125,14 @@ CCreateSecurityKeyPopup.prototype.save = function ()
 		var oParameters = {
 			'Password': this.sEditVerificator,
 			'KeyId': this.iId,
-			'Name': this.name()
+			'NewName': this.name()
 		};
 		this.saveNameInProgress(true);
-		Ajax.send('%ModuleName%', 'UpdateWebAuthnKeyName', oParameters, this.onUpdateWebAuthnKeyName, this);
+		Ajax.send('%ModuleName%', 'UpdateSecurityKeyName', oParameters, this.onUpdateSecurityKeyNameResponse, this);
 	}
 };
 
-CCreateSecurityKeyPopup.prototype.onUpdateWebAuthnKeyName = function (oResponse)
+CCreateSecurityKeyPopup.prototype.onUpdateSecurityKeyNameResponse = function (oResponse)
 {
 	this.saveNameInProgress(false);
 	if (oResponse && oResponse.Result)

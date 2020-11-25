@@ -30,7 +30,7 @@ function CTwoFactorAuthAdminSettingsFormView()
 	this.iUserId = 0;
 	
 	this.userPublicId = ko.observable('');
-	this.enableTwoFactorAuth = ko.observable('');
+	this.twoFactorAuthEnabled = ko.observable('');
 	
 	App.subscribeEvent('ReceiveAjaxResponse::after', _.bind(function (oParams) {
 		if (oParams.Request.Module === 'Core' && oParams.Request.Method === 'GetUser')
@@ -42,7 +42,7 @@ function CTwoFactorAuthAdminSettingsFormView()
 		}
 	}, this));
 	this.tfaStatusForUserText = ko.computed(function () {
-		if (this.enableTwoFactorAuth())
+		if (this.twoFactorAuthEnabled())
 		{
 			return TextUtils.i18n('%MODULENAME%/INFO_TFA_ENABLED_FOR_USER', {'USER': this.userPublicId()});
 		}
@@ -57,7 +57,7 @@ CTwoFactorAuthAdminSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFa
 
 CTwoFactorAuthAdminSettingsFormView.prototype.onRouteChild = function ()
 {
-	this.enableTwoFactorAuth(false);
+	this.twoFactorAuthEnabled(false);
 	this.requestPerUserSettings();
 };
 
@@ -66,7 +66,7 @@ CTwoFactorAuthAdminSettingsFormView.prototype.requestPerUserSettings = function 
 	Ajax.send('%ModuleName%', 'GetUserSettings', { 'UserId': this.iUserId }, function (oResponse, oRequest) {
 		if (oResponse.Result && oRequest.Parameters.UserId === this.iUserId)
 		{
-			this.enableTwoFactorAuth(Types.pBool(oResponse.Result.EnableTwoFactorAuth));
+			this.twoFactorAuthEnabled(Types.pBool(oResponse.Result.TwoFactorAuthEnabled));
 		}
 	}, this);
 };
@@ -86,7 +86,7 @@ CTwoFactorAuthAdminSettingsFormView.prototype.disableUserTfa = function ()
 	Ajax.send('%ModuleName%', 'DisableUserTwoFactorAuth', { 'UserId': this.iUserId }, function (oResponse, oRequest) {
 		if (oResponse.Result)
 		{
-			this.enableTwoFactorAuth(false);
+			this.twoFactorAuthEnabled(false);
 			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_DISABLE_USER_TFA', {'USER': this.userPublicId()}));
 		}
 		else

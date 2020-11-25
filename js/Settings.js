@@ -14,11 +14,11 @@ var
 module.exports = {
 	ServerModuleName: '%ModuleName%',
 	HashModuleName: 'two-factor-auth',
-	EnableTwoFactorAuth: false,
+	AuthenticatorAppEnabled: false,
 	ShowRecommendationToConfigure: true,
 	AllowBackupCodes: false,
 	BackupCodesCount: false,
-	AllowYubikey: false,
+	AllowSecurityKeys: false,
 	SecurityKeys: [],
 	TrustedDevicesLifetime: 0,
 
@@ -32,11 +32,11 @@ module.exports = {
 		var oAppDataSection = _.extend({}, oAppData[this.ServerModuleName] || {}, oAppData['%ModuleName%'] || {});
 		if (!_.isEmpty(oAppDataSection))
 		{
-			this.EnableTwoFactorAuth = Types.pBool(oAppDataSection.EnableTwoFactorAuth, this.EnableTwoFactorAuth);
+			this.AuthenticatorAppEnabled = Types.pBool(oAppDataSection.AuthenticatorAppEnabled, this.AuthenticatorAppEnabled);
 			this.ShowRecommendationToConfigure = Types.pBool(oAppDataSection.ShowRecommendationToConfigure, this.ShowRecommendationToConfigure);
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
-			this.AllowYubikey = Types.pBool(oAppDataSection.AllowYubikey, this.AllowYubikey);
+			this.AllowSecurityKeys = Types.pBool(oAppDataSection.AllowSecurityKeys, this.AllowSecurityKeys);
 			this.TrustedDevicesLifetime = Types.pInt(oAppDataSection.TrustedDevicesLifetime, this.TrustedDevicesLifetime);
 			this.SecurityKeys = [];
 			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
@@ -65,9 +65,9 @@ module.exports = {
 		this.BackupCodesCount = iBackupCodesCount;
 	},
 
-	updateAuthenticatorApp: function (bEnableTwoFactorAuth)
+	updateAuthenticatorApp: function (bAuthenticatorAppEnabled)
 	{
-		this.EnableTwoFactorAuth = !!bEnableTwoFactorAuth;
+		this.AuthenticatorAppEnabled = !!bAuthenticatorAppEnabled;
 	},
 
 	checkIfEnabled: function ()
@@ -75,7 +75,7 @@ module.exports = {
 		if (App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
 		{
 			var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
-			if (!this.EnableTwoFactorAuth && !bTfaSettingsOpened)
+			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened)
 			{
 				setTimeout(function () {
 					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED'));

@@ -15,7 +15,7 @@
 		false,
 		"bool"
 	],
-	"AllowYubikey": [
+	"AllowSecurityKeys": [
 		false,
 		"bool"
 	],

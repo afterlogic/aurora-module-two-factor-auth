@@ -60,10 +60,10 @@ CConfigureAuthenticatorAppPopup.prototype.getAuthenticatorAppData = function ()
 	var oParameters = {
 		'Password': this.sEditVerificator
 	};
-	Ajax.send('%ModuleName%', 'EnableTwoFactorAuth', oParameters, this.onEnableTwoFactorAuth, this);
+	Ajax.send('%ModuleName%', 'RegisterAuthenticatorAppBegin', oParameters, this.onRegisterAuthenticatorAppBeginResponse, this);
 };
 
-CConfigureAuthenticatorAppPopup.prototype.onEnableTwoFactorAuth = function (oResponse)
+CConfigureAuthenticatorAppPopup.prototype.onRegisterAuthenticatorAppBeginResponse = function (oResponse)
 {
 	var oResult = oResponse && oResponse.Result;
 
@@ -85,15 +85,15 @@ CConfigureAuthenticatorAppPopup.prototype.save = function ()
 	{
 		var oParameters = {
 			'Password': this.sEditVerificator,
-			'AuthenticatorCode': this.authenticatorCode(),
+			'Code': this.authenticatorCode(),
 			'Secret': this.authenticatorSecret()
 		};
 		this.saveInProgress(true);
-		Ajax.send('%ModuleName%', 'TwoFactorAuthSave', oParameters, this.onTwoFactorAuthSave, this);
+		Ajax.send('%ModuleName%', 'RegisterAuthenticatorAppFinish', oParameters, this.onRegisterAuthenticatorAppFinishResponse, this);
 	}
 };
 
-CConfigureAuthenticatorAppPopup.prototype.onTwoFactorAuthSave = function (Response)
+CConfigureAuthenticatorAppPopup.prototype.onRegisterAuthenticatorAppFinishResponse = function (Response)
 {
 	this.saveInProgress(false);
 	if(Response && Response.Result)
