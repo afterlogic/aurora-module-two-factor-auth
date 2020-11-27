@@ -87,7 +87,6 @@ CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 	Popups.showPopup(ConfirmPasswordPopup, [function (sEditVerificator) {
 		this.sEditVerificator = sEditVerificator;
 		this.passwordVerified(true);
-		this.disableShowRecommendation();
 	}.bind(this)]);
 };
 
@@ -96,16 +95,20 @@ CTwoFactorAuthSettingsFormView.prototype.setupAuthenticatorApp = function ()
 	Popups.showPopup(ConfigureAuthenticatorAppPopup, [this.sEditVerificator, function () {
 		Settings.updateAuthenticatorApp(true);
 		this.populateSettings();
+		this.disableShowRecommendation();
 	}.bind(this)]);
 };
 
 CTwoFactorAuthSettingsFormView.prototype.disableShowRecommendation = function ()
 {
-	this.showRecommendationToConfigure(false);
-	Ajax.send('%ModuleName%', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
-		Settings.updateShowRecommendation(false);
-		this.populateSettings();
-	}.bind(this));
+	if (this.showRecommendationToConfigure())
+	{
+		this.showRecommendationToConfigure(false);
+		Ajax.send('%ModuleName%', 'UpdateSettings', {'ShowRecommendationToConfigure': false}, function () {
+			Settings.updateShowRecommendation(false);
+			this.populateSettings();
+		}.bind(this));
+	}
 };
 
 CTwoFactorAuthSettingsFormView.prototype.askDisableAuthenticatorApp = function ()
@@ -152,8 +155,9 @@ CTwoFactorAuthSettingsFormView.prototype.addCreatedSecurityKey = function (iId, 
 {
 	this.securityKeys.push({
 		'Id': iId,
-		'keyName': ko.observable(sName),
+		'keyName': ko.observable(sName)
 	});
+	this.disableShowRecommendation();
 };
 
 CTwoFactorAuthSettingsFormView.prototype.askNewSecurityKeyName = function (iId, sName)
