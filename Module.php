@@ -35,10 +35,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 			]
 		);
 
-		\Aurora\System\Router::getInstance()->register(
+		\Aurora\System\Router::getInstance()->registerArray(
 			self::GetName(),
-			'assetlinks',
-			[$this, 'EntryAssetlinks']
+			[
+				'assetlinks' => [$this, 'EntryAssetlinks'],
+				'verify-security-key' => [$this, 'EntryVerifySecurityKey'],
+			]
 		);
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
@@ -925,6 +927,33 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 		
 		return \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+	}
+	
+	public function EntryVerifySecurityKey()
+	{
+		$oModuleManager = \Aurora\System\Api::GetModuleManager();
+		$sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
+		
+		$oHttp = \MailSo\Base\Http::SingletonInstance();
+		$sLogin = $oHttp->GetQuery('login', '');
+		$sPassword = $oHttp->GetQuery('password', '');
+		$oGetArgs = false;
+		$sError = false;
+		try {
+			$oGetArgs = self::Decorator()->VerifySecurityKeyBegin($sLogin, $sPassword);
+		}
+		catch (\Exception $oEx) {
+			$sError = $oEx->getCode() . ': ' . $oEx->getMessage();
+		}
+		$sResult = \file_get_contents($this->GetPath().'/templates/EntryVerifySecurityKey.html');
+		$sResult = \strtr($sResult, array(
+			'{{GetArgs}}' => \Aurora\System\Managers\Response::GetJsonFromObject(null, $oGetArgs),
+			'{{Error}}' => $sError,
+			'{{Description}}' => $this->i18N('HINT_SECURITY_KEY_VERIFICATION'),
+			'{{Theme}}' => $sTheme,
+		));
+		\Aurora\System\Managers\Response::HtmlOutputHeaders();
+		return $sResult;
 	}
 
 	public function EntryAssetlinks()
