@@ -32,12 +32,14 @@ function CVerifySecondFactorPopup()
 	this.login = ko.observable(null);
 	this.sPassword = null;
 
+	this.bAllowTrustedDevices = Settings.AllowTrustedDevices;
+
 	this.verificationResponse = ko.observable(null);
 	this.verificationPassed = ko.computed(function () {
 		return this.verificationResponse() !== null;
 	}, this);
 	this.verificationResponse.subscribe(function () {
-		 if (this.verificationPassed() && !this.trustDeviceVisible())
+		 if (this.verificationPassed() && !this.bAllowTrustedDevices)
 		 {
 			this.afterVerify();
 			this.closePopup();
@@ -50,8 +52,6 @@ function CVerifySecondFactorPopup()
 	this.securityKeyVisible = ko.observable(false);
 	this.authenticatorAppVisible = ko.observable(false);
 	this.backupCodesVisible = ko.observable(false);
-
-	this.trustDeviceVisible = ko.observable(true);
 
 	this.hasSecurityKey = ko.observable(false);
 	this.securityKeyInProgress = ko.observable(false);
@@ -120,7 +120,6 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	{
 		this.useAuthenticatorApp();
 	}
-	this.trustDeviceVisible(Settings.TrustedDevicesLifetime > 0);
 };
 
 CVerifySecondFactorPopup.prototype.useOtherOption = function ()
@@ -311,9 +310,14 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 			'Password': this.sPassword,
 			'DeviceId': Utils.getUUID(),
 			'DeviceName': navigator.userAgent
-		});
+		}, function () {
+			if (_.isFunction(this.fAfterVerify))
+			{
+				this.fAfterVerify(this.verificationResponse());
+			}
+		}, this);
 	}
-	if (_.isFunction(this.fAfterVerify))
+	else if (_.isFunction(this.fAfterVerify))
 	{
 		this.fAfterVerify(this.verificationResponse());
 	}

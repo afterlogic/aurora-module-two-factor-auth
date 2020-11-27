@@ -107,6 +107,7 @@
 					</div>
 				</div>
 			</div>
+
 			<div class="fieldset" data-bind="visible: allowBackupCodes">
 				<div class="fieldgroup">
 					<div class="row">
@@ -133,6 +134,50 @@
 							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_SHOW_CODES'}"></span>
 						</span>
 					</div>
+				</div>
+			</div>
+
+			<div class="fieldset" data-bind="visible: allowTrustedDevices">
+				<div class="fieldgroup">
+<!--					<div class="row">
+						<h3>
+							<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_SECURITY_KEYS'}"></span>
+							<label class="custom_checkbox round checked" data-bind="visible: securityKeys().length > 0">
+								<span class="icon"></span>
+							</label>
+						</h3>
+					</div>
+					<div class="row hint">
+						<span data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEYS'}"></span>
+					</div>-->
+					<div class="row folders">
+						<div class="folders items_list">
+							<div data-bind="foreach: devices">
+								<div class="item canSelect">
+									<span class="title">
+<!--										<span class="controls">
+											<span class="button rename" data-bind="
+													click: function () { $parent.askNewSecurityKeyName(Id, keyName()); },
+													customTooltip: '%MODULENAME%/ACTION_RENAME'">
+											</span>
+											<span class="button delete" data-bind="
+													click: function () { $parent.askRemoveSecurityKey(Id, keyName()); },
+													customTooltip: 'COREWEBCLIENT/ACTION_DELETE'">
+											</span>
+										</span>-->
+										<span class="name">
+											<span class="text" data-bind="text: DeviceName"></span>
+										</span>
+									</span>
+								</div>
+							</div>
+						</div>
+					</div>
+<!--					<div class="row buttons">
+						<span class="button" data-bind="click: addSecurityKey">
+							<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_ADD_SECURITY_KEY'}"></span>
+						</span>
+					</div>-->
 				</div>
 			</div>
 		<!-- /ko -->

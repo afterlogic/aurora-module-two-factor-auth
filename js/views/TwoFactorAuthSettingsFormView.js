@@ -58,6 +58,11 @@ function CTwoFactorAuthSettingsFormView()
 	this.allowBackupCodes = ko.computed(function () {
 		return Settings.AllowBackupCodes && (this.hasAuthenticatorApp() || this.securityKeys().length > 0) && this.passwordVerified();
 	}, this);
+	
+	this.devices = ko.observableArray([]);
+	this.allowTrustedDevices = ko.computed(function () {
+		return Settings.AllowTrustedDevices && this.devices().length > 0;
+	}, this);
 
 	this.populateSettings();
 }
@@ -87,6 +92,10 @@ CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 	Popups.showPopup(ConfirmPasswordPopup, [function (sEditVerificator) {
 		this.sEditVerificator = sEditVerificator;
 		this.passwordVerified(true);
+		Ajax.send('%ModuleName%', 'GetTrustedDevices', {}, function (oResponse) {
+			var aDevices = oResponse && oResponse.Result;
+			this.devices(aDevices);
+		}.bind(this));
 	}.bind(this)]);
 };
 

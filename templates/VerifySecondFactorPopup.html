@@ -8,7 +8,7 @@
 			<h3 data-bind="text: login"></h3>
 		</div>
 
-		<div class="fields" data-bind="visible: verificationPassed() && trustDeviceVisible()">
+		<div class="fields" data-bind="visible: verificationPassed() && bAllowTrustedDevices">
 			<label class="custom_checkbox" data-bind="css: {'checked': trustThisBrowser}">
 				<span class="icon"></span>
 				<input type="checkbox" id="trustThisBrowser" data-bind="checked: trustThisBrowser" />
@@ -19,7 +19,7 @@
 			</div>
 		</div>
 		
-		<div class="fields" data-bind="visible: securityKeyVisible">
+		<div class="fields" data-bind="visible: securityKeyVisible() && !verificationPassed()">
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/HINT_SECURITY_KEY_VERIFICATION'}, visible: securityKeyInProgress"></div>
 			<div class="block_security_key_inprogress" data-bind="visible: securityKeyInProgress"></div>
 			
@@ -44,7 +44,7 @@
 			<!-- /ko -->
 		</div>
 		
-		<div class="fields" data-bind="visible: authenticatorAppVisible">
+		<div class="fields" data-bind="visible: authenticatorAppVisible && !verificationPassed()">
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_AUTHENTICATOR_APP_VERIFICATION'}"></div>
 			<div class="fieldset list-block">
 				<div class="item-content">
@@ -80,7 +80,7 @@
 			</div>
 		</div>
 		
-		<div class="fields" data-bind="visible: backupCodesVisible">
+		<div class="fields" data-bind="visible: backupCodesVisible() && !verificationPassed()">
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_ENTER_BACKUP_CODE'}"></div>
 			<div class="fieldset list-block">
 				<div class="item-content">

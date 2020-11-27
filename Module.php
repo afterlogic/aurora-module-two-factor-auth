@@ -68,6 +68,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function GetSettings()
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		
+		$aSettings = [
+			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
+			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
+			'TrustedDevicesLifetime' => $this->getConfig('TrustedDevicesLifetime', 0),
+		];
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!empty($oUser) && $oUser->isNormalOrTenant())
@@ -89,21 +95,15 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$iBackupCodesCount = count($aNotUsedBackupCodes);
 			}
 			
-			return [
+			$aSettings = array_merge($aSettings, [
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
-				'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
 				'WebAuthKeysInfo' => $aWebAuthKeysInfo,
 				'AuthenticatorAppEnabled' => $bAuthenticatorAppEnabled,
-				'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 				'BackupCodesCount' => $iBackupCodesCount,
-			];
+			]);
 		}
 
-		return [
-			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
-			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
-			'TrustedDevicesLifetime' => $this->getConfig('TrustedDevicesLifetime', 0)
-		];
+		return $aSettings;
 	}
 
     public function UpdateSettings($ShowRecommendationToConfigure)
@@ -518,7 +518,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 				$bTrustedDevice = false;
 				$sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
-				if ($sDeviceId)
+				if ($sDeviceId && $this->getConfig('TrustedDevicesLifetime', 0) > 0)
 				{
 					$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $sDeviceId);
 					if ($oTrustedDevice)
@@ -1068,7 +1068,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$aTrustedDevices = (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
 			->where(
 				[
-					'UserId' => $iUserId
+					'UserId' => $oUser->EntityId,
 				]
 			)
 			->exec();

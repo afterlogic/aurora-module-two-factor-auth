@@ -21,6 +21,7 @@ module.exports = {
 	AllowSecurityKeys: false,
 	SecurityKeys: [],
 	TrustedDevicesLifetime: 0,
+	AllowTrustedDevices: false,
 
 	/**
 	 * Initializes settings from AppData object sections.
@@ -38,6 +39,7 @@ module.exports = {
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowSecurityKeys = Types.pBool(oAppDataSection.AllowSecurityKeys, this.AllowSecurityKeys);
 			this.TrustedDevicesLifetime = Types.pInt(oAppDataSection.TrustedDevicesLifetime, this.TrustedDevicesLifetime);
+			this.AllowTrustedDevices = this.TrustedDevicesLifetime > 0;
 			this.SecurityKeys = [];
 			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
 			{
