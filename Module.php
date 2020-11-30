@@ -177,7 +177,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 			
 			$oUser->{$this->GetName().'::BackupCodes'} = '';
 			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
-			return $bResult && \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			$bResult = $bResult && \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+			
+			$bResult = $bResult && $this->_revokeTrustFromAllDevices($oUser);
+			
+			return $bResult;
 		}
 
 		return false;
@@ -306,7 +310,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser->{$this->GetName().'::Secret'} = "";
 		$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
 		$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-		$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
+		$this->_removeAllDataWhenAllSecondFactorsDisabled($oUser);
 
 		return $bResult;
 	}
@@ -520,7 +524,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
 				if ($sDeviceId && $this->getConfig('TrustedDevicesLifetime', 0) > 0)
 				{
-					$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $sDeviceId);
+					$oTrustedDevice = $this->_getTrustedDevice($oUser->EntityId, $sDeviceId);
 					if ($oTrustedDevice)
 					{
 						if ($oTrustedDevice->ExpirationDateTime > time())
@@ -906,7 +910,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
 		{
 			$mResult = $oWebAuthnKey->delete();
-			$this->_removeBackupCodesIfSecondFactorDisabled($oUser);
+			$this->_removeAllDataWhenAllSecondFactorsDisabled($oUser);
 		}
 		return $mResult;
 	}
@@ -980,7 +984,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 		
-		if (!$this->getConfig('TrustedDevicesLifetime', 0) > 0)
+		if (!$this->_isTrustedDevicesEnabled())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -999,7 +1003,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 		
-		$oTrustedDevice = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
+		$oTrustedDevice = $this->_getTrustedDevice($oUser->EntityId, $DeviceId);
 		if (!$oTrustedDevice)
 		{
 			$oTrustedDevice = new Classes\TrustedDevices();
@@ -1015,68 +1019,140 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return $oTrustedDevice->save();
 	}
 
-	public function DoNotTrustDevice($DeviceId)
+	public function GetTrustedDevices($Password)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 		
+		if (!$this->_isTrustedDevicesEnabled())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		return $this->_getAllTrustedDevices($oUser->EntityId);
+	}
+	
+	public function RevokeTrustFromAllDevices($Password)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->_isTrustedDevicesEnabled())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		return $this->_revokeTrustFromAllDevices($oUser);
+	}
+
+	public function RevokeTrustFromDevice($Password, $DeviceId)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		if (!$this->_isTrustedDevicesEnabled())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
+		if (empty($Password) || empty($DeviceId))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+		
+		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+		
 		$mResult = false;
-		$oTrustedDevice = $this->GetTrustedDevice($DeviceId);
+		$oTrustedDevice = $this->_getTrustedDevice($oUser->EntityId, $DeviceId);
 		if ($oTrustedDevice)
 		{
 			$mResult = $oTrustedDevice->delete();
 		}
-
 		return $mResult;
 	}
 
-	private function getTrustedDeviceByUserId($UserId, $DeviceId)
+	protected function _isTrustedDevicesEnabled()
+	{
+		$iTrustedDevicesLifetime = $this->getConfig('TrustedDevicesLifetime', 0);
+		return is_int($iTrustedDevicesLifetime) && $iTrustedDevicesLifetime > 0;
+	}
+
+	protected function _getTrustedDevice($iUserId, $iDeviceId)
 	{
 		return (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
 		->where(
 			[
-				'UserId' => $UserId,
-				'DeviceId' => $DeviceId
+				'UserId' => $iUserId,
+				'DeviceId' => $iDeviceId
 			]
 		)
 		->one()
 		->exec();
 	}
-	public function GetTrustedDevice($DeviceId)
+	
+	protected function _getAllTrustedDevices($iUserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		
-		$mResult = false;
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$aTrustedDevices = (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
+			->where(
+				[
+					'UserId' => $iUserId,
+				]
+			)
+			->orderBy('LastUsageDateTime')
+			->sortOrder(\Aurora\System\Enums\SortOrder::DESC)
+			->exec();
+		return $aTrustedDevices;
+	}
 
-		if ($oUser)
+	protected function _revokeTrustFromAllDevices($oUser)
+	{
+		$mResult = true;
+		$aTrustedDevices = $this->_getAllTrustedDevices($oUser->EntityId);
+		foreach ($aTrustedDevices as $oTrustedDevice)
 		{
-			$mResult = $this->getTrustedDeviceByUserId($oUser->EntityId, $DeviceId);
+			$mResult = $mResult && $oTrustedDevice->delete();
 		}
-
 		return $mResult;
 	}
 
-	public function GetTrustedDevices()
-	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		
-		$aTrustedDevices = [];
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-
-		if ($oUser)
-		{
-			$aTrustedDevices = (new \Aurora\System\EAV\Query(Classes\TrustedDevices::class))
-			->where(
-				[
-					'UserId' => $oUser->EntityId,
-				]
-			)
-			->exec();
-		}
-
-		return $aTrustedDevices;
-	}
-	
 	protected function _getWebAuthKeysInfo($oUser)
 	{
 		$aWebAuthKeysInfo = [];
@@ -1099,21 +1175,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return $aWebAuthKeysInfo;
 	}
 
-	protected function _removeBackupCodesIfSecondFactorDisabled($oUser)
+	protected function _removeAllDataWhenAllSecondFactorsDisabled($oUser)
 	{
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+			->select(['KeyData'])
+			->where(['UserId' => $oUser->EntityId])
+			->count()
+			->exec();
+		if (empty($oUser->{$this->GetName().'::Secret'}) && $iWebAuthnKeyCount === 0)
 		{
-			$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-				->select(['KeyData'])
-				->where(['UserId' => $oUser->EntityId])
-				->count()
-				->exec();
-			if (empty($oUser->{$this->GetName().'::Secret'}) && $iWebAuthnKeyCount === 0)
-			{
-				$oUser->{$this->GetName().'::BackupCodes'} = '';
-				$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
-				\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
-			}
+			$oUser->{$this->GetName().'::BackupCodes'} = '';
+			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
+			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
+
+			$this->_revokeTrustFromAllDevices($oUser);
 		}
 	}
 }

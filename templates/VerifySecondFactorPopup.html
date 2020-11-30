@@ -9,11 +9,12 @@
 		</div>
 
 		<div class="fields" data-bind="visible: verificationPassed() && bAllowTrustedDevices">
+			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/LABEL_ALL_SET'}"></div>
 			<label class="custom_checkbox" data-bind="css: {'checked': trustThisBrowser}">
 				<span class="icon"></span>
 				<input type="checkbox" id="trustThisBrowser" data-bind="checked: trustThisBrowser" />
 			</label>
-			<label for="trustThisBrowser" data-bind="i18n: {'key': '%MODULENAME%/TRUST_THIS_BROWSER'}"></label>
+			<label for="trustThisBrowser" data-bind="i18n: {'key': '%MODULENAME%/LABEL_TRUST_DEVICE'}"></label>
 			<div class="buttons">
 				<span class="button" data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONTINUE'}, click: afterVerify"></span>
 			</div>
@@ -44,7 +45,7 @@
 			<!-- /ko -->
 		</div>
 		
-		<div class="fields" data-bind="visible: authenticatorAppVisible && !verificationPassed()">
+		<div class="fields" data-bind="visible: authenticatorAppVisible() && !verificationPassed()">
 			<div class="hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_AUTHENTICATOR_APP_VERIFICATION'}"></div>
 			<div class="fieldset list-block">
 				<div class="item-content">
