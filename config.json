@@ -19,6 +19,14 @@
 		false,
 		"bool"
 	],
+	"AllowUsedDevices": [
+		false,
+		"bool"
+	],
+	"TrustDevicesForDays": [
+		0,
+		"int"
+	],
 	 "IncludeInMobile": [
 		true,
 		"bool"
@@ -30,9 +38,5 @@
 	"RequireInMobile": [
 		["StandardLoginFormWebclient"],
 		"array"
-	],
-	"TrustedDevicesLifetime": [
-		0,
-		"int"
 	]
 }

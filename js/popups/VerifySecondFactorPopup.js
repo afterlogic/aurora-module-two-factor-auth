@@ -5,13 +5,13 @@ var
 	ko = require('knockout'),
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 
 	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
 
@@ -47,6 +47,9 @@ function CVerifySecondFactorPopup()
 	}, this);
 
 	this.trustThisBrowser = ko.observable(false);
+	this.sTrustThisBrowserText = TextUtils.i18n('%MODULENAME%/LABEL_TRUST_DEVICE_PLURAL', {
+		'COUNT': Settings.TrustDevicesForDays
+	}, null, Settings.TrustDevicesForDays);
 
 	this.allOptionsVisible = ko.observable(false);
 	this.securityKeyVisible = ko.observable(false);
@@ -85,6 +88,11 @@ function CVerifySecondFactorPopup()
 		}
 		return iOptionsCount > 1;
 	}, this);
+	
+	this.continueInProgress = ko.observable(false);
+	this.continueCommand = Utils.createCommand(this, this.afterVerify, function () {
+		return !this.continueInProgress();
+	});
 }
 
 _.extendOwn(CVerifySecondFactorPopup.prototype, CAbstractPopup.prototype);
@@ -93,6 +101,8 @@ CVerifySecondFactorPopup.prototype.PopupTemplate = '%ModuleName%_VerifySecondFac
 
 CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, oTwoFactorAuthData, sLogin, sPassword)
 {
+	this.continueInProgress(false);
+	
 	this.fAfterVerify = fAfterVerify;
 	this.fOnCancel = fOnCancel;
 	this.login(sLogin);
@@ -305,12 +315,15 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 {
 	if (this.trustThisBrowser())
 	{
-		Ajax.send('%ModuleName%', 'TrustDevice', {
+		var oParameters = {
 			'Login': this.login(),
 			'Password': this.sPassword,
 			'DeviceId': Utils.getUUID(),
-			'DeviceName': navigator.userAgent
-		}, function () {
+			'DeviceName': navigator.userAgent,
+			'Trust': this.trustThisBrowser()
+		};
+		this.continueInProgress(true);
+		Ajax.send('%ModuleName%', 'TrustDevice', oParameters, function () {
 			if (_.isFunction(this.fAfterVerify))
 			{
 				this.fAfterVerify(this.verificationResponse());

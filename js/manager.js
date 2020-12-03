@@ -4,7 +4,9 @@ var
 	_ = require('underscore'),
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	
 	Settings = require('modules/%ModuleName%/js/Settings.js')
@@ -92,6 +94,15 @@ module.exports = function (oAppData) {
 				}.bind(this);
 				App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
 				App.subscribeEvent('MailLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
+			}
+			
+			if (App.isUserNormalOrTenant())
+			{
+				var oParameters = {
+					'DeviceId': Utils.getUUID(),
+					'DeviceName': navigator.userAgent
+				};
+				Ajax.send('%ModuleName%', 'SaveDevice', oParameters);
 			}
 		}
 	};

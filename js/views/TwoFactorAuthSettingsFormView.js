@@ -6,13 +6,16 @@ var
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+	UserSettings = require('%PathToCoreWebclientModule%/js/Settings.js'),
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
@@ -62,11 +65,19 @@ function CTwoFactorAuthSettingsFormView()
 	}, this);
 	
 	this.devices = ko.observableArray([]);
-	this.allowTrustedDevices = ko.computed(function () {
-		return Settings.AllowTrustedDevices && this.devices().length > 0;
+	this.allowUsedDevices = ko.computed(function () {
+		return Settings.AllowUsedDevices && this.devices().length > 0;
 	}, this);
+	this.allowRevokeAll = ko.computed(function () {
+		return Settings.AllowTrustedDevices && !!_.find(this.devices(), function (oDevice) { return Types.isNonEmptyString(oDevice.sDeviceExpiresDate); });
+	}, this);
+	this.bAllowDeviceLogout = UserSettings.StoreAuthTokenInDB;
 
 	this.populateSettings();
+	
+	this.revokeAllCommand = Utils.createCommand(this, this.askRevokeTrustFromAllDevices, function () {
+		return this.allowRevokeAll();
+	});
 }
 
 _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -77,6 +88,7 @@ CTwoFactorAuthSettingsFormView.prototype.onShow = function () {
 	this.sEditVerificator = '';
 	this.passwordVerified(false);
 	this.populateSettings();
+	this.getUsedDevices();
 };
 
 CTwoFactorAuthSettingsFormView.prototype.populateSettings = function ()
@@ -94,7 +106,6 @@ CTwoFactorAuthSettingsFormView.prototype.confirmPassword = function ()
 	Popups.showPopup(ConfirmPasswordPopup, [function (sEditVerificator) {
 		this.sEditVerificator = sEditVerificator;
 		this.passwordVerified(true);
-		this.getTrustedDevices();
 	}.bind(this)]);
 };
 
@@ -223,12 +234,9 @@ CTwoFactorAuthSettingsFormView.prototype.removeSecurityKey = function (iId)
 	);
 };
 
-CTwoFactorAuthSettingsFormView.prototype.getTrustedDevices = function ()
+CTwoFactorAuthSettingsFormView.prototype.getUsedDevices = function ()
 {
-	var oParameters = {
-		'Password': this.sEditVerificator
-	};
-	Ajax.send('%ModuleName%', 'GetTrustedDevices', oParameters, function (oResponse) {
+	Ajax.send('%ModuleName%', 'GetUsedDevices', {}, function (oResponse) {
 		var
 			aDevicesData = oResponse && oResponse.Result,
 			aDevices = []
@@ -236,11 +244,15 @@ CTwoFactorAuthSettingsFormView.prototype.getTrustedDevices = function ()
 		if (Types.isNonEmptyArray(aDevicesData))
 		{
 			_.each(aDevicesData, function (oDeviceData) {
-				aDevices.push(new CDeviceModel(oDeviceData));
+				var oDevice = new CDeviceModel(oDeviceData);
+				if (oDevice.bAuthenticated)
+				{
+					aDevices.push(oDevice);
+				}
 			});
 		}
 		this.devices(aDevices);
-	}.bind(this));
+	}, this);
 };
 		
 CTwoFactorAuthSettingsFormView.prototype.askRevokeTrustFromAllDevices = function ()
@@ -259,49 +271,41 @@ CTwoFactorAuthSettingsFormView.prototype.askRevokeTrustFromAllDevices = function
 		
 CTwoFactorAuthSettingsFormView.prototype.revokeTrustFromAllDevices = function ()
 {
-	var oParameters = {
-		'Password': this.sEditVerificator
-	};
-	Ajax.send('%ModuleName%', 'RevokeTrustFromAllDevices', oParameters, function (oResponse) {
-		if (oResponse && oResponse.Result)
+	Ajax.send('%ModuleName%', 'RevokeTrustFromAllDevices', {}, function (oResponse) {
+		this.getUsedDevices();
+		if (!(oResponse && oResponse.Result))
 		{
-			this.devices([]);
-		}
-		else
-		{
-			this.getTrustedDevices();
 			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_REVOKE_TRUST'));
 		}
 	}, this);
 };
 
-CTwoFactorAuthSettingsFormView.prototype.askRevokeTrustFromDevice = function (iDeviceId, sDeviceName)
+CTwoFactorAuthSettingsFormView.prototype.askLogoutFromDevice = function (sDeviceId, sDeviceName)
 {
 	var
-		sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_REVOKE_ALL'),
-		sHeading = TextUtils.i18n('%MODULENAME%/CONFIRM_HEADING_REVOKE', {
+		sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_LOGOUT_DEVICE'),
+		sHeading = TextUtils.i18n('%MODULENAME%/CONFIRM_HEADING_LOGOUT_DEVICE', {
 			'NAME': sDeviceName
 		})
 	;
-	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bRevokeAll) {
-		if (bRevokeAll)
+	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bLogout) {
+		if (bLogout)
 		{
-			this.revokeTrustFromDevice(iDeviceId);
+			this.logoutFromDevice(sDeviceId);
 		}
 	}, this), sHeading]);
 };
 		
-CTwoFactorAuthSettingsFormView.prototype.revokeTrustFromDevice = function (iDeviceId)
+CTwoFactorAuthSettingsFormView.prototype.logoutFromDevice = function (sDeviceId)
 {
 	var oParameters = {
-		'Password': this.sEditVerificator,
-		'DeviceId': iDeviceId
+		'DeviceId': sDeviceId
 	};
-	Ajax.send('%ModuleName%', 'RevokeTrustFromDevice', oParameters, function (oResponse) {
-		this.getTrustedDevices();
+	Ajax.send('%ModuleName%', 'LogoutFromDevice', oParameters, function (oResponse) {
+		this.getUsedDevices();
 		if (!oResponse || !oResponse.Result)
 		{
-			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_REVOKE_TRUST'));
+			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_LOGOUT_DEVICE'));
 		}
 	}, this);
 };

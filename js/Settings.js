@@ -20,7 +20,8 @@ module.exports = {
 	BackupCodesCount: false,
 	AllowSecurityKeys: false,
 	SecurityKeys: [],
-	TrustedDevicesLifetime: 0,
+	AllowUsedDevices: false,
+	TrustDevicesForDays: 0,
 	AllowTrustedDevices: false,
 
 	/**
@@ -38,8 +39,9 @@ module.exports = {
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowSecurityKeys = Types.pBool(oAppDataSection.AllowSecurityKeys, this.AllowSecurityKeys);
-			this.TrustedDevicesLifetime = Types.pInt(oAppDataSection.TrustedDevicesLifetime, this.TrustedDevicesLifetime);
-			this.AllowTrustedDevices = this.TrustedDevicesLifetime > 0;
+			this.AllowUsedDevices = Types.pBool(oAppDataSection.AllowUsedDevices, this.AllowUsedDevices);
+			this.TrustDevicesForDays = Types.pInt(oAppDataSection.TrustDevicesForDays, this.TrustDevicesForDays);
+			this.AllowTrustedDevices = this.TrustDevicesForDays > 0;
 			this.SecurityKeys = [];
 			if (Types.isNonEmptyArray(oAppDataSection.WebAuthKeysInfo))
 			{

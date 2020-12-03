@@ -5,7 +5,10 @@ var
 	UAParser = require('ua-parser-js'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js')
+	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
+	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
+	
+	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
 /**
@@ -16,14 +19,17 @@ var
 function CDeviceModel(oData)
 {
 	this.sDeviceId = '';
+	this.bCurrentDevice = false;
 	this.oUaData = '';
 	this.sDeviceName = '';
-	this.sExpirationDate = '';
-	this.sLastUsageDate = '';
+	this.bAuthenticated = false;
 	this.sDeviceExpiresDate = '';
 	this.sDeviceLastUsageDate = '';
 	
-	this.parse(oData);
+	if (oData)
+	{
+		this.parse(oData);
+	}
 }
 
 /**
@@ -31,31 +37,32 @@ function CDeviceModel(oData)
  */
 CDeviceModel.prototype.parse = function (oData)
 {
-	if (oData !== null)
+	var
+		oExpMoment = moment.unix(oData.TrustTillDateTime),
+		oUsageMoment = moment.unix(oData.LastUsageDateTime),
+		sName = '',
+		sPlatform = ''
+	;
+	this.sDeviceId = Types.pString(oData.DeviceId);
+	this.bCurrentDevice = this.sDeviceId === Utils.getUUID();
+	this.bAuthenticated = Types.pBool(oData.Authenticated);
+	this.oUaData = UAParser(Types.pString(oData.DeviceName));
+	sName = this.oUaData.browser.name + '/' + this.oUaData.browser.major;
+	sPlatform = this.oUaData.os.name + ' ' + this.oUaData.os.version;
+	this.sDeviceName = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_NAME', {
+		'NAME': sName,
+		'PLATFORM': sPlatform
+	});
+	
+	if (Settings.AllowTrustedDevices && oExpMoment.diff(moment()) > 0)
 	{
-		var
-			oExpMoment = moment.unix(oData.ExpirationDateTime),
-			oUsageMoment = moment.unix(oData.LastUsageDateTime),
-			sName = '',
-			sPlatform = ''
-		;
-		this.sDeviceId = Types.pString(oData.DeviceId);
-		this.oUaData = UAParser(Types.pString(oData.DeviceName));
-		this.sExpirationDate = oExpMoment.format('MMM D, YYYY');
-		this.sLastUsageDate = oUsageMoment.fromNow();
-		sName = this.oUaData.browser.name + '/' + this.oUaData.browser.major;
-		sPlatform = this.oUaData.os.name + ' ' + this.oUaData.os.version;
-		this.sDeviceName = TextUtils.i18n('%MODULENAME%/LABEL_TRUSTED_DEVICE', {
-			'NAME': sName,
-			'PLATFORM': sPlatform
-		});
-		this.sDeviceExpiresDate = TextUtils.i18n('%MODULENAME%/LABEL_TRUSTED_DEVICE_EXPIRES_DATE', {
-			'EXPDATE': this.sExpirationDate
-		});
-		this.sDeviceLastUsageDate = TextUtils.i18n('%MODULENAME%/LABEL_TRUSTED_DEVICE_LAST_USAGE_DATE', {
-			'USAGEDATE': this.sLastUsageDate
+		this.sDeviceExpiresDate = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_TRUST_TILL_DATE', {
+			'EXPDATE': oExpMoment.format('MMM D, YYYY')
 		});
 	}
+	this.sDeviceLastUsageDate = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_LAST_USAGE_DATE', {
+		'USAGEDATE': oUsageMoment.fromNow()
+	});
 };
 
 module.exports = CDeviceModel;

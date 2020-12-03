@@ -10,18 +10,28 @@ namespace Aurora\Modules\TwoFactorAuth\Classes;
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
- * @copyright Copyright (c) 2019, Afterlogic Corp.
+ * @copyright Copyright (c) 2020, Afterlogic Corp.
  *
  * @package Api
  */
-class TrustedDevices extends \Aurora\System\EAV\Entity
+class UsedDevice extends \Aurora\System\EAV\Entity
 {
 	protected $aStaticMap = [
         'UserId'		    => ['bigint', 0, true],
         'DeviceId'          => ['string', '', true],
         'DeviceName'		=> ['string', '', true],
+        'AuthToken'			=> ['text', '', true],
         'CreationDateTime'  => ['int', 0, true],
         'LastUsageDateTime'	=> ['int', 0, true],
-        'ExpirationDateTime'=> ['int', 0, true]
+        'TrustTillDateTime'	=> ['int', 0, true],
+        'DeviceIP'			=> ['string', '', true],
 	];
+
+	public function toResponseArray()
+	{
+		$aResponse = parent::toResponseArray();
+		$aResponse['Authenticated'] = !empty($aResponse['AuthToken']);
+		unset($aResponse['AuthToken']);
+		return $aResponse;
+	}
 }
