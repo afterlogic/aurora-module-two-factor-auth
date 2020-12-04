@@ -944,6 +944,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oHttp = \MailSo\Base\Http::SingletonInstance();
 		$sLogin = $oHttp->GetQuery('login', '');
 		$sPassword = $oHttp->GetQuery('password', '');
+		$sPackageName = $oHttp->GetQuery('package_name', '');
+		if (empty($sLogin) || empty($sPassword))
+		{
+			return '';
+		}
+		
 		$oGetArgs = false;
 		$sError = false;
 		try {
@@ -955,6 +961,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$sResult = \file_get_contents($this->GetPath().'/templates/EntryVerifySecurityKey.html');
 		$sResult = \strtr($sResult, array(
 			'{{GetArgs}}' => \Aurora\System\Managers\Response::GetJsonFromObject(null, $oGetArgs),
+			'{{PackageName}}' => $sPackageName,
 			'{{Error}}' => $sError,
 			'{{Description}}' => $this->i18N('HINT_SECURITY_KEY_VERIFICATION'),
 			'{{Theme}}' => $sTheme,
