@@ -967,6 +967,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'{{Theme}}' => $sTheme,
 		));
 		\Aurora\System\Managers\Response::HtmlOutputHeaders();
+		@header('Cache-Control: no-cache', true);
 		return $sResult;
 	}
 
