@@ -30,6 +30,7 @@ class WebAuthn {
     private $_signatureCounter;
     private $_caFiles;
     private $_formats;
+    private $_facetIds;
 
     /**
      * Initialize a new WebAuthn server
@@ -38,7 +39,7 @@ class WebAuthn {
      * @param bool $useBase64UrlEncoding true to use base64 url encoding for binary data in json objects. Default is a RFC 1342-Like serialized string.
      * @throws WebAuthnException
      */
-    public function __construct($rpName, $rpId, $allowedFormats=null, $useBase64UrlEncoding=false) {
+    public function __construct($rpName, $rpId, $allowedFormats=null, $useBase64UrlEncoding=false, $facetIds=null) {
         $this->_rpName = $rpName;
         $this->_rpId = $rpId;
         $this->_rpIdHash = \hash('sha256', $rpId, true);
@@ -64,6 +65,11 @@ class WebAuthn {
         if (!$this->_formats || $invalidFormats) {
             throw new WebAuthnException('invalid formats on construct: ' . implode(', ', $invalidFormats));
         }
+        if(!is_array($facetIds)) {
+            $facetIds = [];
+        }
+        $facetIds[] = $rpId;
+        $this->_facetIds = $facetIds;
     }
 
     /**
@@ -465,7 +471,7 @@ class WebAuthn {
      */
     private function _checkOrigin($origin) {
         // https://www.w3.org/TR/webauthn/#rp-id
-
+/*
         // The origin's scheme must be https
         if ($this->_rpId !== 'localhost' && \parse_url($origin, PHP_URL_SCHEME) !== 'https') {
             return false;
@@ -478,6 +484,13 @@ class WebAuthn {
         // The RP ID must be equal to the origin's effective domain, or a registrable
         // domain suffix of the origin's effective domain.
         return \preg_match('/' . \preg_quote($this->_rpId) . '$/i', $host) === 1;
+*/
+        $bResult = true;
+        if(isset($origin) && !in_array($origin, $this->_facetIds, true)) {
+            $bResult = false;
+        }
+
+        return $bResult;
     }
 
     /**

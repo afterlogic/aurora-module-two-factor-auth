@@ -38,5 +38,9 @@
 	"RequireInMobile": [
 		["StandardLoginFormWebclient"],
 		"array"
+	],
+	"FacetIds": [
+		[],
+		"array"
 	]
 }
