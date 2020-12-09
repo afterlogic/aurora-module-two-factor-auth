@@ -14,6 +14,7 @@ var
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 
 	ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
+	DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
 
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
@@ -319,7 +320,7 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 			'Login': this.login(),
 			'Password': this.sPassword,
 			'DeviceId': Utils.getUUID(),
-			'DeviceName': navigator.userAgent,
+			'DeviceName': DeviceUtils.getName(),
 			'Trust': this.trustThisBrowser()
 		};
 		this.continueInProgress(true);

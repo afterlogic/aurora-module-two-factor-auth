@@ -2,7 +2,6 @@
 
 var
 	moment = require('moment'),
-	UAParser = require('ua-parser-js'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
@@ -20,7 +19,6 @@ function CDeviceModel(oData)
 {
 	this.sDeviceId = '';
 	this.bCurrentDevice = false;
-	this.oUaData = '';
 	this.sDeviceName = '';
 	this.bAuthenticated = false;
 	this.sDeviceExpiresDate = '';
@@ -39,20 +37,12 @@ CDeviceModel.prototype.parse = function (oData)
 {
 	var
 		oExpMoment = moment.unix(oData.TrustTillDateTime),
-		oUsageMoment = moment.unix(oData.LastUsageDateTime),
-		sName = '',
-		sPlatform = ''
+		oUsageMoment = moment.unix(oData.LastUsageDateTime)
 	;
 	this.sDeviceId = Types.pString(oData.DeviceId);
 	this.bCurrentDevice = this.sDeviceId === Utils.getUUID();
 	this.bAuthenticated = Types.pBool(oData.Authenticated);
-	this.oUaData = UAParser(Types.pString(oData.DeviceName));
-	sName = this.oUaData.browser.name + '/' + this.oUaData.browser.major;
-	sPlatform = this.oUaData.os.name + ' ' + this.oUaData.os.version;
-	this.sDeviceName = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_NAME', {
-		'NAME': sName,
-		'PLATFORM': sPlatform
-	});
+	this.sDeviceName = Types.pString(oData.DeviceName);
 	
 	if (Settings.AllowTrustedDevices && oExpMoment.diff(moment()) > 0)
 	{

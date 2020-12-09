@@ -1,5 +1,8 @@
 <div class="panel_top">
-	<h2 class="settings_heading" data-bind="i18n: {'key': '%MODULENAME%/HEADING_SETTINGS_TAB'}"></h2>
+	<h2 class="settings_heading">
+		<span class="back-to-security-icon" data-bind="visible: passwordVerified, click: clearAll, customTooltip: '%MODULENAME%/ACTION_BACK'"></span>
+		<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_SETTINGS_TAB'}"></span>
+	</h2>
 </div>
 
 <div class="panel_center">

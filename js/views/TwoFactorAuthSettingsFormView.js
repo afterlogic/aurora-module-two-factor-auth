@@ -84,7 +84,13 @@ _.extendOwn(CTwoFactorAuthSettingsFormView.prototype, CAbstractSettingsFormView.
 
 CTwoFactorAuthSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFactorAuthSettingsFormView';
 
-CTwoFactorAuthSettingsFormView.prototype.onShow = function () {
+CTwoFactorAuthSettingsFormView.prototype.onShow = function ()
+{
+	this.clearAll();
+};
+
+CTwoFactorAuthSettingsFormView.prototype.clearAll = function ()
+{
 	this.sEditVerificator = '';
 	this.passwordVerified(false);
 	this.populateSettings();

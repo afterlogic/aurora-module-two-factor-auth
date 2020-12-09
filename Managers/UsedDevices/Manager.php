@@ -102,6 +102,10 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 		{
 			$oUsedDevice = $this->_createUsedDevice($iUserId, $sDeviceId, $sDeviceName);
 		}
+		else
+		{
+			$oUsedDevice->DeviceName = $sDeviceName;
+		}
 		
 		if ($this->isTrustedDevicesEnabled())
 		{
@@ -122,6 +126,10 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 		if (!$oUsedDevice)
 		{
 			$oUsedDevice = $this->_createUsedDevice($iUserId, $sDeviceId, $sDeviceName);
+		}
+		else
+		{
+			$oUsedDevice->DeviceName = $sDeviceName;
 		}
 
 		$oUsedDevice->AuthToken = $sAuthToken;

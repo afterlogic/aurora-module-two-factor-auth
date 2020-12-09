@@ -9,6 +9,8 @@ var
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	
+	DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
+	
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -100,7 +102,7 @@ module.exports = function (oAppData) {
 			{
 				var oParameters = {
 					'DeviceId': Utils.getUUID(),
-					'DeviceName': navigator.userAgent
+					'DeviceName': DeviceUtils.getName()
 				};
 				Ajax.send('%ModuleName%', 'SaveDevice', oParameters);
 			}
