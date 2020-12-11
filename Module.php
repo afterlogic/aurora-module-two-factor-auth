@@ -513,7 +513,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$mResult = false;
 		$sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->{$this->GetName().'::BackupCodes'});
 		$aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
-		$index = array_search(trim($BackupCode), $aBackupCodes);
+		$sTrimmed = preg_replace('/\s+/', '', $BackupCode);
+		$sPrepared = substr_replace($sTrimmed, ' ', 4, 0);
+		$index = array_search($sPrepared, $aBackupCodes);
 		if ($index !== false)
 		{
 			$aBackupCodes[$index] = '';
