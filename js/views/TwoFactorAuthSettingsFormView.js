@@ -161,12 +161,9 @@ CTwoFactorAuthSettingsFormView.prototype.showBackupCodes = function ()
 {
 	if (this.allowBackupCodes())
 	{
-		Popups.showPopup(ShowBackupCodesPopup, [this.sEditVerificator, function (bGenerated, iBackupCodesCount) {
-			if (bGenerated)
-			{
-				Settings.updateBackupCodesCount(iBackupCodesCount);
-				this.populateSettings();
-			}
+		Popups.showPopup(ShowBackupCodesPopup, [this.sEditVerificator, function (iBackupCodesCount) {
+			Settings.updateBackupCodesCount(iBackupCodesCount);
+			this.populateSettings();
 		}.bind(this)]);
 	}
 };

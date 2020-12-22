@@ -32,7 +32,6 @@ function CShowBackupCodesPopup()
 	this.backupCodes = ko.observableArray([]);
 
 	this.codesGeneratedDataInfo = ko.observable('');
-	this.codesWereGenerated = ko.observable(false);
 	this.fCallBack = null;
 
 	this.generatingBackupCodes = ko.observable(false);
@@ -47,7 +46,6 @@ CShowBackupCodesPopup.prototype.onOpen = function (sEditVerificator, fCallBack)
 {
 	this.sEditVerificator = sEditVerificator;
 	this.fCallBack = fCallBack;
-	this.codesWereGenerated(false);
 	if (Settings.BackupCodesCount > 0)
 	{
 		this.getBackupCodes();
@@ -64,7 +62,7 @@ CShowBackupCodesPopup.prototype.onClose = function ()
 {
 	if (_.isFunction(this.fCallBack))
 	{
-		this.fCallBack(this.codesWereGenerated(), this.backupCodes().length);
+		this.fCallBack(_.without(this.backupCodes(), '').length);
 	}
 };
 
@@ -102,10 +100,6 @@ CShowBackupCodesPopup.prototype.generateBackupCodes = function ()
 	}, function (Response) {
 		this.generatingBackupCodes(false);
 		this.parseBackupCodes(Response);
-		if (this.backupCodes().length > 0)
-		{
-			this.codesWereGenerated(true);
-		}
 	}, this);
 };
 
