@@ -970,7 +970,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'{{Description}}' => $this->i18N('HINT_SECURITY_KEY_VERIFICATION'),
 			'{{Theme}}' => $sTheme,
 		));
-		\Aurora\System\Managers\Response::HtmlOutputHeaders();
+		\Aurora\Modules\CoreWebclient\Module::Decorator()->SetHtmlOutputHeaders();
 		@header('Cache-Control: no-cache', true);
 		return $sResult;
 	}
