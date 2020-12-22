@@ -248,10 +248,7 @@ CTwoFactorAuthSettingsFormView.prototype.getUsedDevices = function ()
 		{
 			_.each(aDevicesData, function (oDeviceData) {
 				var oDevice = new CDeviceModel(oDeviceData);
-				if (oDevice.bAuthenticated)
-				{
-					aDevices.push(oDevice);
-				}
+				aDevices.push(oDevice);
 			});
 		}
 		this.devices(aDevices);
@@ -305,6 +302,36 @@ CTwoFactorAuthSettingsFormView.prototype.logoutFromDevice = function (sDeviceId)
 		'DeviceId': sDeviceId
 	};
 	Ajax.send('%ModuleName%', 'LogoutFromDevice', oParameters, function (oResponse) {
+		this.getUsedDevices();
+		if (!oResponse || !oResponse.Result)
+		{
+			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_LOGOUT_DEVICE'));
+		}
+	}, this);
+};
+
+CTwoFactorAuthSettingsFormView.prototype.askRemoveDevice = function (sDeviceId, sDeviceName)
+{
+	var
+		sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_LOGOUT_DEVICE'),
+		sHeading = TextUtils.i18n('%MODULENAME%/CONFIRM_HEADING_REMOVE_DEVICE', {
+			'NAME': sDeviceName
+		})
+	;
+	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bLogout) {
+		if (bLogout)
+		{
+			this.removeDevice(sDeviceId);
+		}
+	}, this), sHeading]);
+};
+		
+CTwoFactorAuthSettingsFormView.prototype.removeDevice = function (sDeviceId)
+{
+	var oParameters = {
+		'DeviceId': sDeviceId
+	};
+	Ajax.send('%ModuleName%', 'RemoveDevice', oParameters, function (oResponse) {
 		this.getUsedDevices();
 		if (!oResponse || !oResponse.Result)
 		{

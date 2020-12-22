@@ -1118,6 +1118,30 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return true;
 	}
 
+	public function RemoveDevice($DeviceId)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
+		if (empty($DeviceId))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+		}
+
+		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->EntityId, $DeviceId);
+		if ($oUsedDevice)
+		{
+			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);
+			$oUsedDevice->delete();
+		}
+		return true;
+	}
+
 	protected function _getWebAuthKeysInfo($oUser)
 	{
 		$aWebAuthKeysInfo = [];
