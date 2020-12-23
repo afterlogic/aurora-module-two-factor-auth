@@ -64,7 +64,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				'tpm'
 			],
 			false,
-			$this->getConfig('FacetIds', null)
+			array_merge($this->getConfig('FacetIds', []), [$this->oHttp->GetScheme().'://'.$this->oHttp->GetHost(true, false)])
 		);
 	}
 
