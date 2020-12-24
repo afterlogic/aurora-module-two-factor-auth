@@ -245,6 +245,7 @@ CVerifySecondFactorPopup.prototype.onVerifySecurityKeyFinish = function (oRespon
 	}
 	else
 	{
+		this.securityKeyError(true);
 		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_VERIFY_SECURITY_KEY'));
 	}
 };
