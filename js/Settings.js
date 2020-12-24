@@ -76,7 +76,7 @@ module.exports = {
 
 	checkIfEnabled: function ()
 	{
-		if (App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
+		if (!App.isMobile() && App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
 		{
 			var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
 			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened)
