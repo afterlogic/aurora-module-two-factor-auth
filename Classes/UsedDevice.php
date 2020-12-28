@@ -30,7 +30,11 @@ class UsedDevice extends \Aurora\System\EAV\Entity
 	public function toResponseArray()
 	{
 		$aResponse = parent::toResponseArray();
-		$aResponse['Authenticated'] = !empty($aResponse['AuthToken']);
+		$aResponse['Authenticated'] = false;
+		if (\Aurora\Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken'])))
+		{
+			$aResponse['Authenticated'] = true;
+		}
 		unset($aResponse['AuthToken']);
 		return $aResponse;
 	}
