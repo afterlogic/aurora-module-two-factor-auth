@@ -3,19 +3,27 @@
 		true,
 		"bool"
 	],
-	"ClockTolerance": [
-		2,
-		"int"
-	],
 	"ShowRecommendationToConfigure": [
 		false,
 		"bool"
 	],
-	"AllowBackupCodes": [
+	"AllowSecurityKeys": [
 		false,
 		"bool"
 	],
-	"AllowSecurityKeys": [
+	"FacetIds": [
+		[],
+		"array"
+	],
+	"AllowAuthenticatorApp": [
+		true,
+		"bool"
+	],
+	"ClockTolerance": [
+		2,
+		"int"
+	],
+	"AllowBackupCodes": [
 		false,
 		"bool"
 	],
@@ -37,10 +45,6 @@
 	],
 	"RequireInMobile": [
 		["StandardLoginFormWebclient"],
-		"array"
-	],
-	"FacetIds": [
-		[],
 		"array"
 	]
 }

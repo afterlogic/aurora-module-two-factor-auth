@@ -8,7 +8,7 @@
 <div class="panel_center">
 	<div class="fields">
 		<!-- ko if: !passwordVerified() -->
-			<div class="fieldset" data-bind="visible: !isEnabledTwoFactorAuth()">
+			<div class="fieldset" data-bind="visible: (bAllowSecurityKeys || bAllowAuthenticatorApp) && !isEnabledTwoFactorAuth()">
 				<div class="row">
 					<h3>
 						<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_TWA_VERIFICATION'}"></span>
@@ -26,7 +26,7 @@
 					</span>
 				</div>
 			</div>
-			<div class="fieldset" data-bind="visible: isEnabledTwoFactorAuth()">
+			<div class="fieldset" data-bind="visible: (bAllowSecurityKeys || bAllowAuthenticatorApp) && isEnabledTwoFactorAuth()">
 				<div class="row">
 					<h3>
 						<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_TWA_VERIFICATION'}"></span>
@@ -95,7 +95,7 @@
 				</div>
 			</div>
 
-			<div class="fieldset">
+			<div class="fieldset" data-bind="visible: bAllowAuthenticatorApp">
 				<div class="fieldgroup">
 					<div class="row">
 						<h3>

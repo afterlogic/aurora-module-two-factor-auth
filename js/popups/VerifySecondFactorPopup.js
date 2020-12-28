@@ -110,7 +110,7 @@ CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, o
 	this.sPassword = sPassword;
 
 	this.hasSecurityKey(Settings.AllowSecurityKeys && oTwoFactorAuthData.HasSecurityKey);
-	this.hasAuthenticatorApp(oTwoFactorAuthData.HasAuthenticatorApp);
+	this.hasAuthenticatorApp(Settings.AllowAuthenticatorApp && oTwoFactorAuthData.HasAuthenticatorApp);
 	this.hasBackupCodes(Settings.AllowBackupCodes && oTwoFactorAuthData.HasBackupCodes);
 
 	this.verificationResponse(null);

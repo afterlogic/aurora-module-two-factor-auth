@@ -19,6 +19,7 @@ module.exports = {
 	AllowBackupCodes: false,
 	BackupCodesCount: false,
 	AllowSecurityKeys: false,
+	AllowAuthenticatorApp: false,
 	SecurityKeys: [],
 	AllowUsedDevices: false,
 	TrustDevicesForDays: 0,
@@ -34,11 +35,12 @@ module.exports = {
 		var oAppDataSection = _.extend({}, oAppData[this.ServerModuleName] || {}, oAppData['%ModuleName%'] || {});
 		if (!_.isEmpty(oAppDataSection))
 		{
-			this.AuthenticatorAppEnabled = Types.pBool(oAppDataSection.AuthenticatorAppEnabled, this.AuthenticatorAppEnabled);
 			this.ShowRecommendationToConfigure = Types.pBool(oAppDataSection.ShowRecommendationToConfigure, this.ShowRecommendationToConfigure);
 			this.AllowBackupCodes = Types.pBool(oAppDataSection.AllowBackupCodes, this.AllowBackupCodes);
 			this.BackupCodesCount = Types.pInt(oAppDataSection.BackupCodesCount, this.BackupCodesCount);
 			this.AllowSecurityKeys = Types.pBool(oAppDataSection.AllowSecurityKeys, this.AllowSecurityKeys);
+			this.AllowAuthenticatorApp = Types.pBool(oAppDataSection.AllowAuthenticatorApp, this.AllowAuthenticatorApp);
+			this.AuthenticatorAppEnabled = this.AllowAuthenticatorApp && Types.pBool(oAppDataSection.AuthenticatorAppEnabled, this.AuthenticatorAppEnabled);
 			this.AllowUsedDevices = Types.pBool(oAppDataSection.AllowUsedDevices, this.AllowUsedDevices);
 			this.TrustDevicesForDays = Types.pInt(oAppDataSection.TrustDevicesForDays, this.TrustDevicesForDays);
 			this.AllowTrustedDevices = this.TrustDevicesForDays > 0;

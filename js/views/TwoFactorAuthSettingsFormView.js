@@ -39,6 +39,8 @@ function CTwoFactorAuthSettingsFormView()
 
 	this.bAllowSecurityKeys = Settings.AllowSecurityKeys;
 
+	this.bAllowAuthenticatorApp = Settings.AllowAuthenticatorApp;
+
 	this.securityKeys = ko.observableArray(Settings.SecurityKeys);
 
 	this.hasBackupCodes = ko.observable(false);

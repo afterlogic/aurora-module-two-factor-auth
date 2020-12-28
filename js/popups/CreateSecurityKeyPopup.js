@@ -92,7 +92,6 @@ CCreateSecurityKeyPopup.prototype.onRegisterSecurityKeyBeginResponse = function 
 			.catch((err) => {
 				this.securityKeyInProgress(false);
 				this.securityKeyCanceled(true);
-				console.log("ERROR", typeof err, err);
 			});
 	}
 	else

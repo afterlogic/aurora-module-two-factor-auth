@@ -94,6 +94,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aSettings = [
 			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
+			'AllowAuthenticatorApp' => $this->getConfig('AllowAuthenticatorApp', true),
 			'AllowUsedDevices' => $this->getConfig('AllowUsedDevices', false),
 			'TrustDevicesForDays' => $this->getConfig('TrustDevicesForDays', 0),
 		];
@@ -107,7 +108,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
             }
 
-			$bAuthenticatorAppEnabled = $oUser->{$this->GetName().'::Secret'} ? true : false;
+			$bAuthenticatorAppEnabled = $this->getConfig('AllowAuthenticatorApp', true) && $oUser->{$this->GetName().'::Secret'} ? true : false;
 			$aWebAuthKeysInfo = $this->getConfig('AllowSecurityKeys', false) ? $this->_getWebAuthKeysInfo($oUser) : [];
 			$iBackupCodesCount = 0;
 			if ($bAuthenticatorAppEnabled || count($aWebAuthKeysInfo) > 0)
@@ -155,17 +156,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 
-		$oUser = \Aurora\System\Api::getUserById($UserId);
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		if ($this->getConfig('AllowAuthenticatorApp', true))
 		{
-			$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-				->select(['KeyData'])
-				->where(['UserId' => $oUser->EntityId])
-				->count()
-				->exec();
-			return [
-				'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
-			];
+			$oUser = \Aurora\System\Api::getUserById($UserId);
+			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+			{
+				$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+					->select(['KeyData'])
+					->where(['UserId' => $oUser->EntityId])
+					->count()
+					->exec();
+				return [
+					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
+				];
+			}
 		}
 
 		return null;
@@ -180,6 +184,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function DisableUserTwoFactorAuth($UserId)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+
+		if (!$this->getConfig('AllowAuthenticatorApp', true))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		$oUser = \Aurora\System\Api::getUserById($UserId);
 		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
@@ -219,6 +228,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function RegisterAuthenticatorAppBegin($Password)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		if (!$this->getConfig('AllowAuthenticatorApp', true))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
@@ -272,6 +286,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
+		if (!$this->getConfig('AllowAuthenticatorApp', true))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
 		{
@@ -314,6 +333,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
+		if (!$this->getConfig('AllowAuthenticatorApp', true))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
 		{
@@ -350,6 +374,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function VerifyAuthenticatorAppCode($Code, $Login, $Password)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+
+		if (!$this->getConfig('AllowAuthenticatorApp', true))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		if (empty($Code) || empty($Login)  || empty($Password))
 		{
@@ -539,20 +568,31 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
 			{
-				$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-					->select(['KeyData'])
-					->where(['UserId' => $oUser->EntityId])
-					->count()
-					->exec();
+				$bHasSecurityKey = false;
+				if ($this->getConfig('AllowSecurityKeys', false))
+				{
+					$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
+						->select(['KeyData'])
+						->where(['UserId' => $oUser->EntityId])
+						->count()
+						->exec();
+					$bHasSecurityKey = $iWebAuthnKeyCount > 0;
+				}
 
-				$bDeviceTrusted = $this->getUsedDevicesManager()->checkDeviceAfterAuthenticate($oUser);
+				$bHasAuthenticatorApp = false;
+				if ($this->getConfig('AllowAuthenticatorApp', true))
+				{
+					$bHasAuthenticatorApp = !!($oUser->{$this->GetName().'::Secret'} !== '');
+				}
 
-				if ((!empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0) && !$bDeviceTrusted)
+				$bDeviceTrusted = ($bHasAuthenticatorApp || $bHasAuthenticatorApp) ? $this->getUsedDevicesManager()->checkDeviceAfterAuthenticate($oUser) : false;
+
+				if (($bHasAuthenticatorApp || $bHasAuthenticatorApp) && !$bDeviceTrusted)
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
-							'HasAuthenticatorApp' => !!($oUser->{$this->GetName().'::Secret'} !== ''),
-							'HasSecurityKey' => ($iWebAuthnKeyCount > 0),
+							'HasAuthenticatorApp' => $bHasAuthenticatorApp,
+							'HasSecurityKey' => $bHasSecurityKey,
 							'HasBackupCodes' => $this->getConfig('AllowBackupCodes', false) && !empty($oUser->{$this->GetName().'::BackupCodes'})
 						]
 					];
