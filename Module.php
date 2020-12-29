@@ -1007,7 +1007,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'{{GetArgs}}' => \Aurora\System\Managers\Response::GetJsonFromObject(null, $oGetArgs),
 			'{{PackageName}}' => $sPackageName,
 			'{{Error}}' => $sError,
-			'{{Description}}' => $this->i18N('HINT_SECURITY_KEY_VERIFICATION'),
+			'{{Description}}' => $this->i18N('HINT_INSERT_TOUCH_SECURITY_KEY'),
 			'{{Theme}}' => $sTheme,
 		));
 		\Aurora\Modules\CoreWebclient\Module::Decorator()->SetHtmlOutputHeaders();

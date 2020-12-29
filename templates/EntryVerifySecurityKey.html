@@ -24,7 +24,10 @@
 				<div class="welcome welcome-reset-password">
 					<div id="description">{{Description}}</div>
 					<div id="wait_img" style="margin-top: 10px;"><img src="./static/styles/images/wait.gif" /></div>
-					<div class="buttons"  style="margin-top: 30px; text-align: center;"><a href="#" class="button" id="attestation_link" style="display: none;">Continue</a></div>
+					<div class="buttons"  style="margin-top: 30px; text-align: center;">
+						<a href="#" class="button" id="attestation_link" style="display: none;">Continue</a>
+						<a href="javascript: window.close()" class="button" id="cancel_button">Cancel</a>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -64,12 +67,12 @@
 					var elem = document.getElementById('attestation_link');
 					elem.style.display = 'inline';
 					elem.href = sPackageName + '://u2f?attestation=' + encodeURIComponent(JSON.stringify(sAttestation));
-document.getElementById('wait_img').style.display = 'none';
-if (!sAttestation.error) {
-document.getElementById('description').innerHTML = 'You are successfully authorised, please press the button below to switch to the app.';
-} else {
-document.getElementById('description').innerHTML = 'Something went wrong, please press the button below to switch to the app.';
-}
+					document.getElementById('wait_img').style.display = 'none';
+					if (!sAttestation.error) {
+						document.getElementById('description').innerHTML = 'You are successfully authorised, please press the button below to switch to the app.';
+					} else {
+						document.getElementById('description').innerHTML = 'Something went wrong, please press the button below to switch to the app.';
+					}
 				}
 				else
 				{
