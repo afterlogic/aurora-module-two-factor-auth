@@ -587,7 +587,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 				$bDeviceTrusted = ($bHasAuthenticatorApp || $bHasAuthenticatorApp) ? $this->getUsedDevicesManager()->checkDeviceAfterAuthenticate($oUser) : false;
 
-				if (($bHasAuthenticatorApp || $bHasAuthenticatorApp) && !$bDeviceTrusted)
+				if (($bHasSecurityKey || $bHasAuthenticatorApp) && !$bDeviceTrusted)
 				{
 					$mResult = [
 						'TwoFactorAuth' => [
