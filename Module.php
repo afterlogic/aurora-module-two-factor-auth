@@ -27,7 +27,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 * @var $oUsedDevicesManager Managers\UsedDevices
 	 */
 	protected $oUsedDevicesManager = null;
-
+	
 	public function init()
 	{
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
@@ -81,7 +81,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		return $this->oUsedDevicesManager;
 	}
-
+	
 	/**
 	 * Obtains list of module settings for authenticated user.
 	 *
@@ -96,6 +96,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
 			'AllowAuthenticatorApp' => $this->getConfig('AllowAuthenticatorApp', true),
 			'AllowUsedDevices' => $this->getConfig('AllowUsedDevices', false),
+			'EnableIPAllowlist' => $this->getConfig('EnableIPAllowlist', false),
+			'CurrentIP' => $this->_getCurrentIp(),
 			'TrustDevicesForDays' => $this->getConfig('TrustDevicesForDays', 0),
 		];
 
@@ -168,6 +170,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 					->exec();
 				return [
 					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
+					'IpAllowlistEnabled' => true
 				];
 			}
 		}
@@ -217,6 +220,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		return false;
+	}
+
+	public function DisableUserIpAllowlist($UserId)
+	{
+		return true;
 	}
 
 	/**
@@ -1165,6 +1173,46 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUsedDevice->delete();
 		}
 		return true;
+	}
+	
+	public function GetIpAllowlist()
+	{
+		return [
+//			[
+//				'IP' => $this->_getCurrentIp(),
+//				'Comment' => 'Home address'
+//			],
+//			[
+//				'IP' => '123.345.23.1',
+//				'Comment' => 'Mom\'s place'
+//			]
+		];
+	}
+	
+	public function AddIpToAllowlist($IP, $Comment)
+	{
+		return false;
+	}
+	
+	public function RemoveIpFromAllowlist($IP)
+	{
+		return false;
+	}
+	
+	protected function _getCurrentIp()
+	{
+		if (!empty($_SERVER['HTTP_CLIENT_IP']))
+		{
+			return $_SERVER['HTTP_CLIENT_IP'];
+		}
+		elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
+		{
+			return $_SERVER['HTTP_X_FORWARDED_FOR'];
+		}
+		else
+		{
+			return $_SERVER['REMOTE_ADDR'];
+		}
 	}
 
 	protected function _getWebAuthKeysInfo($oUser)

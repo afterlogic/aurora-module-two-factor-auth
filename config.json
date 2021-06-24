@@ -31,6 +31,10 @@
 		false,
 		"bool"
 	],
+	"EnableIPAllowlist": [
+		false,
+		"bool"
+	],
 	"TrustDevicesForDays": [
 		0,
 		"int"

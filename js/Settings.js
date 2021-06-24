@@ -22,6 +22,8 @@ module.exports = {
 	AllowAuthenticatorApp: false,
 	SecurityKeys: [],
 	AllowUsedDevices: false,
+	EnableIPAllowlist: false,
+	CurrentIP: '',
 	TrustDevicesForDays: 0,
 	AllowTrustedDevices: false,
 
@@ -42,6 +44,8 @@ module.exports = {
 			this.AllowAuthenticatorApp = Types.pBool(oAppDataSection.AllowAuthenticatorApp, this.AllowAuthenticatorApp);
 			this.AuthenticatorAppEnabled = this.AllowAuthenticatorApp && Types.pBool(oAppDataSection.AuthenticatorAppEnabled, this.AuthenticatorAppEnabled);
 			this.AllowUsedDevices = Types.pBool(oAppDataSection.AllowUsedDevices, this.AllowUsedDevices);
+			this.EnableIPAllowlist = Types.pBool(oAppDataSection.EnableIPAllowlist, this.EnableIPAllowlist);
+			this.CurrentIP = Types.pString(oAppDataSection.CurrentIP, this.CurrentIP);
 			this.TrustDevicesForDays = Types.pInt(oAppDataSection.TrustDevicesForDays, this.TrustDevicesForDays);
 			this.AllowTrustedDevices = this.TrustDevicesForDays > 0;
 			this.SecurityKeys = [];

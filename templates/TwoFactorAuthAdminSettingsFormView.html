@@ -13,5 +13,15 @@
 				</span>
 			</div>
 		</div>
+		<div class="fieldset" data-bind="visible: bEnableIPAllowlist">
+			<div class="row hint">
+				<span data-bind="html: ipAllowlistStatusForUserText"></span>
+			</div>
+			<div class="buttons" style="text-align: left;" data-bind="visible: ipAllowlistEnabled">
+				<span class="button" data-bind="click: comfirmDisableUserIpAllowlist">
+					<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE_IP_ALLOWLIST'}"></span>
+				</span>
+			</div>
+		</div>
 	</div>
 </div>
