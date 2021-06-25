@@ -15,11 +15,13 @@ namespace Aurora\Modules\TwoFactorAuth\Enums;
 class ErrorCodes
 {
 	const SecretNotSet	= 1001;
+	const IpIsNotAllowed	= 1002;
 
 	/**
 	 * @var array
 	 */
 	protected $aConsts = [
-		'SecretNotSet'	=> self::SecretNotSet
+		'SecretNotSet'	=> self::SecretNotSet,
+		'IpIsNotAllowed'	=> self::IpIsNotAllowed
 	];
 }
