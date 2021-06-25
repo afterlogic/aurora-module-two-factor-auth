@@ -351,9 +351,14 @@ CTwoFactorAuthSettingsFormView.prototype.removeDevice = function (sDeviceId)
 CTwoFactorAuthSettingsFormView.prototype.populateIpAllowlist = function ()
 {
 	Ajax.send('%ModuleName%', 'GetIpAllowlist', null, function (oResponse) {
-		if (_.isArray(oResponse && oResponse.Result))
+		if (_.isObject(oResponse && oResponse.Result))
 		{
-			this.ipAllowlist(oResponse.Result);
+			this.ipAllowlist(_.map(oResponse.Result, function (oData, sKey) {
+				return {
+					IP: sKey,
+					Comment: oData.Comment
+				};
+			}));
 		}
 		else
 		{
