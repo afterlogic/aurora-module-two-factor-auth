@@ -176,7 +176,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$bIpAllowlistEnabled = false;
 				if ($this->getConfig('EnableIPAllowlist', false))
 				{
-					$aList = $this->GetIpAllowlist();
+					$aList = $this->GetIpAllowlist($oUser);
 					$bIpAllowlistEnabled = (count($aList) > 0);
 				}
 				$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
@@ -240,11 +240,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function DisableUserIpAllowlist($UserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
-
 		$mResult = false;
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User) {
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+		$oUser = \Aurora\System\Api::getUserById($UserId);
+		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		{
 			$oUser->{self::GetName() . '::IPAllowList'} = \json_encode([]);
 			$mResult = $oUser->saveAttribute(self::GetName() . '::IPAllowList');
 		}
@@ -1199,13 +1199,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return true;
 	}
 
-	public function GetIpAllowlist()
+	public function GetIpAllowlist($User = null)
 	{
+		if ($User === null)
+		{
+			$User = \Aurora\System\Api::getAuthenticatedUser();
+		}
+		else
+		{
+			\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+		}
 		$aList = [];
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User) {
-			if (!empty($oUser->{self::GetName() . '::IPAllowList'})) {
-				$aList = \json_decode($oUser->{self::GetName() . '::IPAllowList'}, true);
+		if ($User instanceof \Aurora\Modules\Core\Classes\User) {
+			if (!empty($User->{self::GetName() . '::IPAllowList'})) {
+				$aList = \json_decode($User->{self::GetName() . '::IPAllowList'}, true);
 			}
 		}
 
