@@ -396,7 +396,7 @@ CTwoFactorAuthSettingsFormView.prototype.askRemoveIp = function (sIp)
 CTwoFactorAuthSettingsFormView.prototype.removeIp = function (sIp)
 {
 	var oParameters = {
-		'Ip': sIp
+		'IP': sIp
 	};
 	Ajax.send('%ModuleName%', 'RemoveIpFromAllowlist', oParameters, function (oResponse) {
 		this.populateIpAllowlist();

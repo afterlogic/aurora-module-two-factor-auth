@@ -174,7 +174,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
 			{
 				$bIpAllowlistEnabled = false;
-				if ($this->getConfig('IpAllowlistEnabled', false))
+				if ($this->getConfig('EnableIPAllowlist', false))
 				{
 					$aList = $this->GetIpAllowlist();
 					$bIpAllowlistEnabled = (count($aList) > 0);
@@ -1301,7 +1301,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aEntries = ['api', 'download'];
 		if (isset($aArgs['EntryName']) && in_array(strtolower($aArgs['EntryName']), $aEntries))
 		{
-			if ($this->getConfig('IpAllowlistEnabled', false)) {
+			if ($this->getConfig('EnableIPAllowlist', false)) {
 				$sIpAddress = $this->_getCurrentIp();
 				$aList = $this->GetIpAllowlist();
 				if (is_array($aList) && count($aList) > 0) {
