@@ -59,6 +59,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
 		$this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
+		$this->subscribeEvent('Core::Login::before', array($this, 'onBeforeLogin'));
 		$this->subscribeEvent('System::RunEntry::before', [$this, 'onBeforeRunEntry'], 100);
 
 		$this->oWebAuthn = new \WebAuthn\WebAuthn(
@@ -1303,19 +1304,36 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 	}
 
+	protected function checkIpAddress($oUser = null)
+	{
+		if ($this->getConfig('EnableIPAllowlist', true)) {
+			$sIpAddress = $this->_getCurrentIp();
+			$aList = $this->GetIpAllowlist($oUser);
+			if (is_array($aList) && count($aList) > 0) {
+				if (!in_array($sIpAddress, array_keys($aList))) {
+					throw new ApiException(Enums\ErrorCodes::IpIsNotAllowed, null, '', [], $this);
+				}
+			}
+		}
+	}
+
 	public function onBeforeRunEntry($aArgs, &$mResult)
 	{
 		$aEntries = ['api', 'download'];
 		if (isset($aArgs['EntryName']) && in_array(strtolower($aArgs['EntryName']), $aEntries))
 		{
-			if ($this->getConfig('EnableIPAllowlist', false)) {
-				$sIpAddress = $this->_getCurrentIp();
-				$aList = $this->GetIpAllowlist();
-				if (is_array($aList) && count($aList) > 0) {
-					if (!in_array($sIpAddress, array_keys($aList))) {
-						throw new ApiException(Enums\ErrorCodes::IpIsNotAllowed, null, '', [], $this);
-					}
-				}
+			$this->checkIpAddress();
+		}
+	}
+
+	public function onBeforeLogin($aArgs, &$mResult)
+	{
+		if (isset($aArgs['Login'])) {
+			$oUser = \Aurora\Modules\Core\Module::getInstance()->GetUserByPublicId($aArgs['Login']);
+			if ($oUser) {
+				\Aurora\Api::skipCheckUserRole(true);
+				$this->checkIpAddress($oUser);
+				\Aurora\Api::skipCheckUserRole(false);
 			}
 		}
 	}
