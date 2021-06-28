@@ -1328,12 +1328,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeLogin($aArgs, &$mResult)
 	{
-		if (isset($aArgs['Login'])) {
-			$oUser = \Aurora\Modules\Core\Module::getInstance()->GetUserByPublicId($aArgs['Login']);
-			if ($oUser) {
-				\Aurora\Api::skipCheckUserRole(true);
-				$this->checkIpAddress($oUser);
-				\Aurora\Api::skipCheckUserRole(false);
+		if (isset($aArgs['Login']) && isset($aArgs['Password'])) {
+
+			$aAuthData = \Aurora\Modules\Core\Module::Decorator()->Authenticate($aArgs['Login'], $aArgs['Password']);
+			if (is_array($aAuthData) && isset($aAuthData['id'])) {
+				$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aAuthData['id']);
+				if ($oUser) {
+					\Aurora\Api::skipCheckUserRole(true);
+					$this->checkIpAddress($oUser);
+					\Aurora\Api::skipCheckUserRole(false);
+				}
 			}
 		}
 	}
