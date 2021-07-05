@@ -15,7 +15,7 @@ export default {
           'search/:search/page/:page/id/:id/two-factor-auth',
         ],
         component () {
-          return import('src/../../../TwoFactorAuth/vue/components/TwoFactorAuthAdminSettingsPerUser')
+          return import('./components/TwoFactorAuthAdminSettingsPerUser')
         },
       },
     ]
