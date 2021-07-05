@@ -80,7 +80,6 @@ import typesUtils from 'src/utils/types'
 import _ from 'lodash'
 
 import cache from 'src/cache'
-import core from 'src/core'
 
 export default {
   name: 'TwoFactorAuthAdminSettingsPerUser',
@@ -178,7 +177,7 @@ export default {
     },
     populate () {
       this.loading = true
-      const currentTenantId = core.getCurrentTenantId()
+      const currentTenantId = this.$store.getters['tenants/getCurrentTenantId']
       cache.getUser(currentTenantId, this.user.id).then(({ user, userId }) => {
         if (userId === this.user.id) {
           this.loading = false
