@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\TwoFactorAuth\Managers\UsedDevices;
 
+use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -15,18 +17,11 @@ namespace Aurora\Modules\TwoFactorAuth\Managers\UsedDevices;
 class Manager extends \Aurora\System\Managers\AbstractManager
 {
 	/**
-	 * @var \Aurora\System\Managers\Eav
-	 */
-	public $oEavManager = null;
-	
-	/**
 	 * @param \Aurora\System\Module\AbstractModule $oModule
 	 */
 	public function __construct(\Aurora\System\Module\AbstractModule $oModule = null)
 	{
 		parent::__construct($oModule);
-		
-		$this->oEavManager = \Aurora\System\Managers\Eav::getInstance();
 	}
 	
 	public function isTrustedDevicesEnabled()
@@ -37,42 +32,23 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
 	public function getAllDevices($iUserId)
 	{
-		$aTrustedDevices = (new \Aurora\System\EAV\Query(\Aurora\Modules\TwoFactorAuth\Classes\UsedDevice::class))
-			->where(
-				[
-					'UserId' => $iUserId,
-				]
-			)
-			->orderBy('LastUsageDateTime')
-			->sortOrder(\Aurora\System\Enums\SortOrder::DESC)
-			->exec();
-		return $aTrustedDevices;
+		return UsedDevice::where('UserId', $iUserId)
+			->orderBy('LastUsageDateTime', 'desc')
+			->get();
 	}
 
 	public function getDevice($iUserId, $sDeviceId)
 	{
-		return (new \Aurora\System\EAV\Query(\Aurora\Modules\TwoFactorAuth\Classes\UsedDevice::class))
-		->where(
-			[
-				'UserId' => $iUserId,
-				'DeviceId' => $sDeviceId
-			]
-		)
-		->one()
-		->exec();
+		return UsedDevice::where('UserId', $iUserId)
+			->where('DeviceId', $sDeviceId)
+			->first();
 	}
 	
 	public function getDeviceByAuthToken($iUserId, $sAuthToken)
 	{
-		return (new \Aurora\System\EAV\Query(\Aurora\Modules\TwoFactorAuth\Classes\UsedDevice::class))
-		->where(
-			[
-				'UserId' => $iUserId,
-				'AuthToken' => $sAuthToken
-			]
-		)
-		->one()
-		->exec();
+		return UsedDevice::where('UserId', $iUserId)
+			->where('AuthToken', $sAuthToken)
+			->first();
 	}
 
 	public function checkDeviceAfterAuthenticate($oUser)
@@ -81,7 +57,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 		$sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
 		if ($sDeviceId && $this->GetModule()->getConfig('TrustDevicesForDays', 0) > 0)
 		{
-			$oUsedDevice = $this->getDevice($oUser->EntityId, $sDeviceId);
+			$oUsedDevice = $this->getDevice($oUser->Id, $sDeviceId);
 			if ($oUsedDevice)
 			{
 				if ($oUsedDevice->TrustTillDateTime > time())
@@ -152,7 +128,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
 	private function _createUsedDevice($iUserId, $sDeviceId, $sDeviceName)
 	{
-		$oUsedDevice = new \Aurora\Modules\TwoFactorAuth\Classes\UsedDevice();
+		$oUsedDevice = new UsedDevice();
 		$oUsedDevice->UserId = $iUserId;
 		$oUsedDevice->DeviceId = $sDeviceId;
 		$oUsedDevice->DeviceName = $sDeviceName;

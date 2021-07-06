@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\TwoFactorAuth;
 
+use Aurora\Modules\Core\Models\User;
+use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
 use Aurora\System\Exceptions\ApiException;
 use Aurora\System\Exceptions\Exception;
 use PragmaRX\Recovery\Recovery;
@@ -38,16 +40,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 			Enums\ErrorCodes::IpIsNotAllowed	=> $this->i18N('ERROR_IP_IS_NOT_ALLOWED'),
 		];
 
-		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
-				'Secret' => ['string', '', false, true],
-				'ShowRecommendationToConfigure' => ['bool', true],
-				'IsEncryptedSecret' => ['bool', false],
-				'BackupCodes' => ['string', '', false],
-				'BackupCodesTimestamp' => ['string', '', false],
-				'Challenge' => ['string', '', false],
-				'IPAllowList' => ['string', '', false],
-			]
-		);
+		// $this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
+		// 		'Secret' => ['string', '', false, true],
+		// 		'ShowRecommendationToConfigure' => ['bool', true],
+		// 		'IsEncryptedSecret' => ['bool', false],
+		// 		'BackupCodes' => ['string', '', false],
+		// 		'BackupCodesTimestamp' => ['string', '', false],
+		// 		'Challenge' => ['string', '', false],
+		// 		'IPAllowList' => ['string', '', false],
+		// 	]
+		// );
 
 		\Aurora\System\Router::getInstance()->registerArray(
 			self::GetName(),
@@ -152,8 +154,8 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oUser = \Aurora\System\Api::getAuthenticatedUser();
             if (!empty($oUser) && $oUser->isNormalOrTenant())
             {
-				$oUser->{$this->GetName() . '::ShowRecommendationToConfigure'} = $ShowRecommendationToConfigure;
-				return $oUser->saveAttribute($this->GetName() . '::ShowRecommendationToConfigure');
+				$oUser->setExtendedProp($this->GetName() . '::ShowRecommendationToConfigure', $ShowRecommendationToConfigure);
+				return $oUser->save();
             }
         }
         return false;
@@ -172,7 +174,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($this->getConfig('AllowAuthenticatorApp', true))
 		{
 			$oUser = \Aurora\System\Api::getUserById($UserId);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+			if ($oUser instanceof User && $oUser->isNormalOrTenant())
 			{
 				$bIpAllowlistEnabled = false;
 				if ($this->getConfig('EnableIPAllowlist', false))
@@ -180,11 +182,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 					$aList = $this->GetIpAllowlist($oUser);
 					$bIpAllowlistEnabled = (count($aList) > 0);
 				}
-				$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-					->select(['KeyData'])
-					->where(['UserId' => $oUser->EntityId])
-					->count()
-					->exec();
+				$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
+
 				return [
 					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
 					'IpAllowlistEnabled' => $bIpAllowlistEnabled
@@ -211,30 +210,29 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById($UserId);
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			$oUser->{$this->GetName().'::Secret'} = '';
-			$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
+			$oUser->setExtendedProp($this->GetName().'::Secret', '');
+			$oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
 
-			$oUser->{$this->GetName().'::Challenge'} = '';
-			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-				->select(['Name'])
-				->where(['UserId' => $oUser->EntityId])
-				->exec();
+			$oUser->setExtendedProp($this->GetName().'::Challenge', '');
+			$aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
+
 			$bResult = true;
 			foreach ($aWebAuthnKeys as $oWebAuthnKey)
 			{
 				$bResult = $bResult && $oWebAuthnKey->delete();
 			}
 
-			$oUser->{$this->GetName().'::BackupCodes'} = '';
-			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
+			$oUser->setExtendedProp($this->GetName().'::BackupCodes', '');
+			$oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', '');
 			$bResult = $bResult && \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
 			$bResult = $bResult && $this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
 
 			return $bResult;
-		}
+		}	
+
 
 		return false;
 	}
@@ -244,10 +242,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$mResult = false;
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 		$oUser = \Aurora\System\Api::getUserById($UserId);
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			$oUser->{self::GetName() . '::IPAllowList'} = \json_encode([]);
-			$mResult = $oUser->saveAttribute(self::GetName() . '::IPAllowList');
+			$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode([]));
+			$mResult = $oUser->save();
 		}
 		return $mResult;
 	}
@@ -268,7 +266,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -325,7 +323,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -347,8 +345,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oStatus = $oGoogle->verifyCode($Secret, $Code, $iClockTolerance);
 		if ($oStatus === true)
 		{
-			$oUser->{$this->GetName().'::Secret'} = \Aurora\System\Utils::EncryptValue($Secret);
-			$oUser->{$this->GetName().'::IsEncryptedSecret'} = true;
+			$oUser->setExtendedProp($this->GetName().'::Secret', \Aurora\System\Utils::EncryptValue($Secret));
+			$oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', true);
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 			$bResult = true;
 		}
@@ -372,7 +370,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -387,8 +385,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser->{$this->GetName().'::Secret'} = "";
-		$oUser->{$this->GetName().'::IsEncryptedSecret'} = false;
+		$oUser->setExtendedProp($this->GetName().'::Secret', "");
+		$oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
 		$bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 		$this->_removeAllDataWhenAllSecondFactorsDisabled($oUser);
 
@@ -427,7 +425,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -472,7 +470,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -510,7 +508,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -534,8 +532,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 			->uppercase()
 			->toArray();
 
-		$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aCodes));
-		$oUser->{$this->GetName().'::BackupCodesTimestamp'} = time();
+		$oUser->setExtendedProp($this->GetName().'::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aCodes)));
+		$oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', time());
 		\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
 		return [
@@ -567,7 +565,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -581,7 +579,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if ($index !== false)
 		{
 			$aBackupCodes[$index] = '';
-			$oUser->{$this->GetName().'::BackupCodes'} = \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes));
+			$oUser->setExtendedProp($this->GetName().'::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes)));
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 			$mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 		}
@@ -599,16 +597,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		if (!self::$VerifyState && $mResult && is_array($mResult) && isset($mResult['token']))
 		{
 			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
-			if ($oUser instanceof \Aurora\Modules\Core\Classes\User)
+			if ($oUser instanceof User)
 			{
 				$bHasSecurityKey = false;
 				if ($this->getConfig('AllowSecurityKeys', false))
 				{
-					$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-						->select(['KeyData'])
-						->where(['UserId' => $oUser->EntityId])
-						->count()
-						->exec();
+					$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
 					$bHasSecurityKey = $iWebAuthnKeyCount > 0;
 				}
 
@@ -650,7 +644,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -678,8 +672,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$oCreateArgs->publicKey->user->id = \base64_encode($oCreateArgs->publicKey->user->id->getBinaryString());
 		$oCreateArgs->publicKey->challenge = \base64_encode($oCreateArgs->publicKey->challenge->getBinaryString());
-		$oUser->{$this->GetName().'::Challenge'} = $oCreateArgs->publicKey->challenge;
-		$oUser->saveAttribute($this->GetName().'::Challenge');
+		$oUser->setExtendedProp($this->GetName().'::Challenge', $oCreateArgs->publicKey->challenge);
+		$oUser->save();
 
 		return $oCreateArgs;
 	}
@@ -702,7 +696,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -733,8 +727,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 		else
 		{
-			$oWebAuthnKey = new Classes\WebAuthnKey();
-			$oWebAuthnKey->UserId = $oUser->EntityId;
+			$oWebAuthnKey = new WebAuthnKey();
+			$oWebAuthnKey->UserId = $oUser->Id;
 			$oWebAuthnKey->KeyData = $sEncodedSecurityKeyData;
 			$oWebAuthnKey->CreationDateTime = time();
 
@@ -767,17 +761,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
 		$mGetArgs = false;
 		$aIds = [];
-		$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-			->select(['KeyData'])
-			->where(['UserId' => $oUser->EntityId])
-			->exec();
+		$aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
 		if (is_array($aWebAuthnKeys))
 		{
@@ -804,8 +795,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 				}
 			}
 
-			$oUser->{$this->GetName().'::Challenge'} = $mGetArgs->publicKey->challenge;
-			$oUser->saveAttribute($this->GetName().'::Challenge');
+			$oUser->setExtendedProp($this->GetName().'::Challenge', $mGetArgs->publicKey->challenge);
+			$oUser->save();
 		}
 
 		return $mGetArgs;
@@ -838,7 +829,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -852,22 +843,16 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$challenge = \base64_decode($oUser->{$this->GetName().'::Challenge'});
 
-		$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-			->select(['KeyData'])
-			->where(['UserId' => $oUser->EntityId])
-			->exec();
+		$aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
 		$oWebAuthnKey = null;
-		if (is_array($aWebAuthnKeys))
+		foreach ($aWebAuthnKeys as $oWebAuthnKey)
 		{
-			foreach ($aWebAuthnKeys as $oWebAuthnKey)
+			$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+			if (\base64_decode($oKeyData->credentialId) === $id)
 			{
-				$oKeyData = \json_decode($oWebAuthnKey->KeyData);
-				if (\base64_decode($oKeyData->credentialId) === $id)
-				{
-					$credentialPublicKey = $oKeyData->credentialPublicKey;
-					break;
-				}
+				$credentialPublicKey = $oKeyData->credentialPublicKey;
+				break;
 			}
 		}
 
@@ -881,7 +866,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				if (isset($oWebAuthnKey))
 				{
 					$oWebAuthnKey->LastUsageDateTime = time();
-					$oWebAuthnKey->saveAttribute('LastUsageDateTime');
+					$oWebAuthnKey->save();
 				}
 			}
 			catch (\Exception $oEx)
@@ -912,7 +897,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -928,19 +913,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$mResult = false;
-		$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-			->select(['KeyData'])
-			->where(
-				[
-					'UserId' => $oUser->EntityId,
-					'EntityId' => $KeyId
-				])
-			->one()
-			->exec();
-		if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+		$oWebAuthnKey = WebAuthnKey::where('UserId', $oUser->Id)
+			->where('Id', $KeyId)
+			->first();
+
+		if ($oWebAuthnKey instanceof WebAuthnKey)
 		{
 			$oWebAuthnKey->Name = $NewName;
-			$mResult = $oWebAuthnKey->saveAttribute('Name');
+			$mResult = $oWebAuthnKey->save();
 		}
 		return $mResult;
 	}
@@ -962,7 +942,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -978,16 +958,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$mResult = false;
-		$oWebAuthnKey = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-			->select(['KeyData'])
-			->where(
-				[
-					'UserId' => $oUser->EntityId,
-					'EntityId' => $KeyId
-				])
-			->one()
-			->exec();
-		if ($oWebAuthnKey instanceof Classes\WebAuthnKey)
+		$oWebAuthnKey = WebAuthnKey::where('UserId', $oUser->Id)
+			->where('Id', $KeyId)
+			->first();
+		if ($oWebAuthnKey instanceof WebAuthnKey)
 		{
 			$mResult = $oWebAuthnKey->delete();
 			$this->_removeAllDataWhenAllSecondFactorsDisabled($oUser);
@@ -1083,7 +1057,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -1097,7 +1071,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 
-		return $this->getUsedDevicesManager()->saveDevice($oUser->EntityId, $DeviceId, $DeviceName, \Aurora\System\Api::getAuthToken());
+		return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, \Aurora\System\Api::getAuthToken());
 	}
 
 	public function GetUsedDevices()
@@ -1110,12 +1084,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		return $this->getUsedDevicesManager()->getAllDevices($oUser->EntityId);
+		return $this->getUsedDevicesManager()->getAllDevices($oUser->Id);
 	}
 
 	public function RevokeTrustFromAllDevices()
@@ -1128,7 +1102,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -1139,9 +1113,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function onBeforeLogout($aArgs, &$mResult)
 	{
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			$oUsedDevice = $this->getUsedDevicesManager()->getDeviceByAuthToken($oUser->EntityId, \Aurora\System\Api::getAuthToken());
+			$oUsedDevice = $this->getUsedDevicesManager()->getDeviceByAuthToken($oUser->Id, \Aurora\System\Api::getAuthToken());
 			if ($oUsedDevice)
 			{
 				$oUsedDevice->AuthToken = '';
@@ -1155,7 +1129,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -1165,7 +1139,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->EntityId, $DeviceId);
+		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
 		if ($oUsedDevice && !empty($oUsedDevice->AuthToken))
 		{
 			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);
@@ -1181,7 +1155,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -1191,7 +1165,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->EntityId, $DeviceId);
+		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
 		if ($oUsedDevice)
 		{
 			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);
@@ -1211,7 +1185,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
 		}
 		$aList = [];
-		if ($User instanceof \Aurora\Modules\Core\Classes\User) {
+		if ($User instanceof User) {
 			if (!empty($User->{self::GetName() . '::IPAllowList'})) {
 				$aList = \json_decode($User->{self::GetName() . '::IPAllowList'}, true);
 			}
@@ -1224,11 +1198,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$mResult = false;
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User) {
+		if ($oUser instanceof User) {
 			$aList = $this->GetIpAllowlist();
 			$aList[$IP] = ['Comment' => $Comment];
-			$oUser->{self::GetName() . '::IPAllowList'} = \json_encode($aList);
-			$mResult = $oUser->saveAttribute(self::GetName() . '::IPAllowList');
+			$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode($aList));
+			$mResult = $oUser->save();
 		}
 
 		return $mResult;
@@ -1238,12 +1212,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$mResult = false;
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User) {
+		if ($oUser instanceof User) {
 			$aList = $this->GetIpAllowlist();
 			if (isset($aList[$IP])) {
 				unset($aList[$IP]);
-				$oUser->{self::GetName() . '::IPAllowList'} = \json_encode($aList);
-				$mResult = $oUser->saveAttribute(self::GetName() . '::IPAllowList');
+				$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode($aList));
+				$mResult = $oUser->save();
 			}
 		}
 		return $mResult;
@@ -1269,16 +1243,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$aWebAuthKeysInfo = [];
 
-		if ($oUser instanceof \Aurora\Modules\Core\Classes\User && $oUser->isNormalOrTenant())
+		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			$aWebAuthnKeys = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-				->select(['Name'])
-				->where(['UserId' => $oUser->EntityId])
-				->exec();
+			$aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 			foreach ($aWebAuthnKeys as $oWebAuthnKey)
 			{
 				$aWebAuthKeysInfo[] = [
-					$oWebAuthnKey->EntityId,
+					$oWebAuthnKey->Id,
 					$oWebAuthnKey->Name
 				];
 			}
@@ -1289,15 +1260,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	protected function _removeAllDataWhenAllSecondFactorsDisabled($oUser)
 	{
-		$iWebAuthnKeyCount = (new \Aurora\System\EAV\Query(Classes\WebAuthnKey::class))
-			->select(['KeyData'])
-			->where(['UserId' => $oUser->EntityId])
-			->count()
-			->exec();
+		$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
 		if (empty($oUser->{$this->GetName().'::Secret'}) && $iWebAuthnKeyCount === 0)
 		{
-			$oUser->{$this->GetName().'::BackupCodes'} = '';
-			$oUser->{$this->GetName().'::BackupCodesTimestamp'} = '';
+			$oUser->setExtendedProp($this->GetName().'::BackupCodes', '');
+			$oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', '');
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
 			$this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
