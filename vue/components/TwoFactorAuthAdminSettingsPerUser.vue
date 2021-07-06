@@ -21,7 +21,7 @@
           </div>
         </q-card-section>
       </q-card>
-      <q-card flat bordered class="card-edit-settings q-mt-lg">
+      <q-card flat bordered class="card-edit-settings q-mt-lg" v-if="ipAllowlistEnabled">
         <q-card-section>
           <div class="row">
             <div class="col-8">
@@ -30,7 +30,7 @@
               </q-item-label>
             </div>
           </div>
-          <div class="row q-mt-md" v-if="ipAllowlistEnabled">
+          <div class="row q-mt-md">
             <div class="col-8">
               <q-btn unelevated no-caps no-wrap dense class="q-px-xs" :ripple="false" color="primary"
                      :label="$t('TWOFACTORAUTH.ACTION_DISABLE_IP_ALLOWLIST')" @click="confirmIpAllowlist = true"/>
@@ -182,7 +182,7 @@ export default {
         if (userId === this.user.id) {
           this.loading = false
           if (user && _.isFunction(user?.getData)) {
-            console.log(user)
+            console.log(user, 'user')
             this.user = user
             this.getUserSettings()
           } else {
@@ -203,11 +203,12 @@ export default {
         parameters
       }).then(result => {
         this.loading = false
-        console.log(result, 'result')
+        console.log(result, 'res')
         if (result) {
           this.ipAllowlistEnabled = result?.IpAllowlistEnabled
           this.twoFactorAuthEnabled = result?.TwoFactorAuthEnabled
         }
+        console.log(this.ipAllowlistEnabled, 'this.ipAllowlistEnabled')
       }, response => {
         this.loading = false
         notification.showError(errors.getTextFromResponse(response))
