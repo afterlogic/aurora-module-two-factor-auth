@@ -182,7 +182,6 @@ export default {
         if (userId === this.user.id) {
           this.loading = false
           if (user && _.isFunction(user?.getData)) {
-            console.log(user, 'user')
             this.user = user
             this.getUserSettings()
           } else {
@@ -203,12 +202,10 @@ export default {
         parameters
       }).then(result => {
         this.loading = false
-        console.log(result, 'res')
         if (result) {
           this.ipAllowlistEnabled = result?.IpAllowlistEnabled
           this.twoFactorAuthEnabled = result?.TwoFactorAuthEnabled
         }
-        console.log(this.ipAllowlistEnabled, 'this.ipAllowlistEnabled')
       }, response => {
         this.loading = false
         notification.showError(errors.getTextFromResponse(response))
