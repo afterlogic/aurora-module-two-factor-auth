@@ -609,7 +609,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 				$bHasAuthenticatorApp = false;
 				if ($this->getConfig('AllowAuthenticatorApp', true))
 				{
-					$bHasAuthenticatorApp = !!($oUser->{$this->GetName().'::Secret'} !== '');
+					$bHasAuthenticatorApp = !!(!empty($oUser->{$this->GetName().'::Secret'}));
 				}
 
 				$bDeviceTrusted = ($bHasAuthenticatorApp || $bHasAuthenticatorApp) ? $this->getUsedDevicesManager()->checkDeviceAfterAuthenticate($oUser) : false;
