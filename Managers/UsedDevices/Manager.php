@@ -117,7 +117,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 	public function revokeTrustFromAllDevices($oUser)
 	{
 		$mResult = true;
-		$aTrustedDevices = $this->getAllDevices($oUser->EntityId);
+		$aTrustedDevices = $this->getAllDevices($oUser->Id);
 		foreach ($aTrustedDevices as $oUsedDevice)
 		{
 			$oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime;
