@@ -26,11 +26,25 @@ module.exports = function (oAppData) {
 		start: function (ModulesManager) {
 			if (!App.isMobile())
 			{
-				ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
-					function () { return require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js'); },
-					Settings.HashModuleName,
-					TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
-				]);
+				if (ModulesManager.isModuleEnabled('SecuritySettingsWebclient'))
+				{
+					ModulesManager.run(
+						'SecuritySettingsWebclient',
+						'registerSecuritySettingsSection', 
+						[
+							function () { return require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js'); },
+							'%ModuleName%'
+						]
+					);
+				}
+				else
+				{
+					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [
+						function () { return require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js'); },
+						Settings.HashModuleName,
+						TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
+					]);
+				}
 
 				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
 					function(resolve) {

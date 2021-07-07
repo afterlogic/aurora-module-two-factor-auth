@@ -8,6 +8,7 @@ var
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
+	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js')
 ;
 
@@ -85,10 +86,14 @@ module.exports = {
 		if (!App.isMobile() && App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
 		{
 			var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
-			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened)
+			var bSecuritySettingsOpened = window.location.hash === 'settings/security' || window.location.hash === '#settings/security';
+			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened && !bSecuritySettingsOpened)
 			{
 				setTimeout(function () {
-					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED'));
+					var sLink = ModulesManager.isModuleEnabled('SecuritySettingsWebclient')
+								? '#settings/security'
+								: '#settings/two-factor-auth';
+					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED', { 'TWO_FACTOR_LINK': sLink }));
 
 					$('.report_panel.loading a').on('click', function () {
 						Screens.hideLoading();

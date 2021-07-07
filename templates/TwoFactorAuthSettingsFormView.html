@@ -1,11 +1,11 @@
-<div class="panel_top">
+<div class="panel_top panel_security_two_factor" data-bind="visible: visibleHeading">
 	<h2 class="settings_heading">
 		<span class="back-to-security-icon" data-bind="visible: passwordVerified, click: clearAll, customTooltip: '%MODULENAME%/ACTION_BACK'"></span>
 		<span data-bind="i18n: {'key': '%MODULENAME%/HEADING_SETTINGS_TAB'}"></span>
 	</h2>
 </div>
 
-<div class="panel_center">
+<div class="panel_center panel_security_two_factor">
 	<div class="fields">
 		<!-- ko if: !passwordVerified() -->
 			<div class="fieldset" data-bind="visible: (bAllowSecurityKeys || bAllowAuthenticatorApp) && !isEnabledTwoFactorAuth()">

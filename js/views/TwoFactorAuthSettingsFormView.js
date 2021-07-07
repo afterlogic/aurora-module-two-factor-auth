@@ -35,6 +35,8 @@ var
 function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
+	
+	this.visibleHeading = ko.observable(true); // Can be changed by SecuritySettingsWebclient module
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
 
