@@ -23,7 +23,8 @@ class CreateUsedDevicesTable extends Migration
             $table->integer('LastUsageDateTime')->default(0);
             $table->integer('TrustTillDateTime')->default(0);
             $table->string('DeviceIP')->default('');
-            $table->timestamps();
+            $table->timestamp(\Aurora\System\Classes\Model::CREATED_AT)->nullable();
+            $table->timestamp(\Aurora\System\Classes\Model::UPDATED_AT)->nullable();
         });
     }
 

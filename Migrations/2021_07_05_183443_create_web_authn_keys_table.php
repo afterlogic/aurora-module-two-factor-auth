@@ -20,7 +20,8 @@ class CreateWebAuthnKeysTable extends Migration
             $table->text('KeyData');
             $table->integer('CreationDateTime')->default(0);
             $table->integer('LastUsageDateTime')->default(0);
-            $table->timestamps();
+            $table->timestamp(\Aurora\System\Classes\Model::CREATED_AT)->nullable();
+            $table->timestamp(\Aurora\System\Classes\Model::UPDATED_AT)->nullable();
         });
     }
 
