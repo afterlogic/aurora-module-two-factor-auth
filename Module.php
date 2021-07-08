@@ -33,11 +33,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function init()
 	{
-
-		$this->aErrors = [
-			Enums\ErrorCodes::IpIsNotAllowed	=> $this->i18N('ERROR_IP_IS_NOT_ALLOWED'),
-		];
-
 		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
 				'Secret' => ['string', '', false, true],
 				'ShowRecommendationToConfigure' => ['bool', true],
