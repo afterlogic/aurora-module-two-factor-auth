@@ -31,7 +31,6 @@ function CTwoFactorAuthAdminSettingsFormView()
 	
 	this.userPublicId = ko.observable('');
 	this.twoFactorAuthEnabled = ko.observable(false);
-	this.ipAllowlistEnabled = ko.observable(false);
 	
 	App.subscribeEvent('ReceiveAjaxResponse::after', _.bind(function (oParams) {
 		if (oParams.Request.Module === 'Core' && oParams.Request.Method === 'GetUser')
@@ -50,15 +49,6 @@ function CTwoFactorAuthAdminSettingsFormView()
 		
 		return TextUtils.i18n('%MODULENAME%/INFO_TFA_DISABLED_FOR_USER', {'USER': this.userPublicId()});
 	}, this);
-	this.bEnableIPAllowlist = Settings.EnableIPAllowlist;
-	this.ipAllowlistStatusForUserText = ko.computed(function () {
-		if (this.ipAllowlistEnabled())
-		{
-			return TextUtils.i18n('%MODULENAME%/INFO_IP_ALLOWLIST_ENABLED_FOR_USER', {'USER': this.userPublicId()});
-		}
-		
-		return TextUtils.i18n('%MODULENAME%/INFO_IP_ALLOWLIST_DISABLED_FOR_USER', {'USER': this.userPublicId()});
-	}, this);
 }
 
 _.extendOwn(CTwoFactorAuthAdminSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -68,7 +58,6 @@ CTwoFactorAuthAdminSettingsFormView.prototype.ViewTemplate = '%ModuleName%_TwoFa
 CTwoFactorAuthAdminSettingsFormView.prototype.onRouteChild = function ()
 {
 	this.twoFactorAuthEnabled(false);
-	this.ipAllowlistEnabled(false);
 	this.requestPerUserSettings();
 };
 
@@ -78,7 +67,6 @@ CTwoFactorAuthAdminSettingsFormView.prototype.requestPerUserSettings = function 
 		if (oResponse.Result && oRequest.Parameters.UserId === this.iUserId)
 		{
 			this.twoFactorAuthEnabled(Types.pBool(oResponse.Result.TwoFactorAuthEnabled));
-			this.ipAllowlistEnabled(Types.pBool(oResponse.Result.IpAllowlistEnabled));
 		}
 	}, this);
 };
@@ -104,31 +92,6 @@ CTwoFactorAuthAdminSettingsFormView.prototype.disableUserTfa = function ()
 		else
 		{
 			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_DISABLE_USER_TFA', {'USER': this.userPublicId()}));
-		}
-	}, this);
-};
-
-CTwoFactorAuthAdminSettingsFormView.prototype.comfirmDisableUserIpAllowlist = function ()
-{
-	Popups.showPopup(ConfirmPopup, [TextUtils.i18n('%MODULENAME%/CONFIRM_DISABLE_IP_ALLOWLIST', {'USER': this.userPublicId()}), _.bind(function (bDisableUserIpAllowlist) {
-		if (bDisableUserIpAllowlist)
-		{
-			this.disableUserIpAllowlist();
-		}
-	}, this), '', TextUtils.i18n('%MODULENAME%/ACTION_DISABLE_IP_ALLOWLIST')]);
-};
-
-CTwoFactorAuthAdminSettingsFormView.prototype.disableUserIpAllowlist = function ()
-{
-	Ajax.send('%ModuleName%', 'DisableUserIpAllowlist', { 'UserId': this.iUserId }, function (oResponse, oRequest) {
-		if (oResponse.Result)
-		{
-			this.ipAllowlistEnabled(false);
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_DISABLE_USER_IP_ALLOWLIST', {'USER': this.userPublicId()}));
-		}
-		else
-		{
-			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_DISABLE_USER_IP_ALLOWLIST', {'USER': this.userPublicId()}));
 		}
 	}, this);
 };
