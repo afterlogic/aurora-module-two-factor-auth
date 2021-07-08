@@ -8,6 +8,7 @@ var
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
+	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js')
 ;
 
@@ -22,7 +23,6 @@ module.exports = {
 	AllowAuthenticatorApp: false,
 	SecurityKeys: [],
 	AllowUsedDevices: false,
-	EnableIPAllowlist: false,
 	CurrentIP: '',
 	TrustDevicesForDays: 0,
 	AllowTrustedDevices: false,
@@ -44,7 +44,6 @@ module.exports = {
 			this.AllowAuthenticatorApp = Types.pBool(oAppDataSection.AllowAuthenticatorApp, this.AllowAuthenticatorApp);
 			this.AuthenticatorAppEnabled = this.AllowAuthenticatorApp && Types.pBool(oAppDataSection.AuthenticatorAppEnabled, this.AuthenticatorAppEnabled);
 			this.AllowUsedDevices = Types.pBool(oAppDataSection.AllowUsedDevices, this.AllowUsedDevices);
-			this.EnableIPAllowlist = Types.pBool(oAppDataSection.EnableIPAllowlist, this.EnableIPAllowlist);
 			this.CurrentIP = Types.pString(oAppDataSection.CurrentIP, this.CurrentIP);
 			this.TrustDevicesForDays = Types.pInt(oAppDataSection.TrustDevicesForDays, this.TrustDevicesForDays);
 			this.AllowTrustedDevices = this.TrustDevicesForDays > 0;
@@ -85,10 +84,14 @@ module.exports = {
 		if (!App.isMobile() && App.isUserNormalOrTenant() && this.ShowRecommendationToConfigure)
 		{
 			var bTfaSettingsOpened = window.location.hash === 'settings/two-factor-auth' || window.location.hash === '#settings/two-factor-auth';
-			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened)
+			var bSecuritySettingsOpened = window.location.hash === 'settings/security' || window.location.hash === '#settings/security';
+			if (!this.AuthenticatorAppEnabled && !bTfaSettingsOpened && !bSecuritySettingsOpened)
 			{
 				setTimeout(function () {
-					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED'));
+					var sLink = ModulesManager.isModuleEnabled('SecuritySettingsWebclient')
+								? '#settings/security'
+								: '#settings/two-factor-auth';
+					Screens.showLoading(TextUtils.i18n('%MODULENAME%/CONFIRM_MODULE_NOT_ENABLED', { 'TWO_FACTOR_LINK': sLink }));
 
 					$('.report_panel.loading a').on('click', function () {
 						Screens.hideLoading();

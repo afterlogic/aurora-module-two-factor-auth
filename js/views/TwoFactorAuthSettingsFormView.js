@@ -19,7 +19,6 @@ var
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
-	AddIpToAllowlistPopup = require('modules/%ModuleName%/js/popups/AddIpToAllowlistPopup.js'),
 	CDeviceModel = require('modules/%ModuleName%/js/models/CDeviceModel.js'),
 	ConfigureAuthenticatorAppPopup = require('modules/%ModuleName%/js/popups/ConfigureAuthenticatorAppPopup.js'),
 	ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
@@ -35,6 +34,8 @@ var
 function CTwoFactorAuthSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
+	
+	this.visibleHeading = ko.observable(true); // Can be changed by SecuritySettingsWebclient module
 
 	this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure);
 
@@ -67,10 +68,6 @@ function CTwoFactorAuthSettingsFormView()
 		return Settings.AllowBackupCodes && (this.hasAuthenticatorApp() || this.securityKeys().length > 0) && this.passwordVerified();
 	}, this);
 	
-	this.ipAllowlist = ko.observableArray([]);
-	this.bEnableIPAllowlist = Settings.EnableIPAllowlist;
-	this.sCurrentIp = Settings.CurrentIP;
-
 	this.devices = ko.observableArray([]);
 	this.allowUsedDevices = ko.computed(function () {
 		return Settings.AllowUsedDevices && this.devices().length > 0;
@@ -102,7 +99,6 @@ CTwoFactorAuthSettingsFormView.prototype.clearAll = function ()
 	this.passwordVerified(false);
 	this.populateSettings();
 	this.getUsedDevices();
-	this.populateIpAllowlist();
 };
 
 CTwoFactorAuthSettingsFormView.prototype.populateSettings = function ()
@@ -344,69 +340,6 @@ CTwoFactorAuthSettingsFormView.prototype.removeDevice = function (sDeviceId)
 		if (!oResponse || !oResponse.Result)
 		{
 			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_LOGOUT_DEVICE'));
-		}
-	}, this);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.populateIpAllowlist = function ()
-{
-	Ajax.send('%ModuleName%', 'GetIpAllowlist', null, function (oResponse) {
-		if (_.isObject(oResponse && oResponse.Result))
-		{
-			this.ipAllowlist(_.map(oResponse.Result, function (oData, sKey) {
-				return {
-					IP: sKey,
-					Comment: oData.Comment
-				};
-			}));
-		}
-		else
-		{
-			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_CANNOT_GET_IP_ALLOWLIST'));
-		}
-	}, this);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.addIpToAllowlist = function ()
-{
-	var aAllowedIpAddresses = _.map(this.ipAllowlist(), function (oIpData) {
-		return oIpData.IP;
-	});
-	Popups.showPopup(AddIpToAllowlistPopup, [aAllowedIpAddresses, this.populateIpAllowlist.bind(this)]);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.askRemoveIp = function (sIp)
-{
-	var
-		sConfirm = sIp === this.sCurrentIp
-			? TextUtils.i18n('%MODULENAME%/CONFIRM_REMOVE_CURRENT_IP')
-			: TextUtils.i18n('%MODULENAME%/CONFIRM_REMOVE_IP'),
-		sHeading = TextUtils.i18n('%MODULENAME%/CONFIRM_HEADING_REMOVE_IP', {
-			'IP': sIp
-		})
-	;
-	Popups.showPopup(ConfirmPopup, [sConfirm, _.bind(function (bRemove) {
-		if (bRemove)
-		{
-			this.removeIp(sIp);
-		}
-	}, this), sHeading, TextUtils.i18n('%MODULENAME%/ACTION_PROCEED')]);
-};
-
-CTwoFactorAuthSettingsFormView.prototype.removeIp = function (sIp)
-{
-	var oParameters = {
-		'IP': sIp
-	};
-	Ajax.send('%ModuleName%', 'RemoveIpFromAllowlist', oParameters, function (oResponse) {
-		this.populateIpAllowlist();
-		if (oResponse && oResponse.Result)
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_REMOVE_IP'));
-		}
-		else
-		{
-			Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_REMOVE_IP'));
 		}
 	}, this);
 };

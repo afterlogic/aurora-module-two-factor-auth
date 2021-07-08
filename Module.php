@@ -35,11 +35,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function init()
 	{
-
-		$this->aErrors = [
-			Enums\ErrorCodes::IpIsNotAllowed	=> $this->i18N('ERROR_IP_IS_NOT_ALLOWED'),
-		];
-
 		// $this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
 		// 		'Secret' => ['string', '', false, true],
 		// 		'ShowRecommendationToConfigure' => ['bool', true],
@@ -47,7 +42,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 		// 		'BackupCodes' => ['string', '', false],
 		// 		'BackupCodesTimestamp' => ['string', '', false],
 		// 		'Challenge' => ['string', '', false],
-		// 		'IPAllowList' => ['string', '', false],
 		// 	]
 		// );
 
@@ -61,8 +55,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
 		$this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
-		$this->subscribeEvent('Core::Login::before', array($this, 'onBeforeLogin'));
-		$this->subscribeEvent('System::RunEntry::before', [$this, 'onBeforeRunEntry'], 100);
 
 		$this->oWebAuthn = new \WebAuthn\WebAuthn(
 			'WebAuthn Library',
@@ -109,8 +101,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
 			'AllowAuthenticatorApp' => $this->getConfig('AllowAuthenticatorApp', true),
 			'AllowUsedDevices' => $this->getConfig('AllowUsedDevices', false),
-			'EnableIPAllowlist' => $this->getConfig('EnableIPAllowlist', false),
-			'CurrentIP' => $this->_getCurrentIp(),
 			'TrustDevicesForDays' => $this->getConfig('TrustDevicesForDays', 0),
 		];
 
@@ -176,17 +166,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oUser = \Aurora\System\Api::getUserById($UserId);
 			if ($oUser instanceof User && $oUser->isNormalOrTenant())
 			{
-				$bIpAllowlistEnabled = false;
-				if ($this->getConfig('EnableIPAllowlist', false))
-				{
-					$aList = $this->GetIpAllowlist($oUser);
-					$bIpAllowlistEnabled = (count($aList) > 0);
-				}
 				$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
-
 				return [
-					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0,
-					'IpAllowlistEnabled' => $bIpAllowlistEnabled
+					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0
 				];
 			}
 		}
@@ -235,19 +217,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 
 		return false;
-	}
-
-	public function DisableUserIpAllowlist($UserId)
-	{
-		$mResult = false;
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
-		$oUser = \Aurora\System\Api::getUserById($UserId);
-		if ($oUser instanceof User && $oUser->isNormalOrTenant())
-		{
-			$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode([]));
-			$mResult = $oUser->save();
-		}
-		return $mResult;
 	}
 
 	/**
@@ -1174,71 +1143,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return true;
 	}
 
-	public function GetIpAllowlist($User = null)
-	{
-		if ($User === null)
-		{
-			$User = \Aurora\System\Api::getAuthenticatedUser();
-		}
-		else
-		{
-			\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
-		}
-		$aList = [];
-		if ($User instanceof User) {
-			if (!empty($User->{self::GetName() . '::IPAllowList'})) {
-				$aList = \json_decode($User->{self::GetName() . '::IPAllowList'}, true);
-			}
-		}
-
-		return $aList;
-	}
-
-	public function AddIpToAllowlist($IP, $Comment)
-	{
-		$mResult = false;
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof User) {
-			$aList = $this->GetIpAllowlist();
-			$aList[$IP] = ['Comment' => $Comment];
-			$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode($aList));
-			$mResult = $oUser->save();
-		}
-
-		return $mResult;
-	}
-
-	public function RemoveIpFromAllowlist($IP)
-	{
-		$mResult = false;
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser instanceof User) {
-			$aList = $this->GetIpAllowlist();
-			if (isset($aList[$IP])) {
-				unset($aList[$IP]);
-				$oUser->setExtendedProp(self::GetName() . '::IPAllowList', \json_encode($aList));
-				$mResult = $oUser->save();
-			}
-		}
-		return $mResult;
-	}
-
-	protected function _getCurrentIp()
-	{
-		if (!empty($_SERVER['HTTP_CLIENT_IP']))
-		{
-			return $_SERVER['HTTP_CLIENT_IP'];
-		}
-		elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR']))
-		{
-			return $_SERVER['HTTP_X_FORWARDED_FOR'];
-		}
-		else
-		{
-			return $_SERVER['REMOTE_ADDR'];
-		}
-	}
-
 	protected function _getWebAuthKeysInfo($oUser)
 	{
 		$aWebAuthKeysInfo = [];
@@ -1268,44 +1172,6 @@ class Module extends \Aurora\System\Module\AbstractModule
 			\Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
 			$this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
-		}
-	}
-
-	protected function checkIpAddress($oUser = null)
-	{
-		if ($this->getConfig('EnableIPAllowlist', true)) {
-			$sIpAddress = $this->_getCurrentIp();
-			$aList = $this->GetIpAllowlist($oUser);
-			if (is_array($aList) && count($aList) > 0) {
-				if (!in_array($sIpAddress, array_keys($aList))) {
-					throw new ApiException(Enums\ErrorCodes::IpIsNotAllowed, null, '', [], $this);
-				}
-			}
-		}
-	}
-
-	public function onBeforeRunEntry($aArgs, &$mResult)
-	{
-		$aEntries = ['api', 'download'];
-		if (isset($aArgs['EntryName']) && in_array(strtolower($aArgs['EntryName']), $aEntries))
-		{
-			$this->checkIpAddress();
-		}
-	}
-
-	public function onBeforeLogin($aArgs, &$mResult)
-	{
-		if (isset($aArgs['Login']) && isset($aArgs['Password'])) {
-
-			$aAuthData = \Aurora\Modules\Core\Module::Decorator()->Authenticate($aArgs['Login'], $aArgs['Password']);
-			if (is_array($aAuthData) && isset($aAuthData['id'])) {
-				$oUser = \Aurora\Modules\Core\Module::Decorator()->GetUserUnchecked($aAuthData['id']);
-				if ($oUser) {
-					\Aurora\Api::skipCheckUserRole(true);
-					$this->checkIpAddress($oUser);
-					\Aurora\Api::skipCheckUserRole(false);
-				}
-			}
 		}
 	}
 }
