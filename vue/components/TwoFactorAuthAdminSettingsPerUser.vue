@@ -66,7 +66,7 @@
       </q-card>
     </q-dialog>
     <q-inner-loading style="justify-content: flex-start;" :showing="loading || saving">
-      <q-linear-progress query class="q-mt-sm" />
+      <q-linear-progress query />
     </q-inner-loading>
   </q-scroll-area>
 </template>
