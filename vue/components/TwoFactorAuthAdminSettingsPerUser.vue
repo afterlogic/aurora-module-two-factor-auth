@@ -21,23 +21,6 @@
           </div>
         </q-card-section>
       </q-card>
-      <q-card flat bordered class="card-edit-settings q-mt-lg" v-if="ipAllowlistEnabled">
-        <q-card-section>
-          <div class="row">
-            <div class="col-8">
-              <q-item-label caption>
-                <div v-html="inscriptionIpAllowlist"></div>
-              </q-item-label>
-            </div>
-          </div>
-          <div class="row q-mt-md">
-            <div class="col-8">
-              <q-btn unelevated no-caps no-wrap dense class="q-px-xs" :ripple="false" color="primary"
-                     :label="$t('TWOFACTORAUTH.ACTION_DISABLE_IP_ALLOWLIST')" @click="confirmIpAllowlist = true"/>
-            </div>
-          </div>
-        </q-card-section>
-      </q-card>
     </div>
     <q-dialog v-model="confirmTwoFactorAuthentication" persistent>
       <q-card style="min-width: 300px">
@@ -49,19 +32,6 @@
                  :label="$t('TWOFACTORAUTH.ACTION_DISABLE_TFA')" />
           <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary"
                  :label="$t('COREWEBCLIENT.ACTION_CANCEL')" @click="confirmTwoFactorAuthentication = false"/>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
-    <q-dialog v-model="confirmIpAllowlist" persistent>
-      <q-card style="min-width: 300px">
-        <q-card-section>
-          <span v-t="'COREWEBCLIENT.CONFIRM_DISCARD_CHANGES'"></span>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary" @click="disableIpAllowlist"
-                 :label="$t('TWOFACTORAUTH.ACTION_DISABLE_IP_ALLOWLIST')" />
-          <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary"
-                 :label="$t('COREWEBCLIENT.ACTION_CANCEL')" @click="confirmIpAllowlist = false"/>
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -88,10 +58,8 @@ export default {
       user: null,
       loading: false,
       saving: false,
-      ipAllowlistEnabled: false,
       twoFactorAuthEnabled: false,
       confirmTwoFactorAuthentication: false,
-      confirmIpAllowlist: false
     }
   },
   computed: {
@@ -102,13 +70,6 @@ export default {
         return this.$tc('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', this.user?.publicId, { USER: this.user?.publicId })
       }
     },
-    inscriptionIpAllowlist () {
-      if (this.twoFactorAuthEnabled) {
-        return this.$tc('TWOFACTORAUTH.INFO_IP_ALLOWLIST_ENABLED_FOR_USER', this.user?.publicId, { USER: this.user?.publicId })
-      } else {
-        return this.$tc('TWOFACTORAUTH.INFO_IP_ALLOWLIST_DISABLED_FOR_USER', this.user?.publicId, { USER: this.user?.publicId })
-      }
-    }
   },
   watch: {
     $route(to, from) {
@@ -139,28 +100,6 @@ export default {
       }, response => {
         this.confirmTwoFactorAuthentication = false
         notification.showError(errors.getTextFromResponse(response, this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })))
-      })
-    },
-    disableIpAllowlist () {
-      const parameters = {
-        UserId: this.user.id,
-        TenantId: this.user.tenantId,
-      }
-      webApi.sendRequest({
-        moduleName: 'TwoFactorAuth',
-        methodName: 'DisableUserIpAllowlist',
-        parameters
-      }).then(result => {
-        this.confirmIpAllowlist = false
-        if (result) {
-          this.populate()
-          notification.showReport(this.$tc('TWOFACTORAUTH.REPORT_DISABLE_USER_IP_ALLOWLIST', this.user.publicId, { USER: this.user.publicId }))
-        } else {
-          notification.showError(this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_IP_ALLOWLIST', this.user.publicId, { USER: this.user.publicId }))
-        }
-      }, response => {
-        this.confirmIpAllowlist = false
-        notification.showError(errors.getTextFromResponse(response, this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_IP_ALLOWLIST', this.user.publicId, { USER: this.user.publicId })))
       })
     },
     showTwoFactorAuthenticationDialogue () {
@@ -203,7 +142,6 @@ export default {
       }).then(result => {
         this.loading = false
         if (result) {
-          this.ipAllowlistEnabled = result?.IpAllowlistEnabled
           this.twoFactorAuthEnabled = result?.TwoFactorAuthEnabled
         }
       }, response => {
