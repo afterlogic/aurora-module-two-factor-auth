@@ -94,12 +94,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
+		$bAllowUsedDevices = $this->getConfig('AllowUsedDevices', false);
 		$aSettings = [
 			'AllowBackupCodes' => $this->getConfig('AllowBackupCodes', false),
 			'AllowSecurityKeys' => $this->getConfig('AllowSecurityKeys', false),
 			'AllowAuthenticatorApp' => $this->getConfig('AllowAuthenticatorApp', true),
-			'AllowUsedDevices' => $this->getConfig('AllowUsedDevices', false),
-			'TrustDevicesForDays' => $this->getConfig('TrustDevicesForDays', 0),
+			'AllowUsedDevices' => $bAllowUsedDevices,
+			'TrustDevicesForDays' => $bAllowUsedDevices ? $this->getConfig('TrustDevicesForDays', 0) : 0,
 		];
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
@@ -1044,6 +1045,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
+		if (!$this->getConfig('AllowUsedDevices', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
 		self::$VerifyState = true;
 		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
 		self::$VerifyState = false;
@@ -1064,6 +1070,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function SaveDevice($DeviceId, $DeviceName)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		if (!$this->getConfig('AllowUsedDevices', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 
@@ -1091,6 +1102,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function RevokeTrustFromAllDevices()
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		if (!$this->getConfig('AllowUsedDevices', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		if (!$this->getUsedDevicesManager()->isTrustedDevicesEnabled())
 		{
@@ -1124,6 +1140,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
+		if (!$this->getConfig('AllowUsedDevices', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
 		{
@@ -1149,6 +1170,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function RemoveDevice($DeviceId)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		if (!$this->getConfig('AllowUsedDevices', false))
+		{
+			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		}
 
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if (!($oUser instanceof \Aurora\Modules\Core\Classes\User) || !$oUser->isNormalOrTenant())
