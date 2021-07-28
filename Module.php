@@ -35,15 +35,15 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function init()
 	{
-		// $this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
-		// 		'Secret' => ['string', '', false, true],
-		// 		'ShowRecommendationToConfigure' => ['bool', true],
-		// 		'IsEncryptedSecret' => ['bool', false],
-		// 		'BackupCodes' => ['string', '', false],
-		// 		'BackupCodesTimestamp' => ['string', '', false],
-		// 		'Challenge' => ['string', '', false],
-		// 	]
-		// );
+		$this->extendObject(\Aurora\Modules\Core\Classes\User::class, [
+				'Secret' => ['string', '', false, true],
+				'ShowRecommendationToConfigure' => ['bool', true],
+				'IsEncryptedSecret' => ['bool', false],
+				'BackupCodes' => ['string', '', false],
+				'BackupCodesTimestamp' => ['string', '', false],
+				'Challenge' => ['string', '', false],
+			]
+		);
 
 		\Aurora\System\Router::getInstance()->registerArray(
 			self::GetName(),
