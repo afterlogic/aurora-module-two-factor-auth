@@ -13,7 +13,7 @@ class CreateWebAuthnKeysTable extends Migration
      */
     public function up()
     {
-        Capsule::schema()->create('web_authn_keys', function (Blueprint $table) {
+        Capsule::schema()->create('security_web_authn_keys', function (Blueprint $table) {
             $table->id('Id');
             $table->bigInteger('UserId')->default(0);
             $table->string('Name')->default('');
@@ -32,6 +32,6 @@ class CreateWebAuthnKeysTable extends Migration
      */
     public function down()
     {
-        Capsule::schema()->dropIfExists('web_authn_keys');
+        Capsule::schema()->dropIfExists('security_web_authn_keys');
     }
 }

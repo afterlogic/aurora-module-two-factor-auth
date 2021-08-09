@@ -18,6 +18,8 @@ use Aurora\System\Classes\Model;
  */
 class UsedDevice extends Model
 {
+	protected $table = 'security_used_devices';
+
 	protected $fillable = [
 		'Id',
         'UserId',

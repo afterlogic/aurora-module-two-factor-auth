@@ -13,7 +13,7 @@ class CreateUsedDevicesTable extends Migration
      */
     public function up()
     {
-        Capsule::schema()->create('used_devices', function (Blueprint $table) {
+        Capsule::schema()->create('security_used_devices', function (Blueprint $table) {
             $table->id('Id');
             $table->bigInteger('UserId')->default(0);
             $table->string('DeviceId')->default('');
@@ -35,6 +35,6 @@ class CreateUsedDevicesTable extends Migration
      */
     public function down()
     {
-        Capsule::schema()->dropIfExists('used_devices');
+        Capsule::schema()->dropIfExists('security_used_devices');
     }
 }
