@@ -19,6 +19,7 @@ use Aurora\System\Classes\Model;
 class UsedDevice extends Model
 {
 	protected $fillable = [
+		'Id',
         'UserId',
         'DeviceId',
         'DeviceName',

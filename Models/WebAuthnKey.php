@@ -19,6 +19,7 @@ use Aurora\System\Classes\Model;
 class WebAuthnKey extends Model
 {
 	protected $fillable = [
+                'Id',
                 'UserId',
                 'Name',
                 'KeyData',
