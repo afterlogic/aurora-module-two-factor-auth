@@ -19,6 +19,8 @@ use Aurora\System\Classes\Model;
 class WebAuthnKey extends Model
 {
     protected $table = 'security_web_authn_keys';
+    protected $foreignModel = 'Aurora\Modules\Core\Models\User';
+	protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
 
 	protected $fillable = [
                 'Id',

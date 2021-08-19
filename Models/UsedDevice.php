@@ -19,6 +19,9 @@ use Aurora\System\Classes\Model;
 class UsedDevice extends Model
 {
 	protected $table = 'security_used_devices';
+	protected $foreignModel = 'Aurora\Modules\Core\Models\User';
+	protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
+
 
 	protected $fillable = [
 		'Id',
