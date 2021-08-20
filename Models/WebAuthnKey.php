@@ -8,6 +8,7 @@
 namespace Aurora\Modules\TwoFactorAuth\Models;
 
 use Aurora\System\Classes\Model;
+use Aurora\Modules\Core\Models\User;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -19,7 +20,7 @@ use Aurora\System\Classes\Model;
 class WebAuthnKey extends Model
 {
     protected $table = 'security_web_authn_keys';
-    protected $foreignModel = 'Aurora\Modules\Core\Models\User';
+    protected $foreignModel = User::class;
 	protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
 
 	protected $fillable = [
