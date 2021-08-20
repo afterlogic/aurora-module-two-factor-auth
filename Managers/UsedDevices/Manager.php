@@ -113,6 +113,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
 		return $oUsedDevice->save();
 	}
+
+	public function deleteDeviceByID($iId)
+	{
+		return !!UsedDevice::where('Id', $iId)->delete();
+	}
 	
 	public function revokeTrustFromAllDevices($oUser)
 	{
