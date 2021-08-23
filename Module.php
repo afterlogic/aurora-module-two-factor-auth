@@ -182,7 +182,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		$mResult = $this->getUsedDevicesManager()->getAllDevices($aArgs);
 		foreach($mResult as $oItem){
-			$this->getUsedDevicesManager()->deleteDeviceByID($oItem->Id);
+			$this->RemoveDevice($oItem->DeviceId);
 		}
 	}
 
@@ -1152,14 +1152,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 	public function RemoveDevice($DeviceId)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-
-		if (!$this->getConfig('AllowUsedDevices', false))
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if (!$this->getConfig('AllowUsedDevices', false) && !$oUser->isAdmin())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant() && !$oUser->isAdmin())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -1169,7 +1168,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
+		$oUsedDevice = $oUser->isAdmin() ? $this->getUsedDevicesManager()->getDeviceByDeviceId($DeviceId) : $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
 		if ($oUsedDevice)
 		{
 			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);

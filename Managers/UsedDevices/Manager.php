@@ -43,6 +43,12 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 			->where('DeviceId', $sDeviceId)
 			->first();
 	}
+
+	public function getDeviceByDeviceId($sDeviceId)
+	{
+		return UsedDevice::where('DeviceId', $sDeviceId)
+			->first();
+	}
 	
 	public function getDeviceByAuthToken($iUserId, $sAuthToken)
 	{
