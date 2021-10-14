@@ -711,8 +711,13 @@ class Module extends \Aurora\System\Module\AbstractModule
 			$oWebAuthnKey->KeyData = $sEncodedSecurityKeyData;
 			$oWebAuthnKey->CreationDateTime = time();
 
-			return $oWebAuthnKey->save();
+			if ($oWebAuthnKey->save())
+			{
+				return $oWebAuthnKey->Id;
+			}
 		}
+
+		return false;
 	}
 
 	/**
@@ -749,13 +754,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$aIds = [];
 		$aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
-		if (is_array($aWebAuthnKeys))
+		foreach ($aWebAuthnKeys as $oWebAuthnKey)
 		{
-			foreach ($aWebAuthnKeys as $oWebAuthnKey)
-			{
-				$oKeyData = \json_decode($oWebAuthnKey->KeyData);
-				$aIds[] = \base64_decode($oKeyData->credentialId);
-			}
+			$oKeyData = \json_decode($oWebAuthnKey->KeyData);
+			$aIds[] = \base64_decode($oKeyData->credentialId);
 		}
 
 		if (count($aIds) > 0)
