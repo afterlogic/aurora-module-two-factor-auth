@@ -1080,7 +1080,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		return $this->getUsedDevicesManager()->getAllDevices($oUser->Id);
+		return $this->getUsedDevicesManager()->getAllDevices($oUser->Id)->toArray();
 	}
 
 	public function RevokeTrustFromAllDevices()
