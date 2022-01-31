@@ -25,7 +25,7 @@
     <q-dialog v-model="confirmTwoFactorAuthentication" persistent>
       <q-card style="min-width: 300px">
         <q-card-section>
-          <span v-t="'COREWEBCLIENT.CONFIRM_DISCARD_CHANGES'"></span>
+          <span v-html="confirmDisableTwoFactorAuthentication"></span>
         </q-card-section>
         <q-card-actions align="right">
           <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary" @click="disableTwoFactorAuthentication"
@@ -65,10 +65,13 @@ export default {
   computed: {
     inscriptionTwoFactorAuthentication () {
       if (this.twoFactorAuthEnabled) {
-        return this.$tc('TWOFACTORAUTH.INFO_TFA_ENABLED_FOR_USER', this.user?.publicId, { USER: this.user?.publicId })
+        return this.$tc('TWOFACTORAUTH.INFO_TFA_ENABLED_FOR_USER', 0, { USER: this.user?.publicId })
       } else {
-        return this.$tc('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', this.user?.publicId, { USER: this.user?.publicId })
+        return this.$tc('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', 0, { USER: this.user?.publicId })
       }
+    },
+    confirmDisableTwoFactorAuthentication () {
+      return this.$tc('TWOFACTORAUTH.CONFIRM_DISABLE_TFA', 0, { USER: this.user?.publicId })
     },
   },
   watch: {
