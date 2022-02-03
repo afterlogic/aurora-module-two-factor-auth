@@ -8,6 +8,7 @@
 namespace Aurora\Modules\TwoFactorAuth;
 
 use Aurora\Modules\Core\Models\User;
+use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
 use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
 use Aurora\System\Exceptions\ApiException;
 use Aurora\System\Exceptions\Exception;
@@ -180,10 +181,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeDeleteUser($aArgs, &$mResult)
 	{
-		$mResult = $this->getUsedDevicesManager()->getAllDevices($aArgs);
-		foreach($mResult as $oItem){
-			$this->RemoveDevice($oItem->DeviceId);
-		}
+		UsedDevice::where('UserId', $aArgs['UserId'])->delete();
 	}
 
 	/**
