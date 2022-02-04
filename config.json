@@ -24,7 +24,7 @@
 		"int"
 	],
 	"AllowBackupCodes": [
-		false,
+		true,
 		"bool"
 	],
 	"AllowUsedDevices": [
