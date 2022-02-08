@@ -1,10 +1,9 @@
-import typesUtils from 'src/utils/types'
+import types from 'src/utils/types'
 
 class TwoFactorAuthSettings {
   constructor (appData) {
-    const twoFactorAuthData = typesUtils.pObject(appData.TwoFactorAuth)
-    console.log('twoFactorAuthData', twoFactorAuthData)
-    this.trustDevicesForDays = typesUtils.pInt(twoFactorAuthData.TrustDevicesForDays)
+    const twoFactorAuthData = types.pObject(appData.TwoFactorAuth)
+    this.trustDevicesForDays = types.pInt(twoFactorAuthData.TrustDevicesForDays)
   }
 }
 

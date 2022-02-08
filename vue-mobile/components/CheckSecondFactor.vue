@@ -144,7 +144,7 @@ export default {
   },
 
   methods: {
-    ...mapActions('user', [
+    ...mapActions('twofactorauth', [
       'confirmTwoFactorAuth',
       'trustTheDevice',
     ]),
