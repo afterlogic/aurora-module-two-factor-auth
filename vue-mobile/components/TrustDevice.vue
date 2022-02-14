@@ -1,8 +1,9 @@
 <template>
-  <p class="q-mt-sm q-mb-lg text-left">
+  <p class="q-my-sm">
     {{ $t('TWOFACTORAUTH.LABEL_ALL_SET') }}
   </p>
   <AppCheckbox
+    leftLabel
     :modelValue="trustDevice"
     @update:modelValue="$emit('update:trustDevice', $event)"
     :label="$t('TWOFACTORAUTH.LABEL_TRUST_DEVICE_PLURAL', {COUNT: trustDevicesForDays})"

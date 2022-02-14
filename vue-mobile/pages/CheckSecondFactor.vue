@@ -143,18 +143,21 @@ export default {
     async onContinue() {
       this.loading = true
       try {
-        const uuid = VueCookies.get('DeviceId')
-        const deviceName = window.navigator.userAgent
-        const data = {
-          Login: this.login,
-          Password: this.password,
-          DeviceId: uuid,
-          DeviceName: deviceName,
-          Trust: this.trustDevice,
-        }
-        const res = await this.trustTheDevice(data)
+        if (!this.trustDevice) await store.dispatch('core/setAuthToken', this.authCode)
+        else {
+          const uuid = VueCookies.get('DeviceId')
+          const deviceName = window.navigator.userAgent
+          const data = {
+            Login: this.login,
+            Password: this.password,
+            DeviceId: uuid,
+            DeviceName: deviceName,
+            Trust: this.trustDevice,
+          }
+          const res = await this.trustTheDevice(data)
 
-        if (res) await store.dispatch('core/setAuthToken', this.authCode)
+          if (res) await store.dispatch('core/setAuthToken', this.authCode)
+        }
       } catch (err) {
         console.error(err)
       } finally {
