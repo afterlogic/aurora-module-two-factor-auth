@@ -1,5 +1,3 @@
-import store from 'src/store'
-
 import twoFactorWebApi from '../two-factor-web-api'
 
 export default {
@@ -12,13 +10,12 @@ export default {
   actions: {
     confirmTwoFactorAuth: async ({ commit }, payload) => {
       const response = await twoFactorWebApi.confirmTwoFactorAuth(payload)
-      if (response?.AuthToken) {
-        store.dispatch('core/setAuthToken', result.AuthToken)
-      }
+
+      return response?.AllowAccess && response?.AuthToken
     },
 
-    trustTheDevice: async ({ commit }, payload) => {
-      const response = await twoFactorWebApi.trustTheDevice(payload)
+    trustTheDevice: ({ commit }, payload) => {
+      return twoFactorWebApi.trustTheDevice(payload)
     },
 
     getUsedDevices: async ({ commit }, payload) => {

@@ -3,7 +3,7 @@ import eventBus from 'src/event-bus'
 import settings from './settings'
 
 const _getProcessLoginResultComponent = params => {
-  params.getProcessLoginResultComponent = () => import('./components/CheckSecondFactor')
+  params.getProcessLoginResultComponent = () => import('./pages/CheckSecondFactor')
 }
 
 export default {
