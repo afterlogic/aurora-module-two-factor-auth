@@ -4,12 +4,12 @@
   </p>
   <AppButton
     :label="$t('TWOFACTORAUTH.ACTION_USE_AUTHENTICATOR_APP')"
-    @click="$emit('chooseMethod', 'verification')"
+    @click="$emit('chooseMethod', 'authenticator-app')"
     class="q-mt-lg"
   />
   <AppButton
     :label="$t('TWOFACTORAUTH.LABEL_ENTER_BACKUP_CODE')"
-    @click="$emit('chooseMethod', 'backup')"
+    @click="$emit('chooseMethod', 'backup-codes')"
     class="q-mt-md"
   />
 </template>

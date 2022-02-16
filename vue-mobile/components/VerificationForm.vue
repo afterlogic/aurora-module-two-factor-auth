@@ -3,7 +3,7 @@
     {{ $t('TWOFACTORAUTH.INFO_AUTHENTICATOR_APP_VERIFICATION') }}
   </p>
   <AppInput
-    v-if="verificationOption === 'verification'"
+    v-if="verificationOption === 'authenticator-app'"
     autofocus
     type="text"
     placeholder="Verification code"
