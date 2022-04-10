@@ -8,11 +8,11 @@ export default {
       methodName: 'VerifyAuthenticatorAppCode',
       parameters,
       defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_WRONG_CODE')
-    }).then((result) => {
-      return result
-    }).catch(e => {
-      throw new Error(e.Method ?? e)
     })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
   },
 
   verifyBackupCode: async (parameters) => {
@@ -21,11 +21,11 @@ export default {
       methodName: 'VerifyBackupCode',
       parameters,
       defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_WRONG_BACKUP_CODE')
-    }).then((result) => {
-      return result
-    }).catch(e => {
-      throw new Error(e.Method ?? e)
     })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
   },
 
   trustTheDevice: async (parameters) => {
@@ -33,10 +33,10 @@ export default {
       moduleName: 'TwoFactorAuth',
       methodName: 'TrustDevice',
       parameters,
-    }).then((result) => {
-      return result
-    }).catch(e => {
-      throw new Error(e.Method ?? e)
     })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
   },
 }
