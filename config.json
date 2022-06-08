@@ -1,50 +1,100 @@
 {
-	"Disabled": [
-		true,
-		"bool"
-	],
-	"ShowRecommendationToConfigure": [
-		false,
-		"bool"
-	],
-	"AllowSecurityKeys": [
-		false,
-		"bool"
-	],
-	"FacetIds": [
-		[],
-		"array"
-	],
-	"AllowAuthenticatorApp": [
-		true,
-		"bool"
-	],
-	"ClockTolerance": [
-		2,
-		"int"
-	],
-	"AllowBackupCodes": [
-		true,
-		"bool"
-	],
-	"AllowUsedDevices": [
-		false,
-		"bool"
-	],
-	"TrustDevicesForDays": [
-		0,
-		"int"
-	],
-	 "IncludeInMobile": [
-		true,
-		"bool"
-	],
-	"IncludeInDesktop": [
-		true,
-		"bool"
-	],
-	"RequireInMobile": [
-		["StandardLoginFormWebclient"],
-		"array"
-	]
+  "Disabled": [
+    true,
+    "bool"
+  ],
+  "Disabled_Description": [
+    "",
+    "string"
+  ],
+  "ShowRecommendationToConfigure": [
+    false,
+    "bool"
+  ],
+  "ShowRecommendationToConfigure_Description": [
+    "",
+    "string"
+  ],
+  "AllowSecurityKeys": [
+    false,
+    "bool"
+  ],
+  "AllowSecurityKeys_Description": [
+    "",
+    "string"
+  ],
+  "FacetIds": [
+    [],
+    "array"
+  ],
+  "FacetIds_Description": [
+    "",
+    "string"
+  ],
+  "AllowAuthenticatorApp": [
+    true,
+    "bool"
+  ],
+  "AllowAuthenticatorApp_Description": [
+    "",
+    "string"
+  ],
+  "ClockTolerance": [
+    2,
+    "int"
+  ],
+  "ClockTolerance_Description": [
+    "",
+    "string"
+  ],
+  "AllowBackupCodes": [
+    true,
+    "bool"
+  ],
+  "AllowBackupCodes_Description": [
+    "",
+    "string"
+  ],
+  "AllowUsedDevices": [
+    false,
+    "bool"
+  ],
+  "AllowUsedDevices_Description": [
+    "",
+    "string"
+  ],
+  "TrustDevicesForDays": [
+    0,
+    "int"
+  ],
+  "TrustDevicesForDays_Description": [
+    "",
+    "string"
+  ],
+  "IncludeInMobile": [
+    true,
+    "bool"
+  ],
+  "IncludeInMobile_Description": [
+    "",
+    "string"
+  ],
+  "IncludeInDesktop": [
+    true,
+    "bool"
+  ],
+  "IncludeInDesktop_Description": [
+    "",
+    "string"
+  ],
+  "RequireInMobile": [
+    [
+      "StandardLoginFormWebclient"
+    ],
+    "array"
+  ],
+  "RequireInMobile_Description": [
+    "",
+    "string"
+  ]
 }
