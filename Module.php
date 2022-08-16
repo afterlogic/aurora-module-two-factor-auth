@@ -10,8 +10,6 @@ namespace Aurora\Modules\TwoFactorAuth;
 use Aurora\Modules\Core\Models\User;
 use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
 use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
-use Aurora\System\Exceptions\ApiException;
-use Aurora\System\Exceptions\Exception;
 use PragmaRX\Recovery\Recovery;
 
 require_once('Classes/WebAuthn/WebAuthn.php');
@@ -162,13 +160,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function GetUserSettings($UserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
 
 		if ($this->getConfig('AllowAuthenticatorApp', true))
 		{
 			$oUser = \Aurora\System\Api::getUserById($UserId);
 			if ($oUser instanceof User && $oUser->isNormalOrTenant())
 			{
+				\Aurora\System\Api::checkUserAccess($oUser);
 				$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
 				return [
 					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0
@@ -192,7 +191,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function DisableUserTwoFactorAuth($UserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::SuperAdmin);
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
@@ -202,6 +201,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUser = \Aurora\System\Api::getUserById($UserId);
 		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
+			\Aurora\System\Api::checkUserAccess($oUser);
+			
 			$oUser->setExtendedProp($this->GetName().'::Secret', '');
 			$oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
 
