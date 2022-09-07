@@ -1054,14 +1054,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-		if (!$this->getConfig('AllowUsedDevices', false))
-		{
-			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+		if ($this->getConfig('AllowUsedDevices', false)) {
+			$oUser = \Aurora\System\Api::getAuthenticatedUser();
+			return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, \Aurora\System\Api::getAuthToken());	
+		} else {
+			return false;
 		}
-
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-
-		return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, \Aurora\System\Api::getAuthToken());
 	}
 
 	public function GetUsedDevices()
