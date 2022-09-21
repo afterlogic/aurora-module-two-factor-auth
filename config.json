@@ -3,48 +3,98 @@
 		true,
 		"bool"
 	],
+	"Disabled_Description": [
+		"Setting to true disables the module",
+		"string"
+	],
 	"ShowRecommendationToConfigure": [
 		false,
 		"bool"
+	],
+	"ShowRecommendationToConfigure_Description": [
+		"If true, users will get a message suggesting to enable 2FA if it's not enabled in their accounts yet",
+		"string"
 	],
 	"AllowSecurityKeys": [
 		false,
 		"bool"
 	],
+	"AllowSecurityKeys_Description": [
+		"Enables support for security keys",
+		"string"
+	],
 	"FacetIds": [
 		[],
 		"array"
+	],
+	"FacetIds_Description": [
+		"List of app-key-hashes of mobile apps",
+		"string"
 	],
 	"AllowAuthenticatorApp": [
 		true,
 		"bool"
 	],
+	"AllowAuthenticatorApp_Description": [
+		"Enables use of authenticator app",
+		"string"
+	],
 	"ClockTolerance": [
 		2,
 		"int"
 	],
+	"ClockTolerance_Description": [
+		"Value set to N means that codes starting from N * 30sec ago to N * 30sec from now are accepted",
+		"string"
+	],
 	"AllowBackupCodes": [
-		false,
+		true,
 		"bool"
+	],
+	"AllowBackupCodes_Description": [
+		"If set to true, and if authenticator app or security key configured, users are able to use backup codes",
+		"string"
 	],
 	"AllowUsedDevices": [
 		false,
 		"bool"
 	],
+	"AllowUsedDevices_Description": [
+		"Enables managing trusted devices",
+		"string"
+	],
 	"TrustDevicesForDays": [
 		0,
 		"int"
 	],
-	 "IncludeInMobile": [
+	"TrustDevicesForDays_Description": [
+		"Allows for expiry of trusted device list entries after certain amount of days",
+		"string"
+	],
+	"IncludeInMobile": [
 		true,
 		"bool"
+	],
+	"IncludeInMobile_Description": [
+		"If true, the module is used in mobile version of the interface",
+		"string"
 	],
 	"IncludeInDesktop": [
 		true,
 		"bool"
 	],
+	"IncludeInDesktop_Description": [
+		"If true, the module is used in desktop version of the interface",
+		"string"
+	],
 	"RequireInMobile": [
-		["StandardLoginFormWebclient"],
+		[
+			"StandardLoginFormWebclient"
+		],
 		"array"
+	],
+	"RequireInMobile_Description": [
+		"List of other modules required by this module",
+		"string"
 	]
 }
