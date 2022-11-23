@@ -45,20 +45,6 @@ module.exports = function (oAppData) {
 						TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
 					]);
 				}
-
-				ModulesManager.run('AdminPanelWebclient', 'registerAdminPanelTab', [
-					function(resolve) {
-						require.ensure(
-							['modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'],
-							function() {
-								resolve(require('modules/%ModuleName%/js/views/TwoFactorAuthAdminSettingsFormView.js'));
-							},
-							'admin-bundle'
-						);
-					},
-					Settings.HashModuleName,
-					TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')
-				]);
 			}
 
 			if (App.getUserRole() === Enums.UserRole.Anonymous)
