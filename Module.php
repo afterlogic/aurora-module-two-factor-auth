@@ -54,7 +54,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 		$this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
 		$this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
-		$this->subscribeEvent('Core::DeleteUser::before', array($this, 'onBeforeDeleteUser'));
+		$this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
 
 		$this->oWebAuthn = new \WebAuthn\WebAuthn(
 			'WebAuthn Library',
@@ -178,9 +178,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 		return null;
 	}
 
-	public function onBeforeDeleteUser($aArgs, &$mResult)
+	public function onAfterDeleteUser($aArgs, &$mResult)
 	{
-		UsedDevice::where('UserId', $aArgs['UserId'])->delete();
+		if ($mResult) {
+			UsedDevice::where('UserId', $aArgs['UserId'])->delete();
+		}
 	}
 
 	/**
