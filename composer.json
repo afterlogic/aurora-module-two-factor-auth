@@ -7,6 +7,9 @@
 		"afterlogic/googleauthenticator": "~1.0.2",
 		"pragmarx/recovery": "~0.2.0"
 	},
+	"autoload": {
+		"classmap": ["/"]
+	},
 	"extra": {
 		"installer-name": "TwoFactorAuth"
 	}
