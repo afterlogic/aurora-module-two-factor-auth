@@ -203,7 +203,7 @@ class ByteBuffer implements \JsonSerializable, \Serializable {
     /**
      * jsonSerialize interface
      * return binary data in RFC 1342-Like serialized string
-     * @return \stdClass
+     * @return object
      */
     public function jsonSerialize() {
         if (ByteBuffer::$useBase64UrlEncoding) {
