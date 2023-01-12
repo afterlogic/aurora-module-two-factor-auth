@@ -68,7 +68,7 @@
 		"int"
 	],
 	"TrustDevicesForDays_Description": [
-		"Allows for expiry of trusted device list entries after certain amount of days",
+		"Allows for expiry of trusted device list entries after certain amount of days; if set to 0, managing trusted devices is disabled.",
 		"string"
 	],
 	"IncludeInMobile": [
