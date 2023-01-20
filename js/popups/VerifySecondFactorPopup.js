@@ -320,7 +320,7 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 		var oParameters = {
 			'Login': this.login(),
 			'Password': this.sPassword,
-			'DeviceId': Utils.getUUID(),
+			'DeviceId': App.getCurrentDeviceId(),
 			'DeviceName': DeviceUtils.getName(),
 			'Trust': this.trustThisBrowser()
 		};

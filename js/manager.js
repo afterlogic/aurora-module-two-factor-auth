@@ -4,13 +4,12 @@ var
 	_ = require('underscore'),
 
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-	
+
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
-	
+
 	DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
-	
+
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -70,7 +69,7 @@ module.exports = function (oAppData) {
 						}
 						oLoginScreenView.onSystemLoginResponse = function (oResponse, oRequest) {
 
-							if (oRequest.Parameters.Domain != undefined)
+							if (oRequest.Parameters.Domain !== undefined)
 							{
 								oRequest.Parameters.Login = oRequest.Parameters.Login + '@' + oRequest.Parameters.Domain;
 							}
@@ -91,7 +90,7 @@ module.exports = function (oAppData) {
 							{
 								fOldOnSystemLoginResponse(oResponse, oRequest);
 							}
-						}
+						};
 					}
 				}.bind(this);
 				App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView);
@@ -101,7 +100,7 @@ module.exports = function (oAppData) {
 			if (App.isUserNormalOrTenant())
 			{
 				var oParameters = {
-					'DeviceId': Utils.getUUID(),
+					'DeviceId': App.getCurrentDeviceId(),
 					'DeviceName': DeviceUtils.getName()
 				};
 				Ajax.send('%ModuleName%', 'SaveDevice', oParameters);
