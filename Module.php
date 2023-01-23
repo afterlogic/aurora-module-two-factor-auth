@@ -10,6 +10,7 @@ namespace Aurora\Modules\TwoFactorAuth;
 use Aurora\Modules\Core\Models\User;
 use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
 use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
+use Aurora\System\Api;
 use PragmaRX\Recovery\Recovery;
 
 require_once('Classes/WebAuthn/WebAuthn.php');
@@ -17,7 +18,7 @@ require_once('Classes/WebAuthn/WebAuthn.php');
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
- * @copyright Copyright (c) 2020, Afterlogic Corp.
+ * @copyright Copyright (c) 2023, Afterlogic Corp.
  *
  * @package Modules
  */
@@ -84,7 +85,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function GetSettings()
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		$bAllowUsedDevices = $this->getConfig('AllowUsedDevices', false);
 		$aSettings = [
@@ -95,7 +96,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			'TrustDevicesForDays' => $bAllowUsedDevices ? $this->getConfig('TrustDevicesForDays', 0) : 0,
 		];
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!empty($oUser) && $oUser->isNormalOrTenant())
 		{
             $bShowRecommendationToConfigure = $this->getConfig('ShowRecommendationToConfigure', false);
@@ -128,11 +129,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function UpdateSettings($ShowRecommendationToConfigure)
     {
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if ($this->getConfig('ShowRecommendationToConfigure', false))
         {
-            $oUser = \Aurora\System\Api::getAuthenticatedUser();
+            $oUser = Api::getAuthenticatedUser();
             if (!empty($oUser) && $oUser->isNormalOrTenant())
             {
 				$oUser->setExtendedProp($this->GetName() . '::ShowRecommendationToConfigure', $ShowRecommendationToConfigure);
@@ -150,14 +151,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function GetUserSettings($UserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
 
 		if ($this->getConfig('AllowAuthenticatorApp', true))
 		{
-			$oUser = \Aurora\System\Api::getUserById($UserId);
+			$oUser = Api::getUserById($UserId);
 			if ($oUser instanceof User && $oUser->isNormalOrTenant())
 			{
-				\Aurora\System\Api::checkUserAccess($oUser);
+				Api::checkUserAccess($oUser);
 				$iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
 				return [
 					'TwoFactorAuthEnabled' => !empty($oUser->{$this->GetName().'::Secret'}) || $iWebAuthnKeyCount > 0
@@ -183,17 +184,17 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function DisableUserTwoFactorAuth($UserId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById($UserId);
+		$oUser = Api::getUserById($UserId);
 		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			\Aurora\System\Api::checkUserAccess($oUser);
+			Api::checkUserAccess($oUser);
 			
 			$oUser->setExtendedProp($this->GetName().'::Secret', '');
 			$oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
@@ -228,14 +229,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function RegisterAuthenticatorAppBegin($Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -246,7 +247,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -285,14 +286,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function RegisterAuthenticatorAppFinish($Password, $Code, $Secret)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -303,7 +304,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -332,14 +333,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function DisableAuthenticatorApp($Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -350,7 +351,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -374,7 +375,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function VerifyAuthenticatorAppCode($Code, $Login, $Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		if (!$this->getConfig('AllowAuthenticatorApp', true))
 		{
@@ -394,7 +395,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -432,14 +433,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
     public function GetBackupCodes($Password)
     {
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowBackupCodes', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -450,7 +451,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -470,14 +471,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
     public function GenerateBackupCodes($Password)
     {
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowBackupCodes', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -488,7 +489,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -514,7 +515,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function VerifyBackupCode($BackupCode, $Login, $Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		if (!$this->getConfig('AllowBackupCodes', false))
 		{
@@ -534,7 +535,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -566,7 +567,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	{
 		if (!self::$VerifyState && $mResult && is_array($mResult) && isset($mResult['token']))
 		{
-			$oUser = \Aurora\System\Api::getUserById((int) $mResult['id']);
+			$oUser = Api::getUserById((int) $mResult['id']);
 			if ($oUser instanceof User)
 			{
 				$bHasSecurityKey = false;
@@ -606,14 +607,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
     public function RegisterSecurityKeyBegin($Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -624,7 +625,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -658,14 +659,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
     public function RegisterSecurityKeyFinish($Attestation, $Password)
     {
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -676,7 +677,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -720,7 +721,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function VerifySecurityKeyBegin($Login, $Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
@@ -735,7 +736,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -785,7 +786,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function VerifySecurityKeyFinish($Login, $Password, $Attestation)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
@@ -800,7 +801,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -861,14 +862,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function UpdateSecurityKeyName($KeyId, $NewName, $Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -879,7 +880,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -906,14 +907,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function DeleteSecurityKey($KeyId, $Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowSecurityKeys', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -924,7 +925,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		if (!\Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password))
+		if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
@@ -949,19 +950,19 @@ class Module extends \Aurora\System\Module\AbstractModule
 	 */
 	public function VerifyPassword($Password)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (empty($Password))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
 		}
 
-		return \Aurora\System\Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+		return Api::GetModuleDecorator('Core')->VerifyPassword($Password);
 	}
 
 	public function EntryVerifySecurityKey()
 	{
-		$oModuleManager = \Aurora\System\Api::GetModuleManager();
+		$oModuleManager = Api::GetModuleManager();
 		$sTheme = $oModuleManager->getModuleConfigValue('CoreWebclient', 'Theme');
 
 		$oHttp = \MailSo\Base\Http::SingletonInstance();
@@ -1018,7 +1019,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function TrustDevice($Login, $Password, $DeviceId, $DeviceName)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
 		if (!$this->getConfig('AllowUsedDevices', false))
 		{
@@ -1033,7 +1034,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = \Aurora\System\Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -1044,11 +1045,11 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function SaveDevice($DeviceId, $DeviceName)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if ($this->getConfig('AllowUsedDevices', false)) {
-			$oUser = \Aurora\System\Api::getAuthenticatedUser();
-			return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, \Aurora\System\Api::getAuthToken());	
+			$oUser = Api::getAuthenticatedUser();
+			return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());	
 		} else {
 			return false;
 		}
@@ -1056,26 +1057,25 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function GetUsedDevices()
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowUsedDevices', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
-		{
+		$oUser = Api::getAuthenticatedUser();
+		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant()) {
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
 		$usedDevices = $this->getUsedDevicesManager()->getAllDevices($oUser->Id)->toArray();
-		if (is_array($usedDevices)) {
-			$usedDevices['Authenticated'] = false;
-			if (\Aurora\Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($usedDevices['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($usedDevices['AuthToken']))) {
-				$usedDevices['Authenticated'] = true;
+		foreach ($usedDevices as &$aResult) {
+			$aResult['Authenticated'] = false;
+			if (Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($aResult['AuthToken']) && !empty(Api::UserSession()->Get($aResult['AuthToken']))) {
+				$aResult['Authenticated'] = true;
 			}
-			unset($aResponse['AuthToken']);
+			unset($aResult['AuthToken']);
 		}
 
 		return $usedDevices;
@@ -1083,7 +1083,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function RevokeTrustFromAllDevices()
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowUsedDevices', false))
 		{
@@ -1095,7 +1095,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -1106,10 +1106,10 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function onBeforeLogout($aArgs, &$mResult)
 	{
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if ($oUser instanceof User && $oUser->isNormalOrTenant())
 		{
-			$oUsedDevice = $this->getUsedDevicesManager()->getDeviceByAuthToken($oUser->Id, \Aurora\System\Api::getAuthToken());
+			$oUsedDevice = $this->getUsedDevicesManager()->getDeviceByAuthToken($oUser->Id, Api::getAuthToken());
 			if ($oUsedDevice)
 			{
 				$oUsedDevice->AuthToken = '';
@@ -1120,14 +1120,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function LogoutFromDevice($DeviceId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		if (!$this->getConfig('AllowUsedDevices', false))
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		$oUser = Api::getAuthenticatedUser();
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -1141,7 +1141,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
 		if ($oUsedDevice && !empty($oUsedDevice->AuthToken))
 		{
-			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);
+			Api::UserSession()->Delete($oUsedDevice->AuthToken);
 			$oUsedDevice->AuthToken = '';
 			$oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime; // revoke trust
 			$oUsedDevice->save();
@@ -1151,8 +1151,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
 	public function RemoveDevice($DeviceId)
 	{
-		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		$oUser = Api::getAuthenticatedUser();
 		if (!$this->getConfig('AllowUsedDevices', false) && !$oUser->isAdmin())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
@@ -1171,7 +1171,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		$oUsedDevice = $oUser->isAdmin() ? $this->getUsedDevicesManager()->getDeviceByDeviceId($DeviceId) : $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
 		if ($oUsedDevice)
 		{
-			\Aurora\System\Api::UserSession()->Delete($oUsedDevice->AuthToken);
+			Api::UserSession()->Delete($oUsedDevice->AuthToken);
 			$oUsedDevice->delete();
 		}
 		return true;
