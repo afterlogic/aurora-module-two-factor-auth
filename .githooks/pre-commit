@@ -1,6 +1,9 @@
 #!/bin/bash
 
-PROJECT=`php -r "echo dirname(dirname(dirname(realpath('$0'))));"`
+PROJECT=`php -r "echo dirname(dirname(realpath('$0')));"`
+PROJECT1=`php -r "echo dirname(realpath('$0'));"`
+PROJECT2=`php -r "echo realpath('$0');"`
+PROJECT3=`php -r "echo realpath('$0');"`
 STAGED_FILES_CMD=`git diff --name-only --diff-filter=ACMR HEAD | grep "\.php$"`
 
 # Determine if a file list is passed
@@ -14,7 +17,14 @@ then
 fi
 SFILES=${SFILES:-$STAGED_FILES_CMD}
 
+echo ${SFILES}
+echo ${PROJECT}
+echo ${PROJECT1}
+echo ${PROJECT2}
+echo ${PROJECT3}
+
 echo "Checking PHP Lint..."
+
 
 for FILE in $SFILES
 do
