@@ -1017,7 +1017,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 		echo $sFileContent;
 	}
 
-	public function TrustDevice($Login, $Password, $DeviceId, $DeviceName)
+	public function TrustDevice($DeviceId, $DeviceName)
 	{
 		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
@@ -1026,15 +1026,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
 		}
 
-		self::$VerifyState = true;
-		$mAuthenticateResult = \Aurora\Modules\Core\Module::Decorator()->Authenticate($Login, $Password);
-		self::$VerifyState = false;
-		if (!$mAuthenticateResult || !is_array($mAuthenticateResult) || !isset($mAuthenticateResult['token']))
+		if (!Api::validateAuthToken())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
 		}
 
-		$oUser = Api::getUserById((int) $mAuthenticateResult['id']);
+		$oUser = Api::getAuthenticatedUser(Api::getAuthToken());
 		if (!($oUser instanceof User) || !$oUser->isNormalOrTenant())
 		{
 			throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
