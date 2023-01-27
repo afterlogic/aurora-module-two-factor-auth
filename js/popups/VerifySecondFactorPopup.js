@@ -317,9 +317,9 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 {
 	if (this.trustThisBrowser())
 	{
+		const authToken = this.verificationResponse() && this.verificationResponse().Result &&
+				this.verificationResponse().Result.AuthToken || '';
 		var oParameters = {
-			'Login': this.login(),
-			'Password': this.sPassword,
 			'DeviceId': App.getCurrentDeviceId(),
 			'DeviceName': DeviceUtils.getName(),
 			'Trust': this.trustThisBrowser()
@@ -330,7 +330,7 @@ CVerifySecondFactorPopup.prototype.afterVerify = function ()
 			{
 				this.fAfterVerify(this.verificationResponse());
 			}
-		}, this);
+		}, this, null, authToken);
 	}
 	else if (_.isFunction(this.fAfterVerify))
 	{
