@@ -1,9 +1,6 @@
 #!/bin/bash
 
 PROJECT=`php -r "echo dirname(dirname(realpath('$0')));"`
-PROJECT1=`php -r "echo dirname(realpath('$0'));"`
-PROJECT2=`php -r "echo realpath('$0');"`
-PROJECT3=`php -r "echo realpath('$0');"`
 STAGED_FILES_CMD=`git diff --name-only --diff-filter=ACMR HEAD | grep "\.php$"`
 
 # Determine if a file list is passed
@@ -17,40 +14,45 @@ then
 fi
 SFILES=${SFILES:-$STAGED_FILES_CMD}
 
-echo ${SFILES}
-echo ${PROJECT}
-echo ${PROJECT1}
-echo ${PROJECT2}
-echo ${PROJECT3}
-
-echo "Checking PHP Lint..."
-
+echo "Checking PHP files..."
 
 for FILE in $SFILES
 do
     php -l -d display_errors=0 $PROJECT/$FILE
     if [ $? != 0 ]
     then
-        echo "Fix the error before commit."
+        printf "Fix syntax errors before commit."
         exit 1
     fi
     FILES="$FILES $PROJECT/$FILE"
 done
 
-# if [ "$FILES" != "" ]
-# then
-
 PHPSTAN="../../vendor/bin/phpstan"
 
 if [ -f "$PHPSTAN" ]; then
-    echo "Running PhpStan..."
-    # ../../vendor/bin/phpstan analyze --no-progress-bar --no-error-table $FILES
+    echo ""
+    printf "Running PhpStan..."
 	eval "$PHPSTAN analyze --level 0 --no-progress ./"
     if [ $? != 0 ]
     then
-        echo "Fix the error before commit."
-        # echo "Run: './vendor/bin/ecs check $FILES --fix'"
+        echo "Fix PhpStan errors before commit."
         echo "Run: '$PHPSTAN analyze'"
+        exit 1
+    fi
+fi
+
+CSFIXER="../../php-cs-fixer.phar"
+
+if [ -f "$CSFIXER" ]; then
+    echo ""
+    echo "Running CS Fixer..."
+
+    eval "php $CSFIXER fix ./ --rules=@PER --dry-run --using-cache=no"
+
+    if [ $? != 0 ]
+    then
+        echo "Fix formatting issues before commit."
+        echo "Run: 'php $CSFIXER fix ./ --rules=@PER --using-cache=no'"
         exit 1
     fi
 fi
