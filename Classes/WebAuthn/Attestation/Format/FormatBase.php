@@ -1,11 +1,11 @@
 <?php
 
-
 namespace WebAuthn\Attestation\Format;
+
 use WebAuthn\WebAuthnException;
 
-
-abstract class FormatBase {
+abstract class FormatBase
+{
     protected $_attestationObject = null;
     protected $_authenticatorData = null;
     protected $_x5c_chain = array();
@@ -16,7 +16,8 @@ abstract class FormatBase {
      * @param Array $AttestionObject
      * @param \WebAuthn\Attestation\AuthenticatorData $authenticatorData
      */
-    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData) {
+    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData)
+    {
         $this->_attestationObject = $AttestionObject;
         $this->_authenticatorData = $authenticatorData;
     }
@@ -24,7 +25,8 @@ abstract class FormatBase {
     /**
      *
      */
-    public function __destruct() {
+    public function __destruct()
+    {
         // delete X.509 chain certificate file after use
         if (\is_file($this->_x5c_tempFile)) {
             \unlink($this->_x5c_tempFile);
@@ -35,7 +37,8 @@ abstract class FormatBase {
      * returns the certificate chain in PEM format
      * @return string|null
      */
-    public function getCertificateChain() {
+    public function getCertificateChain()
+    {
         if (\is_file($this->_x5c_tempFile)) {
             return \file_get_contents($this->_x5c_tempFile);
         }
@@ -46,7 +49,8 @@ abstract class FormatBase {
      * returns the key X.509 certificate in PEM format
      * @return string
      */
-    public function getCertificatePem() {
+    public function getCertificatePem()
+    {
         // need to be overwritten
         return null;
     }
@@ -57,7 +61,8 @@ abstract class FormatBase {
      * @return bool
      * @throws WebAuthnException
      */
-    public function validateAttestation($clientDataHash) {
+    public function validateAttestation($clientDataHash)
+    {
         // need to be overwritten
         return false;
     }
@@ -68,7 +73,8 @@ abstract class FormatBase {
      * @return boolean
      * @throws WebAuthnException
      */
-    public function validateRootCertificate($rootCas) {
+    public function validateRootCertificate($rootCas)
+    {
         // need to be overwritten
         return false;
     }
@@ -79,7 +85,8 @@ abstract class FormatBase {
      * @param string $x5c
      * @return string
      */
-    protected function _createCertificatePem($x5c) {
+    protected function _createCertificatePem($x5c)
+    {
         $pem = '-----BEGIN CERTIFICATE-----' . "\n";
         $pem .= \chunk_split(\base64_encode($x5c), 64, "\n");
         $pem .= '-----END CERTIFICATE-----' . "\n";
@@ -90,7 +97,8 @@ abstract class FormatBase {
      * creates a PEM encoded chain file
      * @return type
      */
-    protected function _createX5cChainFile() {
+    protected function _createX5cChainFile()
+    {
         $content = '';
         if (\is_array($this->_x5c_chain) && \count($this->_x5c_chain) > 0) {
             foreach ($this->_x5c_chain as $x5c) {
@@ -128,7 +136,8 @@ abstract class FormatBase {
      * @param int $coseNumber
      * @return \stdClass|null
      */
-    protected function _getCoseAlgorithm($coseNumber) {
+    protected function _getCoseAlgorithm($coseNumber)
+    {
         // https://www.iana.org/assignments/cose/cose.xhtml#algorithms
         $coseAlgorithms = array(
             array(

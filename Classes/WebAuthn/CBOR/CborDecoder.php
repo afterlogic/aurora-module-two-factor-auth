@@ -1,7 +1,7 @@
 <?php
 
-
 namespace WebAuthn\CBOR;
+
 use WebAuthn\WebAuthnException;
 use WebAuthn\Binary\ByteBuffer;
 
@@ -11,22 +11,24 @@ use WebAuthn\Binary\ByteBuffer;
  * Modified by Lukas Buchs
  * Thanks Thomas for your work!
  */
-class CborDecoder {
-    const CBOR_MAJOR_UNSIGNED_INT = 0;
-    const CBOR_MAJOR_TEXT_STRING = 3;
-    const CBOR_MAJOR_FLOAT_SIMPLE = 7;
-    const CBOR_MAJOR_NEGATIVE_INT = 1;
-    const CBOR_MAJOR_ARRAY = 4;
-    const CBOR_MAJOR_TAG = 6;
-    const CBOR_MAJOR_MAP = 5;
-    const CBOR_MAJOR_BYTE_STRING = 2;
+class CborDecoder
+{
+    public const CBOR_MAJOR_UNSIGNED_INT = 0;
+    public const CBOR_MAJOR_TEXT_STRING = 3;
+    public const CBOR_MAJOR_FLOAT_SIMPLE = 7;
+    public const CBOR_MAJOR_NEGATIVE_INT = 1;
+    public const CBOR_MAJOR_ARRAY = 4;
+    public const CBOR_MAJOR_TAG = 6;
+    public const CBOR_MAJOR_MAP = 5;
+    public const CBOR_MAJOR_BYTE_STRING = 2;
 
     /**
      * @param ByteBuffer|string $bufOrBin
      * @return mixed
      * @throws WebAuthnException
      */
-    public static function decode($bufOrBin) {
+    public static function decode($bufOrBin)
+    {
         $buf = $bufOrBin instanceof ByteBuffer ? $bufOrBin : new ByteBuffer($bufOrBin);
 
         $offset = 0;
@@ -43,7 +45,8 @@ class CborDecoder {
      * @param int|null $endOffset
      * @return mixed
      */
-    public static function decodeInPlace($bufOrBin, $startOffset, &$endOffset = null) {
+    public static function decodeInPlace($bufOrBin, $startOffset, &$endOffset = null)
+    {
         $buf = $bufOrBin instanceof ByteBuffer ? $bufOrBin : new ByteBuffer($bufOrBin);
 
         $offset = $startOffset;
@@ -61,7 +64,8 @@ class CborDecoder {
      * @param int $offset
      * @return mixed
      */
-    protected static function _parseItem(ByteBuffer $buf, &$offset) {
+    protected static function _parseItem(ByteBuffer $buf, &$offset)
+    {
         $first = $buf->getByteVal($offset++);
         $type = $first >> 5;
         $val = $first & 0b11111;
@@ -75,7 +79,8 @@ class CborDecoder {
         return self::_parseItemData($type, $val, $buf, $offset);
     }
 
-    protected static function _parseFloatSimple($val, ByteBuffer $buf, &$offset) {
+    protected static function _parseFloatSimple($val, ByteBuffer $buf, &$offset)
+    {
         switch ($val) {
             case 24:
                 $val = $buf->getByteVal($offset);
@@ -114,7 +119,8 @@ class CborDecoder {
      * @return mixed
      * @throws WebAuthnException
      */
-    protected static function _parseSimple($val) {
+    protected static function _parseSimple($val)
+    {
         if ($val === 20) {
             return false;
         }
@@ -127,7 +133,8 @@ class CborDecoder {
         throw new WebAuthnException(sprintf('Unsupported simple value %d.', $val), WebAuthnException::CBOR);
     }
 
-    protected static function _parseExtraLength($val, ByteBuffer $buf, &$offset) {
+    protected static function _parseExtraLength($val, ByteBuffer $buf, &$offset)
+    {
         switch ($val) {
             case 24:
                 $val = $buf->getByteVal($offset);
@@ -161,7 +168,8 @@ class CborDecoder {
         return $val;
     }
 
-    protected static function _parseItemData($type, $val, ByteBuffer $buf, &$offset) {
+    protected static function _parseItemData($type, $val, ByteBuffer $buf, &$offset)
+    {
         switch ($type) {
             case self::CBOR_MAJOR_UNSIGNED_INT: // uint
                 return $val;
@@ -193,7 +201,8 @@ class CborDecoder {
         throw new WebAuthnException(sprintf('Unknown major type %d.', $type), WebAuthnException::CBOR);
     }
 
-    protected static function _parseMap(ByteBuffer $buf, &$offset, $count) {
+    protected static function _parseMap(ByteBuffer $buf, &$offset, $count)
+    {
         $map = array();
 
         for ($i = 0; $i < $count; $i++) {
@@ -209,7 +218,8 @@ class CborDecoder {
         return $map;
     }
 
-    protected static function _parseArray(ByteBuffer $buf, &$offset, $count) {
+    protected static function _parseArray(ByteBuffer $buf, &$offset, $count)
+    {
         $arr = array();
         for ($i = 0; $i < $count; $i++) {
             $arr[] = self::_parseItem($buf, $offset);

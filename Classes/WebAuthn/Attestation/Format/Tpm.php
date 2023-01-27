@@ -1,11 +1,12 @@
 <?php
 
-
 namespace WebAuthn\Attestation\Format;
+
 use WebAuthn\WebAuthnException;
 use WebAuthn\Binary\ByteBuffer;
 
-class Tpm extends FormatBase {
+class Tpm extends FormatBase
+{
     private $_TPM_GENERATED_VALUE = "\xFF\x54\x43\x47";
     private $_TPM_ST_ATTEST_CERTIFY = "\x80\x17";
     private $_alg;
@@ -19,7 +20,8 @@ class Tpm extends FormatBase {
     private $_certInfo;
 
 
-    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData) {
+    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData)
+    {
         parent::__construct($AttestionObject, $authenticatorData);
 
         // check packed data
@@ -52,7 +54,6 @@ class Tpm extends FormatBase {
 
         // certificate for validation
         if (\array_key_exists('x5c', $attStmt) && \is_array($attStmt['x5c']) && \count($attStmt['x5c']) > 0) {
-
             // The attestation certificate attestnCert MUST be the first element in the array
             $attestnCert = array_shift($attStmt['x5c']);
 
@@ -68,7 +69,6 @@ class Tpm extends FormatBase {
                     $this->_x5c_chain[] = $chain->getBinaryString();
                 }
             }
-
         } else {
             throw new WebAuthnException('no x5c certificate found', WebAuthnException::INVALID_DATA);
         }
@@ -79,7 +79,8 @@ class Tpm extends FormatBase {
      * returns the key certificate in PEM format
      * @return string|null
      */
-    public function getCertificatePem() {
+    public function getCertificatePem()
+    {
         if (!$this->_x5c) {
             return null;
         }
@@ -89,7 +90,8 @@ class Tpm extends FormatBase {
     /**
      * @param string $clientDataHash
      */
-    public function validateAttestation($clientDataHash) {
+    public function validateAttestation($clientDataHash)
+    {
         return $this->_validateOverX5c($clientDataHash);
     }
 
@@ -99,7 +101,8 @@ class Tpm extends FormatBase {
      * @return boolean
      * @throws WebAuthnException
      */
-    public function validateRootCertificate($rootCas) {
+    public function validateRootCertificate($rootCas)
+    {
         if (!$this->_x5c) {
             return false;
         }
@@ -122,7 +125,8 @@ class Tpm extends FormatBase {
      * @return bool
      * @throws WebAuthnException
      */
-    protected function _validateOverX5c($clientDataHash) {
+    protected function _validateOverX5c($clientDataHash)
+    {
         $publicKey = \openssl_pkey_get_public($this->getCertificatePem());
 
         if ($publicKey === false) {
@@ -167,13 +171,12 @@ class Tpm extends FormatBase {
      * @param int $offset
      * @return ByteBuffer
      */
-    protected function _tpmReadLengthPrefixed(ByteBuffer $buffer, &$offset) {
+    protected function _tpmReadLengthPrefixed(ByteBuffer $buffer, &$offset)
+    {
         $len = $buffer->getUint16Val($offset);
         $data = $buffer->getBytes($offset + 2, $len);
         $offset += (2 + $len);
 
         return new ByteBuffer($data);
     }
-
 }
-

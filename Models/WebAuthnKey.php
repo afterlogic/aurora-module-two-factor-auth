@@ -21,14 +21,14 @@ class WebAuthnKey extends Model
 {
     protected $table = 'security_web_authn_keys';
     protected $foreignModel = User::class;
-	protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
+    protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
 
-	protected $fillable = [
+    protected $fillable = [
                 'Id',
                 'UserId',
                 'Name',
                 'KeyData',
                 'CreationDateTime',
                 'LastUsageDateTime'
-	];
+    ];
 }

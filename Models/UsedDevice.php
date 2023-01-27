@@ -19,13 +19,13 @@ use Aurora\Modules\Core\Models\User;
  */
 class UsedDevice extends Model
 {
-	protected $table = 'security_used_devices';
-	protected $foreignModel = User::class;
-	protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
+    protected $table = 'security_used_devices';
+    protected $foreignModel = User::class;
+    protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
 
 
-	protected $fillable = [
-		'Id',
+    protected $fillable = [
+        'Id',
         'UserId',
         'DeviceId',
         'DeviceName',
@@ -34,17 +34,16 @@ class UsedDevice extends Model
         'LastUsageDateTime',
         'TrustTillDateTime',
         'DeviceIP'
-	];
+    ];
 
-	public function toResponseArray()
-	{
-		$aResponse = parent::toResponseArray();
-		$aResponse['Authenticated'] = false;
-		if (\Aurora\Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken'])))
-		{
-			$aResponse['Authenticated'] = true;
-		}
-		unset($aResponse['AuthToken']);
-		return $aResponse;
-	}
+    public function toResponseArray()
+    {
+        $aResponse = parent::toResponseArray();
+        $aResponse['Authenticated'] = false;
+        if (\Aurora\Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken']))) {
+            $aResponse['Authenticated'] = true;
+        }
+        unset($aResponse['AuthToken']);
+        return $aResponse;
+    }
 }

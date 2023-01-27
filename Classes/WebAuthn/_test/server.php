@@ -91,8 +91,7 @@ try {
     $crossPlatformAttachment = null;
     if (($typeUsb || $typeNfc || $typeBle) && !$typeInt) {
         $crossPlatformAttachment = true;
-
-    } else if (!$typeUsb && !$typeNfc && !$typeBle && $typeInt) {
+    } elseif (!$typeUsb && !$typeNfc && !$typeBle && $typeInt) {
         $crossPlatformAttachment = false;
     }
 
@@ -140,15 +139,13 @@ try {
     // ------------------------------------
     // request for get arguments
     // ------------------------------------
-
-    } else if ($fn === 'getGetArgs') {
+    } elseif ($fn === 'getGetArgs') {
         $ids = array();
 
         if ($requireResidentKey) {
             if (!is_array($_SESSION['registrations']) || count($_SESSION['registrations']) === 0) {
                 throw new Exception('we do not have any registrations in session to check the registration');
             }
-
         } else {
             // load registrations from session stored there by processCreate.
             // normaly you have to load the credential Id's for a username
@@ -176,8 +173,7 @@ try {
     // ------------------------------------
     // process create
     // ------------------------------------
-
-    } else if ($fn === 'processCreate') {
+    } elseif ($fn === 'processCreate') {
         $clientDataJSON = base64_decode($post->clientDataJSON);
         $attestationObject = base64_decode($post->attestationObject);
         $challenge = $_SESSION['challenge'];
@@ -203,8 +199,7 @@ try {
     // ------------------------------------
     // proccess get
     // ------------------------------------
-
-    } else if ($fn === 'processGet') {
+    } elseif ($fn === 'processGet') {
         $clientDataJSON = base64_decode($post->clientDataJSON);
         $authenticatorData = base64_decode($post->authenticatorData);
         $signature = base64_decode($post->signature);
@@ -238,8 +233,7 @@ try {
     // ------------------------------------
     // proccess clear registrations
     // ------------------------------------
-
-    } else if ($fn === 'clearRegistrations') {
+    } elseif ($fn === 'clearRegistrations') {
         $_SESSION['registrations'] = null;
         $_SESSION['challenge'] = null;
 
@@ -248,7 +242,6 @@ try {
         $return->msg = 'all registrations deleted';
         print(json_encode($return));
     }
-
 } catch (Throwable $ex) {
     $return = new stdClass();
     $return->success = false;

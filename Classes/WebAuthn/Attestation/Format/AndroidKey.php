@@ -1,15 +1,18 @@
 <?php
 
 namespace WebAuthn\Attestation\Format;
+
 use WebAuthn\WebAuthnException;
 use WebAuthn\Binary\ByteBuffer;
 
-class AndroidKey extends FormatBase {
+class AndroidKey extends FormatBase
+{
     private $_alg;
     private $_signature;
     private $_x5c;
 
-    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData) {
+    public function __construct($AttestionObject, \WebAuthn\Attestation\AuthenticatorData $authenticatorData)
+    {
         parent::__construct($AttestionObject, $authenticatorData);
 
         // check u2f data
@@ -39,7 +42,7 @@ class AndroidKey extends FormatBase {
             for ($i=1; $i<count($attStmt['x5c']); $i++) {
                 $this->_x5c_chain[] = $attStmt['x5c'][$i]->getBinaryString();
             }
-            unset ($i);
+            unset($i);
         }
     }
 
@@ -48,14 +51,16 @@ class AndroidKey extends FormatBase {
      * returns the key certificate in PEM format
      * @return string
      */
-    public function getCertificatePem() {
+    public function getCertificatePem()
+    {
         return $this->_createCertificatePem($this->_x5c);
     }
 
     /**
      * @param string $clientDataHash
      */
-    public function validateAttestation($clientDataHash) {
+    public function validateAttestation($clientDataHash)
+    {
         $publicKey = \openssl_pkey_get_public($this->getCertificatePem());
 
         if ($publicKey === false) {
@@ -79,7 +84,8 @@ class AndroidKey extends FormatBase {
      * @return boolean
      * @throws WebAuthnException
      */
-    public function validateRootCertificate($rootCas) {
+    public function validateRootCertificate($rootCas)
+    {
         $chainC = $this->_createX5cChainFile();
         if ($chainC) {
             $rootCas[] = $chainC;
@@ -92,4 +98,3 @@ class AndroidKey extends FormatBase {
         return $v;
     }
 }
-
