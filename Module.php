@@ -12,8 +12,7 @@ use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
 use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
 use Aurora\System\Api;
 use PragmaRX\Recovery\Recovery;
-
-require_once('Classes/WebAuthn/WebAuthn.php');
+use lbuchs\WebAuthn;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -47,7 +46,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
         $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
 
-        $this->oWebAuthn = new \WebAuthn\WebAuthn(
+        $this->oWebAuthn = new WebAuthn\WebAuthn(
             'WebAuthn Library',
             $this->oHttp->GetHost(),
             [
