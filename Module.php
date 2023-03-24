@@ -936,7 +936,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName);
+        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());
     }
 
     public function SaveDevice($DeviceId, $DeviceName)

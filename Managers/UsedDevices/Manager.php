@@ -74,11 +74,13 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         return $bDeviceTrusted;
     }
 
-    public function trustDevice($iUserId, $sDeviceId, $sDeviceName)
+    public function trustDevice($iUserId, $sDeviceId, $sDeviceName, $sAuthToken = '')
     {
         $oUsedDevice = $this->getDevice($iUserId, $sDeviceId);
         if (!$oUsedDevice) {
-            $oUsedDevice = $this->_createUsedDevice($iUserId, $sDeviceId, $sDeviceName);
+            if ($this->saveDevice($iUserId, $sDeviceId, $sDeviceName, $sAuthToken)) {
+                $oUsedDevice = $this->getDevice($iUserId, $sDeviceId);
+            }
         } else {
             $oUsedDevice->DeviceName = $sDeviceName;
         }
