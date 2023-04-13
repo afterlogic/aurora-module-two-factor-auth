@@ -13,6 +13,7 @@ use Aurora\Modules\TwoFactorAuth\Models\WebAuthnKey;
 use Aurora\System\Api;
 use PragmaRX\Recovery\Recovery;
 use lbuchs\WebAuthn;
+use Aurora\Modules\Core\Module as CoreModule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -31,6 +32,14 @@ class Module extends \Aurora\System\Module\AbstractModule
      * @var $oUsedDevicesManager Managers\UsedDevices
      */
     protected $oUsedDevicesManager = null;
+
+    /**
+     * @return Module 
+     */
+    public static function Decorator()
+    {
+        return parent::Decorator();
+    }
 
     public function init()
     {
@@ -58,14 +67,14 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'packed',
                 'tpm'
             ],
-            false,
-            array_merge($this->getConfig('FacetIds', []), [$this->oHttp->GetScheme().'://'.$this->oHttp->GetHost(true, false)])
+            false
+//            array_merge($this->getConfig('FacetIds', []), [$this->oHttp->GetScheme().'://'.$this->oHttp->GetHost(true, false)])
         );
     }
 
     /**
      *
-     * @return \Aurora\Modules\Mail\Managers\UsedDevices\Manager
+     * @return Managers\UsedDevices\Manager
      */
     public function getUsedDevicesManager()
     {
@@ -95,7 +104,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         ];
 
         $oUser = Api::getAuthenticatedUser();
-        if (!empty($oUser) && $oUser->isNormalOrTenant()) {
+        if ($oUser && $oUser->isNormalOrTenant()) {
             $bShowRecommendationToConfigure = $this->getConfig('ShowRecommendationToConfigure', false);
             if ($bShowRecommendationToConfigure) {
                 $bShowRecommendationToConfigure = $oUser->{$this->GetName().'::ShowRecommendationToConfigure'};
@@ -130,7 +139,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         if ($this->getConfig('ShowRecommendationToConfigure', false)) {
             $oUser = Api::getAuthenticatedUser();
-            if (!empty($oUser) && $oUser->isNormalOrTenant()) {
+            if ($oUser && $oUser->isNormalOrTenant()) {
                 $oUser->setExtendedProp($this->GetName() . '::ShowRecommendationToConfigure', $ShowRecommendationToConfigure);
                 return $oUser->save();
             }
@@ -234,7 +243,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -284,7 +293,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -326,7 +335,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -342,7 +351,8 @@ class Module extends \Aurora\System\Module\AbstractModule
      * Verifies Authenticator code and returns AuthToken in case of success
      *
      * @param string $Code
-     * @param int $UserId
+     * @param string $Login
+     * @param string $Password
      * @return bool|array
      * @throws \Aurora\System\Exceptions\ApiException
      * @throws \Aurora\System\Exceptions\BaseException
@@ -413,7 +423,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -447,7 +457,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -513,7 +523,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      * Checks if User has TwoFactorAuth enabled and return UserId instead of AuthToken
      *
      * @param array $aArgs
-     * @param aray $mResult
+     * @param array $mResult
      */
     public function onAfterAuthenticate($aArgs, &$mResult)
     {
@@ -569,7 +579,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -617,7 +627,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -679,6 +689,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
         foreach ($aWebAuthnKeys as $oWebAuthnKey) {
+            /** @var WebAuthnKey $oWebAuthnKey */
             $oKeyData = \json_decode($oWebAuthnKey->KeyData);
             $aIds[] = \base64_decode($oKeyData->credentialId);
         }
@@ -745,6 +756,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $oWebAuthnKey = null;
         foreach ($aWebAuthnKeys as $oWebAuthnKey) {
+            /** @var WebAuthnKey $oWebAuthnKey */
             $oKeyData = \json_decode($oWebAuthnKey->KeyData);
             if (\base64_decode($oKeyData->credentialId) === $id) {
                 $credentialPublicKey = $oKeyData->credentialPublicKey;
@@ -795,7 +807,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -835,7 +847,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        if (!Api::GetModuleDecorator('Core')->VerifyPassword($Password)) {
+        if (!CoreModule::Decorator()->VerifyPassword($Password)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
@@ -864,7 +876,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
         }
 
-        return Api::GetModuleDecorator('Core')->VerifyPassword($Password);
+        return CoreModule::Decorator()->VerifyPassword($Password);
     }
 
     public function EntryVerifySecurityKey()
@@ -1066,6 +1078,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($oUser instanceof User && $oUser->isNormalOrTenant()) {
             $aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
             foreach ($aWebAuthnKeys as $oWebAuthnKey) {
+                /** @var WebAuthnKey $oWebAuthnKey */
                 $aWebAuthKeysInfo[] = [
                     $oWebAuthnKey->Id,
                     $oWebAuthnKey->Name

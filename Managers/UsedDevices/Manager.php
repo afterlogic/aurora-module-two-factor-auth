@@ -37,6 +37,12 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             ->get();
     }
 
+    /**
+     * @param int $iUserId
+     * @param string $sDeviceId
+     * 
+     * @return UsedDevice
+     */
     public function getDevice($iUserId, $sDeviceId)
     {
         return UsedDevice::where('UserId', $iUserId)
