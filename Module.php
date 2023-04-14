@@ -34,7 +34,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     protected $oUsedDevicesManager = null;
 
     /**
-     * @return Module 
+     * @return Module
      */
     public static function Decorator()
     {

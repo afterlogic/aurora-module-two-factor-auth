@@ -40,7 +40,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     /**
      * @param int $iUserId
      * @param string $sDeviceId
-     * 
+     *
      * @return UsedDevice
      */
     public function getDevice($iUserId, $sDeviceId)
