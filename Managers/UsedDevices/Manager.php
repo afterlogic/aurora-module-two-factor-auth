@@ -13,6 +13,8 @@ use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
  * @copyright Copyright (c) 2023, Afterlogic Corp.
+ *
+ * @property \Aurora\Modules\TwoFactorAuth\Module $oModule
  */
 class Manager extends \Aurora\System\Managers\AbstractManager
 {
@@ -26,8 +28,8 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
     public function isTrustedDevicesEnabled()
     {
-        $iTrustDevicesForDays = $this->GetModule()->getConfig('TrustDevicesForDays', 0);
-        return $this->GetModule()->getConfig('AllowUsedDevices', false) && is_int($iTrustDevicesForDays) && $iTrustDevicesForDays > 0;
+        $iTrustDevicesForDays = $this->oModule->oModuleSettings->TrustDevicesForDays;
+        return $this->oModule->oModuleSettings->AllowUsedDevices && is_int($iTrustDevicesForDays) && $iTrustDevicesForDays > 0;
     }
 
     public function getAllDevices($iUserId)
@@ -67,7 +69,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     {
         $bDeviceTrusted = false;
         $sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
-        if ($sDeviceId && $this->GetModule()->getConfig('TrustDevicesForDays', 0) > 0) {
+        if ($sDeviceId && $this->oModule->oModuleSettings->TrustDevicesForDays > 0) {
             $oUsedDevice = $this->getDevice($oUser->Id, $sDeviceId);
             if ($oUsedDevice) {
                 if ($oUsedDevice->TrustTillDateTime > time()) {
@@ -92,7 +94,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         }
 
         if ($this->isTrustedDevicesEnabled()) {
-            $iTrustDevicesForDays = $this->GetModule()->getConfig('TrustDevicesForDays', 0);
+            $iTrustDevicesForDays = $this->oModule->oModuleSettings->TrustDevicesForDays;
             $oUsedDevice->TrustTillDateTime = time() + $iTrustDevicesForDays * 24 * 60 * 60;
         } else {
             $oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime;
