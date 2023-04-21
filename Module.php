@@ -997,7 +997,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $usedDevices = $this->getUsedDevicesManager()->getAllDevices($oUser->Id)->toArray();
         foreach ($usedDevices as &$aResult) {
             $aResult['Authenticated'] = false;
-            if (Api::GetSettings()->GetValue('StoreAuthTokenInDB', false) && !empty($aResult['AuthToken']) && !empty(Api::UserSession()->Get($aResult['AuthToken']))) {
+            if (Api::GetSettings()->StoreAuthTokenInDB && !empty($aResult['AuthToken']) && !empty(Api::UserSession()->Get($aResult['AuthToken']))) {
                 $aResult['Authenticated'] = true;
             }
             unset($aResult['AuthToken']);
