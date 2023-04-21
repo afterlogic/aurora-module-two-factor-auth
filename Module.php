@@ -30,8 +30,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     private $oWebAuthn = null;
 
-    /*
-     * @var $oUsedDevicesManager Managers\UsedDevices
+    /** 
+     * @var Manager $oUsedDevicesManager
      */
     protected $oUsedDevicesManager = null;
 
@@ -70,8 +70,10 @@ class Module extends \Aurora\System\Module\AbstractModule
         );
 
         $this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
+        $this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
         $this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
         $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
+        $this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
 
         $this->oWebAuthn = new WebAuthn\WebAuthn(
             'WebAuthn Library',
@@ -92,12 +94,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     /**
      *
-     * @return Managers\UsedDevices\Manager
+     * @return Manager
      */
     public function getUsedDevicesManager()
     {
         if ($this->oUsedDevicesManager === null) {
-            $this->oUsedDevicesManager = new Managers\UsedDevices\Manager($this);
+            $this->oUsedDevicesManager = new Manager($this);
         }
 
         return $this->oUsedDevicesManager;
@@ -1116,6 +1118,30 @@ class Module extends \Aurora\System\Module\AbstractModule
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
             $this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
+        }
+    }
+
+    public function onBeforeRunEntry(&$aArgs, &$mResult)
+    {
+        if ($this->oModuleSettings->AllowUsedDevices && $aArgs['Method'] !== 'Login') {
+            $deviceId = Api::getDeviceIdFromHeaders();
+            if ($deviceId) {
+                $usedDevice = $this->getUsedDevicesManager()->getDeviceByDeviceId($deviceId);
+                $user = \Aurora\System\Api::getAuthenticatedUser();
+                if (!$usedDevice || ($usedDevice && $user && $user->Id !== $usedDevice->UserId)) {
+                    throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+                }
+            }
+        }
+    }
+
+    public function onAfterLogin(&$aArgs, &$mResult)
+    {
+        if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
+            $deviceId = Api::getDeviceIdFromHeaders();
+            if ($deviceId) {
+                $this->SaveDevice($deviceId, '');
+            }
         }
     }
 }

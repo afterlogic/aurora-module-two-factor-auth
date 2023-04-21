@@ -5,7 +5,7 @@
  * For full statements of the licenses see LICENSE-AFTERLOGIC and LICENSE-AGPL3 files.
  */
 
-namespace Aurora\Modules\TwoFactorAuth\Managers\UsedDevices;
+namespace Aurora\Modules\TwoFactorAuth;
 
 use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
 
@@ -13,23 +13,27 @@ use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
  * @copyright Copyright (c) 2023, Afterlogic Corp.
- *
- * @property \Aurora\Modules\TwoFactorAuth\Module $oModule
  */
 class Manager extends \Aurora\System\Managers\AbstractManager
 {
+
     /**
-     * @param \Aurora\System\Module\AbstractModule $oModule
+     * @var \Aurora\Modules\TwoFactorAuth\Module
      */
-    public function __construct(\Aurora\System\Module\AbstractModule $oModule = null)
+    protected $oModule = null;
+
+    /**
+     * @param \Aurora\Modules\TwoFactorAuth\Module $oModule
+     */
+    public function __construct(\Aurora\Modules\TwoFactorAuth\Module $oModule = null)
     {
         parent::__construct($oModule);
     }
 
     public function isTrustedDevicesEnabled()
     {
-        $iTrustDevicesForDays = $this->oModule->oModuleSettings->TrustDevicesForDays;
-        return $this->oModule->oModuleSettings->AllowUsedDevices && is_int($iTrustDevicesForDays) && $iTrustDevicesForDays > 0;
+        $iTrustDevicesForDays = $this->oModule->getModuleSettings()->TrustDevicesForDays;
+        return $this->oModule->getModuleSettings()->AllowUsedDevices && is_int($iTrustDevicesForDays) && $iTrustDevicesForDays > 0;
     }
 
     public function getAllDevices($iUserId)
@@ -52,6 +56,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             ->first();
     }
 
+    /**
+     * @param string $sDeviceId
+     * 
+     * @return UsedDevice
+     */
     public function getDeviceByDeviceId($sDeviceId)
     {
         return UsedDevice::where('DeviceId', $sDeviceId)
@@ -69,7 +78,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     {
         $bDeviceTrusted = false;
         $sDeviceId = \Aurora\System\Api::getDeviceIdFromHeaders();
-        if ($sDeviceId && $this->oModule->oModuleSettings->TrustDevicesForDays > 0) {
+        if ($sDeviceId && $this->oModule->getModuleSettings()->TrustDevicesForDays > 0) {
             $oUsedDevice = $this->getDevice($oUser->Id, $sDeviceId);
             if ($oUsedDevice) {
                 if ($oUsedDevice->TrustTillDateTime > time()) {
@@ -94,7 +103,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         }
 
         if ($this->isTrustedDevicesEnabled()) {
-            $iTrustDevicesForDays = $this->oModule->oModuleSettings->TrustDevicesForDays;
+            $iTrustDevicesForDays = $this->oModule->getModuleSettings()->TrustDevicesForDays;
             $oUsedDevice->TrustTillDateTime = time() + $iTrustDevicesForDays * 24 * 60 * 60;
         } else {
             $oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime;
