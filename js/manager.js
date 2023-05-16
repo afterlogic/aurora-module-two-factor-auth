@@ -3,11 +3,9 @@
 const _ = require('underscore')
 
 const TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-  Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
   App = require('%PathToCoreWebclientModule%/js/App.js')
 
-const DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
-  Settings = require('modules/%ModuleName%/js/Settings.js')
+const Settings = require('modules/%ModuleName%/js/Settings.js')
 
 module.exports = function (oAppData) {
   Settings.init(oAppData)
@@ -77,14 +75,6 @@ module.exports = function (oAppData) {
         }.bind(this)
         App.subscribeEvent('StandardLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView)
         App.subscribeEvent('MailLoginFormWebclient::ConstructView::after', onAfterlLoginFormConstructView)
-      }
-
-      if (App.isUserNormalOrTenant()) {
-        var oParameters = {
-          DeviceId: App.getCurrentDeviceId(),
-          DeviceName: DeviceUtils.getName(),
-        }
-        Ajax.send('%ModuleName%', 'SaveDevice', oParameters)
       }
     },
   }

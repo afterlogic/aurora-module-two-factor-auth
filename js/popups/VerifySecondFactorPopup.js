@@ -282,14 +282,9 @@ CVerifySecondFactorPopup.prototype.cancelPopup = function () {
   this.closePopup()
 }
 
-CVerifySecondFactorPopup.prototype.afterVerify = function () {
+CVerifySecondFactorPopup.prototype.trustDeviceAndRunAfterVerify = function (authToken) {
   if (this.trustThisBrowser()) {
-    const authToken =
-      (this.verificationResponse() &&
-        this.verificationResponse().Result &&
-        this.verificationResponse().Result.AuthToken) ||
-      ''
-    var oParameters = {
+    const parameters = {
       DeviceId: App.getCurrentDeviceId(),
       DeviceName: DeviceUtils.getName(),
       Trust: this.trustThisBrowser(),
@@ -298,19 +293,50 @@ CVerifySecondFactorPopup.prototype.afterVerify = function () {
     Ajax.send(
       '%ModuleName%',
       'TrustDevice',
-      oParameters,
-      function () {
-        if (_.isFunction(this.fAfterVerify)) {
-          this.fAfterVerify(this.verificationResponse())
+      parameters,
+      function (response) {
+        if (response && response.Result) {
+          if (typeof this.fAfterVerify === 'function') {
+            this.fAfterVerify(this.verificationResponse())
+          }
+        } else {
+          Api.showErrorByCode(response)
         }
       },
       this,
       null,
       authToken
     )
-  } else if (_.isFunction(this.fAfterVerify)) {
+  } else if (typeof this.fAfterVerify === 'function') {
     this.fAfterVerify(this.verificationResponse())
   }
+}
+
+CVerifySecondFactorPopup.prototype.afterVerify = function () {
+  const authToken =
+    (this.verificationResponse() &&
+      this.verificationResponse().Result &&
+      this.verificationResponse().Result.AuthToken) ||
+    ''
+  const parameters = {
+    DeviceId: App.getCurrentDeviceId(),
+    DeviceName: DeviceUtils.getName(),
+  }
+  Ajax.send(
+    '%ModuleName%',
+    'SaveDevice',
+    parameters,
+    function (response) {
+      if (response && response.Result) {
+        this.trustDeviceAndRunAfterVerify(authToken)
+      } else {
+        Api.showErrorByCode(response)
+      }
+    },
+    this,
+    null,
+    authToken
+  )
 }
 
 module.exports = new CVerifySecondFactorPopup()
