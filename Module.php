@@ -30,7 +30,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     private $oWebAuthn = null;
 
-    /** 
+    /**
      * @var Manager $oUsedDevicesManager
      */
     protected $oUsedDevicesManager = null;
@@ -70,7 +70,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         );
 
         $this->subscribeEvent('Core::Authenticate::after', array($this, 'onAfterAuthenticate'));
-        $this->subscribeEvent('Core::Login::after', array($this, 'onAfterLogin'), 10);
+        $this->subscribeEvent('Core::SetAuthDataAndGetAuthToken::after', array($this, 'onAfterSetAuthDataAndGetAuthToken'), 10);
         $this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
         $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
         $this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
@@ -88,7 +88,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 'tpm'
             ],
             false
-//            array_merge($this->oModuleSettings->FacetIds, [$this->oHttp->GetScheme().'://'.$this->oHttp->GetHost(true, false)])
+            //            array_merge($this->oModuleSettings->FacetIds, [$this->oHttp->GetScheme().'://'.$this->oHttp->GetHost(true, false)])
         );
     }
 
@@ -977,7 +977,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         if ($this->oModuleSettings->AllowUsedDevices) {
             $oUser = Api::getAuthenticatedUser();
-            return $this->getUsedDevicesManager()->saveDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());
+            return $this->getUsedDevicesManager()->setDeviceName($oUser->Id, $DeviceId, $DeviceName);
         } else {
             return false;
         }
@@ -1135,12 +1135,12 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
     }
 
-    public function onAfterLogin(&$aArgs, &$mResult)
+    public function onAfterSetAuthDataAndGetAuthToken(&$aArgs, &$mResult)
     {
         if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId) {
-                $this->SaveDevice($deviceId, '');
+                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, '', $mResult['AuthToken']);
             }
         }
     }

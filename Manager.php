@@ -16,7 +16,6 @@ use Aurora\Modules\TwoFactorAuth\Models\UsedDevice;
  */
 class Manager extends \Aurora\System\Managers\AbstractManager
 {
-
     /**
      * @var \Aurora\Modules\TwoFactorAuth\Module
      */
@@ -58,7 +57,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
     /**
      * @param string $sDeviceId
-     * 
+     *
      * @return UsedDevice
      */
     public function getDeviceByDeviceId($sDeviceId)
@@ -110,6 +109,18 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         }
 
         return $oUsedDevice->save();
+    }
+
+    public function setDeviceName($iUserId, $sDeviceId, $sDeviceName)
+    {
+        $result = false;
+        $oUsedDevice = $this->getDevice($iUserId, $sDeviceId);
+        if ($oUsedDevice) {
+            $oUsedDevice->DeviceName = $sDeviceName;
+            $result = $oUsedDevice->save();
+        }
+
+        return $result;
     }
 
     public function saveDevice($iUserId, $sDeviceId, $sDeviceName, $sAuthToken)
