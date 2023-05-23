@@ -1126,9 +1126,12 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($this->oModuleSettings->AllowUsedDevices && $aArgs['Method'] !== 'Login') {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId) {
-                $usedDevice = $this->getUsedDevicesManager()->getDeviceByDeviceId($deviceId);
+                $usedDevice = false;
                 $user = \Aurora\System\Api::getAuthenticatedUser();
-                if (!$usedDevice || ($usedDevice && $user && $user->Id !== $usedDevice->UserId)) {
+                if ($user) {
+                    $usedDevice = $this->getUsedDevicesManager()->getDevice($user->Id, $deviceId);
+                }
+                if (!$usedDevice) {
                     throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
                 }
             }
