@@ -5,7 +5,8 @@ const _ = require('underscore')
 const TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
   App = require('%PathToCoreWebclientModule%/js/App.js')
 
-const Settings = require('modules/%ModuleName%/js/Settings.js')
+const Settings = require('modules/%ModuleName%/js/Settings.js'),
+  TwoFactorApi = require('modules/%ModuleName%/js/utils/Api.js')
 
 module.exports = function (oAppData) {
   Settings.init(oAppData)
@@ -59,7 +60,7 @@ module.exports = function (oAppData) {
               var oTwoFactorAuthData = oResponse.Result && oResponse.Result.TwoFactorAuth
               if (oTwoFactorAuthData) {
                 Popups.showPopup(VerifySecondFactorPopup, [
-                  _.bind(this.onSystemLoginResponseBase, this),
+                  fOldOnSystemLoginResponse,
                   _.bind(function () {
                     this.loading(false)
                   }, this),
@@ -68,7 +69,10 @@ module.exports = function (oAppData) {
                   oRequest.Parameters.Password,
                 ])
               } else {
-                fOldOnSystemLoginResponse(oResponse, oRequest)
+                const authToken = (oResponse && oResponse.Result && oResponse.Result.AuthToken) || ''
+                TwoFactorApi.saveDevice(authToken, () => {
+                  fOldOnSystemLoginResponse(oResponse, oRequest)
+                })
               }
             }
           }

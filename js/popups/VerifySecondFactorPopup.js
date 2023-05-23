@@ -13,7 +13,8 @@ const TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 
 const ConvertUtils = require('modules/%ModuleName%/js/utils/Convert.js'),
   DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
-  Settings = require('modules/%ModuleName%/js/Settings.js')
+  Settings = require('modules/%ModuleName%/js/Settings.js'),
+  TwoFactorApi = require('modules/%ModuleName%/js/utils/Api.js')
 
 /**
  * @constructor
@@ -23,7 +24,7 @@ function CVerifySecondFactorPopup() {
 
   this.isMobile = ko.observable(App.isMobile() || false)
 
-  this.fAfterVerify = null
+  this.afterVerifyCallback = () => {}
   this.fOnCancel = null
   this.login = ko.observable(null)
   this.sPassword = null
@@ -96,10 +97,16 @@ _.extendOwn(CVerifySecondFactorPopup.prototype, CAbstractPopup.prototype)
 
 CVerifySecondFactorPopup.prototype.PopupTemplate = '%ModuleName%_VerifySecondFactorPopup'
 
-CVerifySecondFactorPopup.prototype.onOpen = function (fAfterVerify, fOnCancel, oTwoFactorAuthData, sLogin, sPassword) {
+CVerifySecondFactorPopup.prototype.onOpen = function (
+  afterVerifyCallback,
+  fOnCancel,
+  oTwoFactorAuthData,
+  sLogin,
+  sPassword
+) {
   this.continueInProgress(false)
 
-  this.fAfterVerify = fAfterVerify
+  this.afterVerifyCallback = typeof afterVerifyCallback === 'function' ? afterVerifyCallback : () => {}
   this.fOnCancel = fOnCancel
   this.login(sLogin)
   this.sPassword = sPassword
@@ -282,53 +289,38 @@ CVerifySecondFactorPopup.prototype.cancelPopup = function () {
   this.closePopup()
 }
 
-CVerifySecondFactorPopup.prototype.trustDeviceAndRunAfterVerify = function (authToken) {
-  if (this.trustThisBrowser()) {
-    const parameters = {
-      DeviceId: App.getCurrentDeviceId(),
-      DeviceName: DeviceUtils.getName(),
-      Trust: this.trustThisBrowser(),
-    }
-    this.continueInProgress(true)
-    Ajax.send(
-      '%ModuleName%',
-      'TrustDevice',
-      parameters,
-      function (response) {
-        if (response && response.Result) {
-          if (typeof this.fAfterVerify === 'function') {
-            this.fAfterVerify(this.verificationResponse())
-          }
-        } else {
-          Api.showErrorByCode(response)
-        }
-      },
-      this,
-      null,
-      authToken
-    )
-  } else if (typeof this.fAfterVerify === 'function') {
-    this.fAfterVerify(this.verificationResponse())
-  }
-}
-
 CVerifySecondFactorPopup.prototype.afterVerify = function () {
   const authToken =
     (this.verificationResponse() &&
       this.verificationResponse().Result &&
       this.verificationResponse().Result.AuthToken) ||
     ''
+  TwoFactorApi.saveDevice(authToken, () => {
+    this.trustDevice(authToken, () => {
+      this.afterVerifyCallback(this.verificationResponse())
+    })
+  })
+}
+
+CVerifySecondFactorPopup.prototype.trustDevice = function (authToken, successCallback) {
+  if (!Settings.AllowUsedDevices || !this.trustThisBrowser()) {
+    successCallback()
+    return
+  }
+
   const parameters = {
     DeviceId: App.getCurrentDeviceId(),
     DeviceName: DeviceUtils.getName(),
+    Trust: this.trustThisBrowser(),
   }
+  this.continueInProgress(true)
   Ajax.send(
     '%ModuleName%',
-    'SaveDevice',
+    'TrustDevice',
     parameters,
     function (response) {
       if (response && response.Result) {
-        this.trustDeviceAndRunAfterVerify(authToken)
+        successCallback()
       } else {
         Api.showErrorByCode(response)
       }
