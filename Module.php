@@ -1123,8 +1123,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onBeforeRunEntry(&$aArgs, &$mResult)
     {
-        $safetyMethods = ['Login', 'VerifyAuthenticatorAppCode'];
-        if ($this->oModuleSettings->AllowUsedDevices && !in_array($aArgs['Method'], $safetyMethods)) {
+        if ($this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId) {
                 $usedDevice = false;
@@ -1132,7 +1131,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 if ($user) {
                     $usedDevice = $this->getUsedDevicesManager()->getDevice($user->Id, $deviceId);
                 }
-                if (!$usedDevice) {
+                if ($user && !$usedDevice) {
                     throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
                 }
             }
