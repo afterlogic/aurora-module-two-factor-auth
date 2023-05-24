@@ -1123,7 +1123,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onBeforeRunEntry(&$aArgs, &$mResult)
     {
-        if ($this->oModuleSettings->AllowUsedDevices && $aArgs['Method'] !== 'Login') {
+        $safetyMethods = ['Login', 'VerifyAuthenticatorAppCode'];
+        if ($this->oModuleSettings->AllowUsedDevices && !in_array($aArgs['Method'], $safetyMethods)) {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId) {
                 $usedDevice = false;
