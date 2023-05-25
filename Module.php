@@ -1125,18 +1125,23 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         $error = false;
         if ($aArgs['EntryName'] === 'api' && $this->oModuleSettings->AllowUsedDevices) {
-            $deviceId = Api::getDeviceIdFromHeaders();
-            if ($deviceId) {
-                $usedDevice = false;
-                $user = \Aurora\System\Api::getAuthenticatedUser();
-                if ($user) {
+            $user = \Aurora\System\Api::getAuthenticatedUser();
+            $authToken = \Aurora\System\Api::getAuthenticatedUserAuthToken();
+
+            if ($user && $user->isNormalOrTenant()) {
+                $deviceId = Api::getDeviceIdFromHeaders();
+
+                if ($deviceId) {
                     $usedDevice = $this->getUsedDevicesManager()->getDevice($user->Id, $deviceId);
-                }
-                if ($user && !$usedDevice) {
+
+                    if (!$usedDevice) {
+                        $error = true;
+                    } elseif ($usedDevice->AuthToken !== $authToken) {
+                        $error = true;
+                    }
+                } else {
                     $error = true;
                 }
-            } else {
-                $error = true;
             }
         }
         if ($error) {
