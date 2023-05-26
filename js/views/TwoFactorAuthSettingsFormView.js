@@ -10,12 +10,10 @@ var
 
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
-	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	UserSettings = require('%PathToCoreWebclientModule%/js/Settings.js'),
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
@@ -75,7 +73,6 @@ function CTwoFactorAuthSettingsFormView()
 	this.allowRevokeAll = ko.computed(function () {
 		return Settings.AllowTrustedDevices && !!_.find(this.devices(), function (oDevice) { return Types.isNonEmptyString(oDevice.sDeviceExpiresDate); });
 	}, this);
-	this.bAllowDeviceLogout = UserSettings.StoreAuthTokenInDB;
 
 	this.populateSettings();
 	

@@ -996,16 +996,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        $usedDevices = $this->getUsedDevicesManager()->getAllDevices($oUser->Id)->toArray();
-        foreach ($usedDevices as &$aResult) {
-            $aResult['Authenticated'] = false;
-            if (Api::GetSettings()->StoreAuthTokenInDB && !empty($aResult['AuthToken']) && !empty(Api::UserSession()->Get($aResult['AuthToken']))) {
-                $aResult['Authenticated'] = true;
-            }
-            unset($aResult['AuthToken']);
-        }
-
-        return $usedDevices;
+        return $this->getUsedDevicesManager()->getAllDevices($oUser->Id)->all();
     }
 
     public function RevokeTrustFromAllDevices()
@@ -1145,7 +1136,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
         }
         if ($error) {
-            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
         }
     }
 

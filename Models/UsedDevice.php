@@ -58,7 +58,6 @@ class UsedDevice extends Model
     protected $foreignModel = User::class;
     protected $foreignModelIdColumn = 'UserId'; // Column that refers to an external table
 
-
     protected $fillable = [
         'Id',
         'UserId',
@@ -75,7 +74,11 @@ class UsedDevice extends Model
     {
         $aResponse = parent::toResponseArray();
         $aResponse['Authenticated'] = false;
-        if (\Aurora\Api::GetSettings()->StoreAuthTokenInDB && !empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken']))) {
+        if (\Aurora\Api::GetSettings()->StoreAuthTokenInDB) {
+            if (!empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken']))) {
+                $aResponse['Authenticated'] = true;
+            }
+        } elseif (!empty($aResponse['AuthToken'])) {
             $aResponse['Authenticated'] = true;
         }
         unset($aResponse['AuthToken']);

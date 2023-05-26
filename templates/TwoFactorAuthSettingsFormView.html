@@ -172,7 +172,7 @@
 													customTooltip: '%MODULENAME%/ACTION_REMOVE_DEVICE'">
 											</span>
 											<span class="button logout" data-bind="
-													visible: $parent.bAllowDeviceLogout && !bCurrentDevice && bAuthenticated,
+													visible: !bCurrentDevice && bAuthenticated,
 													click: function () { $parent.askLogoutFromDevice(sDeviceId, sDeviceName); },
 													customTooltip: '%MODULENAME%/ACTION_LOGOUT_DEVICE'">
 											</span>
