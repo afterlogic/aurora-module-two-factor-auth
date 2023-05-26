@@ -129,7 +129,12 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         if (!$oUsedDevice) {
             $oUsedDevice = $this->_createUsedDevice($iUserId, $sDeviceId, $sDeviceName);
         } else {
-            $oUsedDevice->DeviceName = $sDeviceName;
+            if (!empty($sDeviceName)) {
+                $oUsedDevice->DeviceName = $sDeviceName;
+            }
+            // $_SERVER['REMOTE_ADDR'] may not actually contain real client IP addresses, as it will give you a proxy address for clients connected through a proxy, for example.
+            // But the client can set all HTTP header information (ie. $_SERVER['HTTP_CLIENT_IP'], $_SERVER['HTTP_X_FORWARDED_FOR']) to any arbitrary value it wants, so we cannot rely on them.
+            $oUsedDevice->DeviceIP = $_SERVER['REMOTE_ADDR'];
         }
 
         $oUsedDevice->AuthToken = $sAuthToken;
