@@ -1,16 +1,15 @@
 'use strict'
 
 const Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
-  Api = require('%PathToCoreWebclientModule%/js/Api.js'),
   App = require('%PathToCoreWebclientModule%/js/App.js')
 
 const DeviceUtils = require('modules/%ModuleName%/js/utils/Device.js'),
   Settings = require('modules/%ModuleName%/js/Settings.js')
 
 module.exports = {
-  saveDevice(authToken, successCallback) {
+  saveDevice(authToken, callback) {
     if (!Settings.AllowUsedDevices) {
-      successCallback()
+      callback()
       return
     }
 
@@ -18,20 +17,6 @@ module.exports = {
       DeviceId: App.getCurrentDeviceId(),
       DeviceName: DeviceUtils.getName(),
     }
-    Ajax.send(
-      '%ModuleName%',
-      'SaveDevice',
-      parameters,
-      function (response) {
-        if (response && response.Result) {
-          successCallback()
-        } else {
-          Api.showErrorByCode(response)
-        }
-      },
-      this,
-      null,
-      authToken
-    )
+    Ajax.send('%ModuleName%', 'SaveDevice', parameters, callback, this, null, authToken)
   },
 }
