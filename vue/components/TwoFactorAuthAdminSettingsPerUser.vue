@@ -90,13 +90,13 @@ export default {
   computed: {
     inscriptionTwoFactorAuthentication() {
       if (this.twoFactorAuthEnabled) {
-        return this.$tc('TWOFACTORAUTH.INFO_TFA_ENABLED_FOR_USER', 0, { USER: this.user?.publicId })
+        return this.$t('TWOFACTORAUTH.INFO_TFA_ENABLED_FOR_USER', { USER: this.user?.publicId })
       } else {
-        return this.$tc('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', 0, { USER: this.user?.publicId })
+        return this.$t('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', { USER: this.user?.publicId })
       }
     },
     confirmDisableTwoFactorAuthentication() {
-      return this.$tc('TWOFACTORAUTH.CONFIRM_DISABLE_TFA', 0, { USER: this.user?.publicId })
+      return this.$t('TWOFACTORAUTH.CONFIRM_DISABLE_TFA', { USER: this.user?.publicId })
     },
   },
   watch: {
@@ -124,13 +124,9 @@ export default {
             this.confirmTwoFactorAuthentication = false
             if (result) {
               this.populate()
-              notification.showReport(
-                this.$tc('TWOFACTORAUTH.REPORT_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
-              )
+              notification.showReport(this.$t('TWOFACTORAUTH.REPORT_DISABLE_USER_TFA', { USER: this.user.publicId }))
             } else {
-              notification.showError(
-                this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
-              )
+              notification.showError(this.$t('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', { USER: this.user.publicId }))
             }
           },
           (response) => {
@@ -138,7 +134,7 @@ export default {
             notification.showError(
               errors.getTextFromResponse(
                 response,
-                this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
+                this.$t('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', { USER: this.user.publicId })
               )
             )
           }
