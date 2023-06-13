@@ -1,6 +1,6 @@
 <template>
   <q-scroll-area class="full-height full-width">
-    <div class="q-pa-lg ">
+    <div class="q-pa-lg">
       <div class="row q-mb-md">
         <div class="col text-h5" v-t="'TWOFACTORAUTH.HEADING_SETTINGS_TAB'"></div>
       </div>
@@ -15,8 +15,17 @@
           </div>
           <div class="row q-mt-md" v-if="twoFactorAuthEnabled">
             <div class="col-8">
-              <q-btn unelevated no-caps no-wrap dense class="q-px-xs" :ripple="false" color="primary"
-                     :label="$t('TWOFACTORAUTH.ACTION_DISABLE_TFA')" @click="showTwoFactorAuthenticationDialogue"/>
+              <q-btn
+                unelevated
+                no-caps
+                no-wrap
+                dense
+                class="q-px-xs"
+                :ripple="false"
+                color="primary"
+                :label="$t('TWOFACTORAUTH.ACTION_DISABLE_TFA')"
+                @click="showTwoFactorAuthenticationDialogue"
+              />
             </div>
           </div>
         </q-card-section>
@@ -28,14 +37,30 @@
           <span v-html="confirmDisableTwoFactorAuthentication"></span>
         </q-card-section>
         <q-card-actions align="right">
-          <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary" @click="disableTwoFactorAuthentication"
-                 :label="$t('TWOFACTORAUTH.ACTION_DISABLE_TFA')" />
-          <q-btn unelevated no-caps dense class="q-px-sm" :ripple="false" color="primary"
-                 :label="$t('COREWEBCLIENT.ACTION_CANCEL')" @click="confirmTwoFactorAuthentication = false"/>
+          <q-btn
+            unelevated
+            no-caps
+            dense
+            class="q-px-sm"
+            :ripple="false"
+            color="primary"
+            @click="disableTwoFactorAuthentication"
+            :label="$t('TWOFACTORAUTH.ACTION_DISABLE_TFA')"
+          />
+          <q-btn
+            unelevated
+            no-caps
+            dense
+            class="q-px-sm"
+            :ripple="false"
+            color="primary"
+            :label="$t('COREWEBCLIENT.ACTION_CANCEL')"
+            @click="confirmTwoFactorAuthentication = false"
+          />
         </q-card-actions>
       </q-card>
     </q-dialog>
-    <q-inner-loading style="justify-content: flex-start;" :showing="loading || saving">
+    <q-inner-loading style="justify-content: flex-start" :showing="loading || saving">
       <q-linear-progress query />
     </q-inner-loading>
   </q-scroll-area>
@@ -53,7 +78,7 @@ import cache from 'src/cache'
 
 export default {
   name: 'TwoFactorAuthAdminSettingsPerUser',
-  data () {
+  data() {
     return {
       user: null,
       loading: false,
@@ -63,14 +88,14 @@ export default {
     }
   },
   computed: {
-    inscriptionTwoFactorAuthentication () {
+    inscriptionTwoFactorAuthentication() {
       if (this.twoFactorAuthEnabled) {
         return this.$tc('TWOFACTORAUTH.INFO_TFA_ENABLED_FOR_USER', 0, { USER: this.user?.publicId })
       } else {
         return this.$tc('TWOFACTORAUTH.INFO_TFA_DISABLED_FOR_USER', 0, { USER: this.user?.publicId })
       }
     },
-    confirmDisableTwoFactorAuthentication () {
+    confirmDisableTwoFactorAuthentication() {
       return this.$tc('TWOFACTORAUTH.CONFIRM_DISABLE_TFA', 0, { USER: this.user?.publicId })
     },
   },
@@ -83,32 +108,46 @@ export default {
     this.parseRoute()
   },
   methods: {
-    disableTwoFactorAuthentication () {
+    disableTwoFactorAuthentication() {
       const parameters = {
         UserId: this.user.id,
         TenantId: this.user.tenantId,
       }
-      webApi.sendRequest({
-        moduleName: 'TwoFactorAuth',
-        methodName: 'DisableUserTwoFactorAuth',
-        parameters
-      }).then(result => {
-        this.confirmTwoFactorAuthentication = false
-        if (result) {
-          this.populate()
-          notification.showReport(this.$tc('TWOFACTORAUTH.REPORT_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId }))
-        } else {
-          notification.showError(this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId }))
-        }
-      }, response => {
-        this.confirmTwoFactorAuthentication = false
-        notification.showError(errors.getTextFromResponse(response, this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })))
-      })
+      webApi
+        .sendRequest({
+          moduleName: 'TwoFactorAuth',
+          methodName: 'DisableUserTwoFactorAuth',
+          parameters,
+        })
+        .then(
+          (result) => {
+            this.confirmTwoFactorAuthentication = false
+            if (result) {
+              this.populate()
+              notification.showReport(
+                this.$tc('TWOFACTORAUTH.REPORT_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
+              )
+            } else {
+              notification.showError(
+                this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
+              )
+            }
+          },
+          (response) => {
+            this.confirmTwoFactorAuthentication = false
+            notification.showError(
+              errors.getTextFromResponse(
+                response,
+                this.$tc('TWOFACTORAUTH.ERROR_DISABLE_USER_TFA', this.user.publicId, { USER: this.user.publicId })
+              )
+            )
+          }
+        )
     },
-    showTwoFactorAuthenticationDialogue () {
+    showTwoFactorAuthenticationDialogue() {
       this.confirmTwoFactorAuthentication = true
     },
-    parseRoute () {
+    parseRoute() {
       const userId = typesUtils.pPositiveInt(this.$route?.params?.id)
       if (this.user?.id !== userId) {
         this.user = {
@@ -117,7 +156,7 @@ export default {
         this.populate()
       }
     },
-    populate () {
+    populate() {
       this.loading = true
       const currentTenantId = this.$store.getters['tenants/getCurrentTenantId']
       cache.getUser(currentTenantId, this.user.id).then(({ user, userId }) => {
@@ -132,30 +171,33 @@ export default {
         }
       })
     },
-    getUserSettings () {
+    getUserSettings() {
       this.loading = true
       const parameters = {
         UserId: this.user.id,
         TenantId: this.user.tenantId,
       }
-      webApi.sendRequest({
-        moduleName: 'TwoFactorAuth',
-        methodName: 'GetUserSettings',
-        parameters
-      }).then(result => {
-        this.loading = false
-        if (result) {
-          this.twoFactorAuthEnabled = result?.TwoFactorAuthEnabled
-        }
-      }, response => {
-        this.loading = false
-        notification.showError(errors.getTextFromResponse(response))
-      })
-    }
-  }
+      webApi
+        .sendRequest({
+          moduleName: 'TwoFactorAuth',
+          methodName: 'GetUserSettings',
+          parameters,
+        })
+        .then(
+          (result) => {
+            this.loading = false
+            if (result) {
+              this.twoFactorAuthEnabled = result?.TwoFactorAuthEnabled
+            }
+          },
+          (response) => {
+            this.loading = false
+            notification.showError(errors.getTextFromResponse(response))
+          }
+        )
+    },
+  },
 }
 </script>
 
-<style scoped>
-
-</style>
+<style scoped></style>
