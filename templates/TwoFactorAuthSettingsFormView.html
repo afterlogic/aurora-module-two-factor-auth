@@ -166,15 +166,15 @@
 								<div class="item canSelect">
 									<span class="title">
 										<span class="controls">
+											<span class="button logout" data-bind="
+													visible: !bCurrentDevice && bAuthenticated,
+													click: function () { $parent.askLogoutFromDevice(sDeviceId, sDeviceName); },
+													customTooltip: '%MODULENAME%/ACTION_LOGOUT_DEVICE'">
+											</span>
 											<span class="button delete_device" data-bind="
 													visible: !bCurrentDevice,
 													click: function () { $parent.askRemoveDevice(sDeviceId, sDeviceName); },
 													customTooltip: '%MODULENAME%/ACTION_REMOVE_DEVICE'">
-											</span>
-											<span class="button logout" data-bind="
-													visible: $parent.bAllowDeviceLogout && !bCurrentDevice && bAuthenticated,
-													click: function () { $parent.askLogoutFromDevice(sDeviceId, sDeviceName); },
-													customTooltip: '%MODULENAME%/ACTION_LOGOUT_DEVICE'">
 											</span>
 										</span>
 										<span class="name">

@@ -2,11 +2,11 @@
 
 var
 	moment = require('moment'),
-	
+
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
-	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-	
+
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
@@ -40,7 +40,7 @@ CDeviceModel.prototype.parse = function (oData)
 		oUsageMoment = moment.unix(oData.LastUsageDateTime)
 	;
 	this.sDeviceId = Types.pString(oData.DeviceId);
-	this.bCurrentDevice = this.sDeviceId === Utils.getUUID();
+	this.bCurrentDevice = this.sDeviceId === App.getCurrentDeviceId();
 	this.bAuthenticated = Types.pBool(oData.Authenticated);
 	this.sDeviceName = Types.pString(oData.DeviceName);
 	
