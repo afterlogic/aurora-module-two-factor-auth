@@ -21,6 +21,7 @@ use Aurora\Modules\Core\Models\User;
  * @property integer $UserId
  * @property string $DeviceId
  * @property string $DeviceName
+ * @property string $DeviceCustomName
  * @property string $AuthToken
  * @property integer $CreationDateTime
  * @property integer $LastUsageDateTime
@@ -63,6 +64,7 @@ class UsedDevice extends Model
         'UserId',
         'DeviceId',
         'DeviceName',
+        'DeviceCustomName',
         'AuthToken',
         'CreationDateTime',
         'LastUsageDateTime',

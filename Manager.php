@@ -123,6 +123,18 @@ class Manager extends \Aurora\System\Managers\AbstractManager
         return $result;
     }
 
+    public function setDeviceCustomName($iUserId, $sDeviceId, $DeviceCustomName)
+    {
+        $result = false;
+        $oUsedDevice = $this->getDevice($iUserId, $sDeviceId);
+        if ($oUsedDevice) {
+            $oUsedDevice->DeviceCustomName = $DeviceCustomName;
+            $result = $oUsedDevice->save();
+        }
+
+        return $result;
+    }
+
     public function saveDevice($iUserId, $sDeviceId, $sDeviceName, $sAuthToken)
     {
         $oUsedDevice = $this->getDevice($iUserId, $sDeviceId);
