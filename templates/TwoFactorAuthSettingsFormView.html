@@ -199,6 +199,12 @@
                         click: function () { $parent.askRemoveDevice(sDeviceId, sDeviceName); },
                         customTooltip: '%MODULENAME%/ACTION_REMOVE_DEVICE'"
                     ></span>
+                    <span
+                      class="button edit_device"
+                      data-bind="
+                        click: function () { $parent.editDevice(sDeviceId, sDeviceName, sDeviceCustomName); },
+                        customTooltip: '%MODULENAME%/ACTION_EDIT_DEVICE'"
+                    ></span>
                   </span>
                   <span class="name">
                     <span class="text">
@@ -206,7 +212,10 @@
                         class="device-active-icon"
                         data-bind="visible: bCurrentDevice, customTooltip: '%MODULENAME%/LABEL_CURRENT_DEVICE'"
                       ></span>
-                      <span data-bind="text: sDeviceName"></span>
+                      <span data-bind="text: sDeviceCustomName || sDeviceName"></span>
+                      <span data-bind="visible: sDeviceCustomName && sDeviceName">
+                        (<span data-bind="text: sDeviceName"></span>)
+                      </span>
                       <span class="text_hint" data-bind="text: sDeviceExpiresDate"></span>
                       <div class="text_hint" data-bind="text: sDeviceLastUsageDate"></div>
                     </span>

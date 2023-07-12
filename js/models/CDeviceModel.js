@@ -17,6 +17,7 @@ function CDeviceModel(oData) {
   this.sDeviceId = ''
   this.bCurrentDevice = false
   this.sDeviceName = ''
+  this.sDeviceCustomName = ''
   this.bAuthenticated = false
   this.sDeviceExpiresDate = ''
   this.sDeviceLastUsageDate = ''
@@ -36,6 +37,7 @@ CDeviceModel.prototype.parse = function (oData) {
   this.bCurrentDevice = this.sDeviceId === App.getCurrentDeviceId()
   this.bAuthenticated = Types.pBool(oData.Authenticated)
   this.sDeviceName = Types.pString(oData.DeviceName)
+  this.sDeviceCustomName = Types.pString(oData.DeviceCustomName)
 
   if (Settings.AllowTrustedDevices && oExpMoment.diff(moment()) > 0) {
     this.sDeviceExpiresDate = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_TRUST_TILL_DATE', {

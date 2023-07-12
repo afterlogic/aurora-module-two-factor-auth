@@ -19,6 +19,7 @@ const CDeviceModel = require('modules/%ModuleName%/js/models/CDeviceModel.js'),
   ConfigureAuthenticatorAppPopup = require('modules/%ModuleName%/js/popups/ConfigureAuthenticatorAppPopup.js'),
   ConfirmPasswordPopup = require('modules/%ModuleName%/js/popups/ConfirmPasswordPopup.js'),
   CreateSecurityKeyPopup = require('modules/%ModuleName%/js/popups/CreateSecurityKeyPopup.js'),
+  EditDevicePopup = require('modules/%ModuleName%/js/popups/EditDevicePopup.js'),
   Settings = require('modules/%ModuleName%/js/Settings.js'),
   EditSecurityKeyPopup = require('modules/%ModuleName%/js/popups/EditSecurityKeyPopup.js'),
   ShowBackupCodesPopup = require('modules/%ModuleName%/js/popups/ShowBackupCodesPopup.js')
@@ -359,6 +360,17 @@ CTwoFactorAuthSettingsFormView.prototype.removeDevice = function (sDeviceId) {
     },
     this
   )
+}
+
+CTwoFactorAuthSettingsFormView.prototype.editDevice = function (deviceId, deviceName, deviceCustomName) {
+  Popups.showPopup(EditDevicePopup, [
+    deviceId,
+    deviceName,
+    deviceCustomName,
+    () => {
+      this.getUsedDevices()
+    },
+  ])
 }
 
 module.exports = new CTwoFactorAuthSettingsFormView()
