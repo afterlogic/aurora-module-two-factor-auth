@@ -278,7 +278,11 @@ class Module extends \Aurora\System\Module\AbstractModule
             $sSecret = $oGoogle->createSecret();
             ;
         }
-        $sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
+        $sServerName = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : $_SERVER['HTTP_HOST'];
+        if (!empty($sServerName)) {
+            $sServerName = "(" . $sServerName. ")";
+        }
+        $sQRCodeName = $oUser->PublicId . $sServerName;
 
         return [
             'Secret' => $sSecret,
