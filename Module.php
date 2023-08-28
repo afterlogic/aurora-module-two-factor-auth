@@ -986,7 +986,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     /**
      * @param string $DeviceId
      * @param string $DeviceName
-     * 
+     *
      * @return boolean
      */
     public function SetDeviceName($DeviceId, $DeviceName)
@@ -1004,7 +1004,7 @@ class Module extends \Aurora\System\Module\AbstractModule
     /**
      * @param string $DeviceId
      * @param string $DeviceCustomName
-     * 
+     *
      * @return boolean
      */
     public function SetDeviceCustomName($DeviceId, $DeviceCustomName)
