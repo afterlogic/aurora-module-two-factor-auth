@@ -1,27 +1,18 @@
-'use strict';
+'use strict'
 
-var
-	UAParser = require('ua-parser-js'),
+const UAParser = require('ua-parser-js')
 
-	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),	
-	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
+const TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+  Types = require('%PathToCoreWebclientModule%/js/utils/Types.js')
 
-	DeviceUtils = {}
-;
+module.exports = {
+  getName() {
+    const userAgent = navigator.userAgent,
+      uaData = UAParser(Types.pString(userAgent))
 
-DeviceUtils.getName = function ()
-{
-	var
-		sUserAgent = navigator.userAgent,
-		oUaData = UAParser(Types.pString(sUserAgent)),
-		sName = oUaData.browser.name + '/' + oUaData.browser.major,
-		sPlatform = oUaData.os.name + ' ' + oUaData.os.version,
-		sDeviceName = TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_NAME', {
-			'NAME': sName,
-			'PLATFORM': sPlatform
-		})
-	;
-	return sDeviceName;
-};
-
-module.exports = DeviceUtils;
+    return TextUtils.i18n('%MODULENAME%/LABEL_DEVICE_NAME', {
+      NAME: `${uaData.browser.name}/${Types.pInt(uaData.browser.version)}`,
+      PLATFORM: `${uaData.os.name} ${uaData.os.version}`,
+    })
+  },
+}

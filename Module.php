@@ -278,7 +278,11 @@ class Module extends \Aurora\System\Module\AbstractModule
             $sSecret = $oGoogle->createSecret();
             ;
         }
-        $sQRCodeName = $oUser->PublicId . "(" . $_SERVER['SERVER_NAME'] . ")";
+        $sServerName = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : $_SERVER['HTTP_HOST'];
+        if (!empty($sServerName)) {
+            $sServerName = "(" . $sServerName. ")";
+        }
+        $sQRCodeName = $oUser->PublicId . $sServerName;
 
         return [
             'Secret' => $sSecret,
@@ -971,13 +975,45 @@ class Module extends \Aurora\System\Module\AbstractModule
         return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());
     }
 
+    /**
+     * @deprecated since version 9.7.2. Use SetDeviceName instead.
+     */
     public function SaveDevice($DeviceId, $DeviceName)
+    {
+        return $this->Decorator()->SetDeviceName($DeviceId, $DeviceName);
+    }
+
+    /**
+     * @param string $DeviceId
+     * @param string $DeviceName
+     *
+     * @return boolean
+     */
+    public function SetDeviceName($DeviceId, $DeviceName)
     {
         Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if ($this->oModuleSettings->AllowUsedDevices) {
             $oUser = Api::getAuthenticatedUser();
             return $this->getUsedDevicesManager()->setDeviceName($oUser->Id, $DeviceId, $DeviceName);
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * @param string $DeviceId
+     * @param string $DeviceCustomName
+     *
+     * @return boolean
+     */
+    public function SetDeviceCustomName($DeviceId, $DeviceCustomName)
+    {
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+        if ($this->oModuleSettings->AllowUsedDevices) {
+            $oUser = Api::getAuthenticatedUser();
+            return $this->getUsedDevicesManager()->setDeviceCustomName($oUser->Id, $DeviceId, $DeviceCustomName);
         } else {
             return false;
         }
