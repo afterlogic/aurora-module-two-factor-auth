@@ -65,7 +65,7 @@ module.exports = function (oAppData) {
                     this.loading(false)
                   }, this),
                   oTwoFactorAuthData,
-                  oRequest.Parameters.Login,
+                  oRequest.Parameters.Login.split(" ").join(""),
                   oRequest.Parameters.Password,
                 ])
               } else {
