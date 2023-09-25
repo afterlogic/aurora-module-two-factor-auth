@@ -127,14 +127,14 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($oUser && $oUser->isNormalOrTenant()) {
             $bShowRecommendationToConfigure = $this->oModuleSettings->ShowRecommendationToConfigure;
             if ($bShowRecommendationToConfigure) {
-                $bShowRecommendationToConfigure = $oUser->getExtendedProp($this->GetName().'::ShowRecommendationToConfigure');
+                $bShowRecommendationToConfigure = $oUser->getExtendedProp($this->GetName() . '::ShowRecommendationToConfigure');
             }
 
-            $bAuthenticatorAppEnabled = $this->oModuleSettings->AllowAuthenticatorApp && $oUser->getExtendedProp($this->GetName().'::Secret') ? true : false;
+            $bAuthenticatorAppEnabled = $this->oModuleSettings->AllowAuthenticatorApp && $oUser->getExtendedProp($this->GetName() . '::Secret') ? true : false;
             $aWebAuthKeysInfo = $this->oModuleSettings->AllowSecurityKeys ? $this->_getWebAuthKeysInfo($oUser) : [];
             $iBackupCodesCount = 0;
             if ($bAuthenticatorAppEnabled || count($aWebAuthKeysInfo) > 0) {
-                $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName().'::BackupCodes'));
+                $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName() . '::BackupCodes'));
                 $aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
                 $aNotUsedBackupCodes = array_filter($aBackupCodes, function ($sCode) {
                     return !empty($sCode);
@@ -183,7 +183,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 Api::checkUserAccess($oUser);
                 $iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
                 return [
-                    'TwoFactorAuthEnabled' => !empty($oUser->getExtendedProp($this->GetName().'::Secret')) || $iWebAuthnKeyCount > 0
+                    'TwoFactorAuthEnabled' => !empty($oUser->getExtendedProp($this->GetName() . '::Secret')) || $iWebAuthnKeyCount > 0
                 ];
             }
         }
@@ -216,10 +216,10 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($oUser instanceof User && $oUser->isNormalOrTenant()) {
             Api::checkUserAccess($oUser);
 
-            $oUser->setExtendedProp($this->GetName().'::Secret', '');
-            $oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
+            $oUser->setExtendedProp($this->GetName() . '::Secret', '');
+            $oUser->setExtendedProp($this->GetName() . '::IsEncryptedSecret', false);
 
-            $oUser->setExtendedProp($this->GetName().'::Challenge', '');
+            $oUser->setExtendedProp($this->GetName() . '::Challenge', '');
             $aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
             $bResult = true;
@@ -227,8 +227,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $bResult = $bResult && $oWebAuthnKey->delete();
             }
 
-            $oUser->setExtendedProp($this->GetName().'::BackupCodes', '');
-            $oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', '');
+            $oUser->setExtendedProp($this->GetName() . '::BackupCodes', '');
+            $oUser->setExtendedProp($this->GetName() . '::BackupCodesTimestamp', '');
             $bResult = $bResult && \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
             $bResult = $bResult && $this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
@@ -269,9 +269,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $oGoogle = new \PHPGangsta_GoogleAuthenticator();
         $sSecret = '';
-        if ($oUser->getExtendedProp($this->GetName().'::Secret')) {
-            $sSecret = $oUser->getExtendedProp($this->GetName().'::Secret');
-            if ($oUser->getExtendedProp($this->GetName().'::IsEncryptedSecret')) {
+        if ($oUser->getExtendedProp($this->GetName() . '::Secret')) {
+            $sSecret = $oUser->getExtendedProp($this->GetName() . '::Secret');
+            if ($oUser->getExtendedProp($this->GetName() . '::IsEncryptedSecret')) {
                 $sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
             }
         } else {
@@ -280,14 +280,14 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
         $sServerName = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : $_SERVER['HTTP_HOST'];
         if (!empty($sServerName)) {
-            $sServerName = "(" . $sServerName. ")";
+            $sServerName = "(" . $sServerName . ")";
         }
         $sQRCodeName = $oUser->PublicId . $sServerName;
 
         return [
             'Secret' => $sSecret,
             'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
-            'Enabled' => $oUser->getExtendedProp($this->GetName().'::Secret') ? true : false
+            'Enabled' => $oUser->getExtendedProp($this->GetName() . '::Secret') ? true : false
         ];
     }
 
@@ -327,8 +327,8 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $oStatus = $oGoogle->verifyCode($Secret, $Code, $iClockTolerance);
         if ($oStatus === true) {
-            $oUser->setExtendedProp($this->GetName().'::Secret', \Aurora\System\Utils::EncryptValue($Secret));
-            $oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', true);
+            $oUser->setExtendedProp($this->GetName() . '::Secret', \Aurora\System\Utils::EncryptValue($Secret));
+            $oUser->setExtendedProp($this->GetName() . '::IsEncryptedSecret', true);
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             $bResult = true;
         }
@@ -363,8 +363,8 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        $oUser->setExtendedProp($this->GetName().'::Secret', "");
-        $oUser->setExtendedProp($this->GetName().'::IsEncryptedSecret', false);
+        $oUser->setExtendedProp($this->GetName() . '::Secret', "");
+        $oUser->setExtendedProp($this->GetName() . '::IsEncryptedSecret', false);
         $bResult = \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
         $this->_removeAllDataWhenAllSecondFactorsDisabled($oUser);
 
@@ -406,9 +406,9 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
 
         $mResult = false;
-        if ($oUser->getExtendedProp($this->GetName().'::Secret')) {
-            $sSecret = $oUser->getExtendedProp($this->GetName().'::Secret');
-            if ($oUser->getExtendedProp($this->GetName().'::IsEncryptedSecret')) {
+        if ($oUser->getExtendedProp($this->GetName() . '::Secret')) {
+            $sSecret = $oUser->getExtendedProp($this->GetName() . '::Secret');
+            if ($oUser->getExtendedProp($this->GetName() . '::IsEncryptedSecret')) {
                 $sSecret = \Aurora\System\Utils::DecryptValue($sSecret);
             }
             $oGoogle = new \PHPGangsta_GoogleAuthenticator();
@@ -451,9 +451,9 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName().'::BackupCodes'));
+        $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName() . '::BackupCodes'));
         return [
-            'Datetime' => $oUser->getExtendedProp($this->GetName().'::BackupCodesTimestamp'),
+            'Datetime' => $oUser->getExtendedProp($this->GetName() . '::BackupCodesTimestamp'),
             'Codes' => empty($sBackupCodes) ? [] : json_decode($sBackupCodes)
         ];
     }
@@ -494,12 +494,12 @@ class Module extends \Aurora\System\Module\AbstractModule
             ->uppercase()
             ->toArray();
 
-        $oUser->setExtendedProp($this->GetName().'::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aCodes)));
-        $oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', time());
+        $oUser->setExtendedProp($this->GetName() . '::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aCodes)));
+        $oUser->setExtendedProp($this->GetName() . '::BackupCodesTimestamp', time());
         \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
         return [
-            'Datetime' => $oUser->getExtendedProp($this->GetName().'::BackupCodesTimestamp'),
+            'Datetime' => $oUser->getExtendedProp($this->GetName() . '::BackupCodesTimestamp'),
             'Codes' => $aCodes,
         ];
     }
@@ -529,14 +529,14 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
 
         $mResult = false;
-        $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName().'::BackupCodes'));
+        $sBackupCodes = \Aurora\System\Utils::DecryptValue($oUser->getExtendedProp($this->GetName() . '::BackupCodes'));
         $aBackupCodes = empty($sBackupCodes) ? [] : json_decode($sBackupCodes);
         $sTrimmed = preg_replace('/\s+/', '', $BackupCode);
         $sPrepared = substr_replace($sTrimmed, ' ', 4, 0);
         $index = array_search($sPrepared, $aBackupCodes);
         if ($index !== false) {
             $aBackupCodes[$index] = '';
-            $oUser->setExtendedProp($this->GetName().'::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes)));
+            $oUser->setExtendedProp($this->GetName() . '::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes)));
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
         }
@@ -562,7 +562,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                 $bHasAuthenticatorApp = false;
                 if ($this->oModuleSettings->AllowAuthenticatorApp) {
-                    $bHasAuthenticatorApp = !!(!empty($oUser->getExtendedProp($this->GetName().'::Secret')));
+                    $bHasAuthenticatorApp = !!(!empty($oUser->getExtendedProp($this->GetName() . '::Secret')));
                 }
 
                 $bDeviceTrusted = ($bHasAuthenticatorApp || $bHasAuthenticatorApp) ? $this->getUsedDevicesManager()->checkDeviceAfterAuthenticate($oUser) : false;
@@ -572,7 +572,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         'TwoFactorAuth' => [
                             'HasAuthenticatorApp' => $bHasAuthenticatorApp,
                             'HasSecurityKey' => $bHasSecurityKey,
-                            'HasBackupCodes' => $this->oModuleSettings->AllowBackupCodes && !empty($oUser->getExtendedProp($this->GetName().'::BackupCodes'))
+                            'HasBackupCodes' => $this->oModuleSettings->AllowBackupCodes && !empty($oUser->getExtendedProp($this->GetName() . '::BackupCodes'))
                         ]
                     ];
                 }
@@ -620,7 +620,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $oCreateArgs->publicKey->user->id = \base64_encode($oCreateArgs->publicKey->user->id->getBinaryString());
         $oCreateArgs->publicKey->challenge = \base64_encode($oCreateArgs->publicKey->challenge->getBinaryString());
-        $oUser->setExtendedProp($this->GetName().'::Challenge', $oCreateArgs->publicKey->challenge);
+        $oUser->setExtendedProp($this->GetName() . '::Challenge', $oCreateArgs->publicKey->challenge);
         $oUser->save();
 
         return $oCreateArgs;
@@ -658,7 +658,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $data = $this->oWebAuthn->processCreate(
             \base64_decode($Attestation['clientDataJSON']),
             \base64_decode($Attestation['attestationObject']),
-            \base64_decode($oUser->getExtendedProp($this->GetName().'::Challenge')),
+            \base64_decode($oUser->getExtendedProp($this->GetName() . '::Challenge')),
             false
         );
         $data->credentialId = \base64_encode($data->credentialId);
@@ -731,7 +731,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                 }
             }
 
-            $oUser->setExtendedProp($this->GetName().'::Challenge', $mGetArgs->publicKey->challenge);
+            $oUser->setExtendedProp($this->GetName() . '::Challenge', $mGetArgs->publicKey->challenge);
             $oUser->save();
         }
 
@@ -774,7 +774,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $id = base64_decode($Attestation['id']);
         $credentialPublicKey = null;
 
-        $challenge = \base64_decode($oUser->getExtendedProp($this->GetName().'::Challenge'));
+        $challenge = \base64_decode($oUser->getExtendedProp($this->GetName() . '::Challenge'));
 
         $aWebAuthnKeys = WebAuthnKey::where('UserId', $oUser->Id)->get();
 
@@ -923,7 +923,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         } catch (\Exception $oEx) {
             $sError = $oEx->getCode() . ': ' . $oEx->getMessage();
         }
-        $sResult = \file_get_contents($this->GetPath().'/templates/EntryVerifySecurityKey.html');
+        $sResult = \file_get_contents($this->GetPath() . '/templates/EntryVerifySecurityKey.html');
         $sResult = \strtr($sResult, array(
             '{{GetArgs}}' => \Aurora\System\Managers\Response::GetJsonFromObject(null, $oGetArgs),
             '{{PackageName}}' => $sPackageName,
@@ -1139,9 +1139,9 @@ class Module extends \Aurora\System\Module\AbstractModule
     protected function _removeAllDataWhenAllSecondFactorsDisabled($oUser)
     {
         $iWebAuthnKeyCount = WebAuthnKey::where('UserId', $oUser->Id)->count();
-        if (empty($oUser->getExtendedProp($this->GetName().'::Secret')) && $iWebAuthnKeyCount === 0) {
-            $oUser->setExtendedProp($this->GetName().'::BackupCodes', '');
-            $oUser->setExtendedProp($this->GetName().'::BackupCodesTimestamp', '');
+        if (empty($oUser->getExtendedProp($this->GetName() . '::Secret')) && $iWebAuthnKeyCount === 0) {
+            $oUser->setExtendedProp($this->GetName() . '::BackupCodes', '');
+            $oUser->setExtendedProp($this->GetName() . '::BackupCodesTimestamp', '');
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
 
             $this->getUsedDevicesManager()->revokeTrustFromAllDevices($oUser);
