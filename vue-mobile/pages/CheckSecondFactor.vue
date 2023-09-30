@@ -40,7 +40,9 @@
 <script>
 import VueCookies from 'vue-cookies'
 
-import store from 'src/store'
+import { useCoreStore } from 'src/stores/index-pinia'
+const coreStore = useCoreStore()
+
 import MethodChoose from '../components/MethodChoose'
 import TrustDevice from '../components/TrustDevice'
 import VerificationForm from '../components/VerificationForm'
@@ -151,7 +153,7 @@ export default {
         }
         this.authToken = confirmedTwoFactorToken
         if (confirmedTwoFactorToken && !this.allowTrustedDevices) {
-          await store.dispatch('core/setAuthToken', this.authToken)
+          await coreStore.setAuthToken(this.authToken)
         }
       } catch (err) {
         console.error(err)
@@ -167,7 +169,7 @@ export default {
     async onContinue() {
       this.loading = true
       try {
-        if (!this.trustDevice) await store.dispatch('core/setAuthToken', this.authToken)
+        if (!this.trustDevice) await coreStore.setAuthToken(this.authToken)
         else {
           const uuid = VueCookies.get('DeviceId')
           const deviceName = window.navigator.userAgent
@@ -180,7 +182,7 @@ export default {
           }
           const res = await this.trustTheDevice(data)
 
-          if (res) await store.dispatch('core/setAuthToken', this.authToken)
+          if (res) await coreStore.setAuthToken(this.authToken)
         }
       } catch (err) {
         console.error(err)

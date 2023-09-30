@@ -37,6 +37,3 @@ export default {
   emits: ["continue", 'update:trustDevice'],
 }
 </script>
-
-<style lang="scss" scoped>
-</style>

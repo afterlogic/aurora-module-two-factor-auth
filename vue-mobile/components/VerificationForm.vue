@@ -62,6 +62,3 @@ export default {
   emits: ["verifyCode", "changeMethod", 'update:verificationCode', 'update:backupCode'],
 }
 </script>
-
-<style lang="scss" scoped>
-</style>

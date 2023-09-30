@@ -27,6 +27,3 @@ export default {
   emits: ["chooseMethod"],
 }
 </script>
-
-<style lang="scss" scoped>
-</style>
