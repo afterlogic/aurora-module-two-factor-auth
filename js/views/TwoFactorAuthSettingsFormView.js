@@ -30,6 +30,8 @@ const CDeviceModel = require('modules/%ModuleName%/js/models/CDeviceModel.js'),
 function CTwoFactorAuthSettingsFormView() {
   CAbstractSettingsFormView.call(this, Settings.ServerModuleName)
 
+  this.subPage = ko.observable(false)
+
   this.visibleHeading = ko.observable(true) // Can be changed by SecuritySettingsWebclient module
 
   this.showRecommendationToConfigure = ko.observable(Settings.ShowRecommendationToConfigure)
@@ -58,12 +60,14 @@ function CTwoFactorAuthSettingsFormView() {
   this.sEditVerificator = ''
   this.passwordVerified = ko.observable(false)
 
+  this.passwordVerified.subscribe(function (v) {
+    this.subPage(!!v)
+  }, this)
+
   this.allowBackupCodes = ko.computed(function () {
     return (
-      Settings.AllowBackupCodes &&
-      (this.hasAuthenticatorApp() || this.securityKeys().length > 0) &&
-      this.passwordVerified()
-    )
+      Settings.AllowBackupCodes
+      && (this.hasAuthenticatorApp() || this.securityKeys().length > 0) && this.passwordVerified())
   }, this)
 
   this.devices = ko.observableArray([])
