@@ -8,15 +8,15 @@
         {{ $t('TWOFACTORAUTH.INFO_TWA_VERIFICATION') }}
       </p>
       <div class="q-mt-lg">
-        <method-choose v-if="isMethodChoosing" @chooseMethod="onChooseMethod" />
-        <trust-device
+        <MethodChoose v-if="isMethodChoosing" @chooseMethod="onChooseMethod" />
+        <TrustDevice
           v-else-if="isTrustDeviceShow"
           v-model:trust-device="trustDevice"
           :trust-devices-for-days="trustDevicesForDays"
           :loading="loading"
           @continue="onContinue"
         />
-        <verification-form
+        <VerificationForm
           v-else
           v-model:verification-code="verificationCode"
           v-model:backup-code="backupCode"
@@ -53,6 +53,12 @@ import twoFactorWebApi from '../two-factor-web-api'
 export default {
   name: 'CheckSecondFactor',
 
+  components: {
+    MethodChoose,
+    TrustDevice,
+    VerificationForm,
+  },
+
   props: {
     login: {
       type: String,
@@ -69,12 +75,6 @@ export default {
   },
 
   emits: ["backToLogin"],
-
-  components: {
-    MethodChoose,
-    TrustDevice,
-    VerificationForm,
-  },
 
   data: () => ({
     loading: false,
