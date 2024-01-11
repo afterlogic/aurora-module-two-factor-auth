@@ -14,7 +14,7 @@ class AlterUsedDevicesTableAddDeviceCustomNameColumn extends Migration
     public function up()
     {
         Capsule::schema()->table('security_used_devices', function (Blueprint $table) {
-            $table->string('DeviceCustomName', 255)->default('')->after('DeviceName')->create();
+            $table->string('DeviceCustomName', 255)->default('')->after('DeviceName');
         });
     }
 
