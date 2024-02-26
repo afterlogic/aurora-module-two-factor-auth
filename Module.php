@@ -1191,8 +1191,10 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
-            if ($deviceId) {
-                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, '', $mResult['AuthToken']);
+            if ($deviceId && is_string($deviceId)) {
+                $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
+                $sFallbackName = explode(' ', $sFallbackName)[0];
+                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult['AuthToken']);
             }
         }
     }
