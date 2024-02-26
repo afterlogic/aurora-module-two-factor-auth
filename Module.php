@@ -1193,7 +1193,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId && is_string($deviceId)) {
                 $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
-                $sFallbackName = explode(' ', $sFallbackName)[0];
+                $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
                 $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult['AuthToken']);
             }
         }
