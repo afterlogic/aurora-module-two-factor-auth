@@ -102,7 +102,9 @@ CTwoFactorAuthSettingsFormView.prototype.clearAll = function () {
   this.sEditVerificator = ''
   this.passwordVerified(false)
   this.populateSettings()
-  this.getUsedDevices()
+  if (this.AllowUsedDevices) {
+    this.getUsedDevices()
+  }
 }
 
 CTwoFactorAuthSettingsFormView.prototype.populateSettings = function () {

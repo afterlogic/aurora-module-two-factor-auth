@@ -17,6 +17,6 @@ module.exports = {
       DeviceId: App.getCurrentDeviceId(),
       DeviceName: DeviceUtils.getName(),
     }
-    Ajax.send('%ModuleName%', 'SaveDevice', parameters, callback, this, null, authToken)
+    Ajax.send('%ModuleName%', 'SetDeviceName', parameters, callback, this, null, authToken)
   },
 }

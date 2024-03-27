@@ -276,7 +276,6 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
         } else {
             $sSecret = $oGoogle->createSecret();
-            ;
         }
         $sServerName = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : $_SERVER['HTTP_HOST'];
         if (!empty($sServerName)) {
@@ -993,12 +992,18 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
+        if (!is_string($DeviceId) && count($DeviceId) < 4 && empty($DeviceName)) {
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+        }
+
+        $mResult = false;
+
         if ($this->oModuleSettings->AllowUsedDevices) {
             $oUser = Api::getAuthenticatedUser();
-            return $this->getUsedDevicesManager()->setDeviceName($oUser->Id, $DeviceId, $DeviceName);
-        } else {
-            return false;
+            $mResult = $this->getUsedDevicesManager()->setDeviceName($oUser->Id, $DeviceId, $DeviceName);
         }
+
+        return $mResult;
     }
 
     /**
@@ -1011,12 +1016,18 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
+        if (!is_string($DeviceId) && count($DeviceId) < 4 && empty($DeviceCustomName)) {
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::InvalidInputParameter);
+        }
+
+        $mResult = false;
+
         if ($this->oModuleSettings->AllowUsedDevices) {
             $oUser = Api::getAuthenticatedUser();
-            return $this->getUsedDevicesManager()->setDeviceCustomName($oUser->Id, $DeviceId, $DeviceCustomName);
-        } else {
-            return false;
+            $mResult = $this->getUsedDevicesManager()->setDeviceCustomName($oUser->Id, $DeviceId, $DeviceCustomName);
         }
+
+        return $mResult;
     }
 
     public function GetUsedDevices()
@@ -1180,8 +1191,10 @@ class Module extends \Aurora\System\Module\AbstractModule
     {
         if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
-            if ($deviceId) {
-                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, '', $mResult['AuthToken']);
+            if ($deviceId && is_string($deviceId)) {
+                $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
+                $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
+                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult['AuthToken']);
             }
         }
     }
