@@ -285,7 +285,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         return [
             'Secret' => $sSecret,
-            'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
+            'QRCodeName' => $sQRCodeName,
             'Enabled' => $oUser->getExtendedProp($this->GetName() . '::Secret') ? true : false
         ];
     }
