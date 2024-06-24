@@ -956,22 +956,23 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function TrustDevice($DeviceId, $DeviceName)
     {
-        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if (!$this->oModuleSettings->AllowUsedDevices) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        if (!Api::validateAuthToken()) {
+        $authToken = Api::getAuthTokenFromHeaders();
+        if (!Api::validateAuthToken($authToken)) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
         }
 
-        $oUser = Api::getAuthenticatedUser(Api::getAuthToken());
+        $oUser = Api::getAuthenticatedUser($authToken);
         if (!($oUser instanceof User) || !$oUser->isNormalOrTenant()) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());
+        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, $authToken);
     }
 
     /**
