@@ -415,6 +415,11 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oStatus = $oGoogle->verifyCode($sSecret, $Code, $iClockTolerance);
             if ($oStatus) {
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
+                $sXClientHeader = $this->oHttp->GetHeader('X-Client');
+                if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
+                    unset($mResult['AuthToken']);
+                }
             }
         } else {
             throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
@@ -538,6 +543,11 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oUser->setExtendedProp($this->GetName() . '::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes)));
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
+            $sXClientHeader = $this->oHttp->GetHeader('X-Client');
+            if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
+                unset($mResult['AuthToken']);
+            }
         }
         return $mResult;
     }
@@ -792,6 +802,12 @@ class Module extends \Aurora\System\Module\AbstractModule
                 // process the get request. throws WebAuthnException if it fails
                 $this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
+                $sXClientHeader = $this->oHttp->GetHeader('X-Client');
+                if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
+                    unset($mResult['AuthToken']);
+                }
+
                 if (isset($oWebAuthnKey)) {
                     $oWebAuthnKey->LastUsageDateTime = time();
                     $oWebAuthnKey->save();
