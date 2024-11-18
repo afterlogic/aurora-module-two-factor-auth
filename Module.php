@@ -1194,12 +1194,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onAfterSetAuthDataAndGetAuthToken(&$aArgs, &$mResult)
     {
-        if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
+        if (is_array($mResult) && isset($mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]) && $this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId && is_string($deviceId)) {
                 $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
                 $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
-                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult['AuthToken']);
+                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]);
+            } else {
+                throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
             }
         }
     }
