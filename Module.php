@@ -416,10 +416,6 @@ class Module extends \Aurora\System\Module\AbstractModule
             if ($oStatus) {
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 
-                $sXClientHeader = $this->oHttp->GetHeader('X-Client');
-                if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
-                    unset($mResult['AuthToken']);
-                }
             }
         } else {
             throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
@@ -544,10 +540,6 @@ class Module extends \Aurora\System\Module\AbstractModule
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 
-            $sXClientHeader = $this->oHttp->GetHeader('X-Client');
-            if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
-                unset($mResult['AuthToken']);
-            }
         }
         return $mResult;
     }
@@ -803,10 +795,6 @@ class Module extends \Aurora\System\Module\AbstractModule
                 $this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
 
-                $sXClientHeader = $this->oHttp->GetHeader('X-Client');
-                if ($mResult && isset($mResult['AuthToken']) && strtolower($sXClientHeader) === 'webclient') {
-                    unset($mResult['AuthToken']);
-                }
 
                 if (isset($oWebAuthnKey)) {
                     $oWebAuthnKey->LastUsageDateTime = time();
