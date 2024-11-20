@@ -966,10 +966,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        $authToken = Api::getAuthTokenFromHeaders();
-        if (!Api::validateAuthToken($authToken)) {
-            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
-        }
+        $authToken = Api::getAuthToken();
 
         $oUser = Api::getAuthenticatedUser($authToken);
         if (!($oUser instanceof User) || !$oUser->isNormalOrTenant()) {
