@@ -175,7 +175,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function GetUserSettings($UserId)
     {
-        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if ($this->oModuleSettings->AllowAuthenticatorApp) {
             $oUser = Api::getUserById($UserId);
