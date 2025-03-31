@@ -418,7 +418,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
             }
         } else {
-            throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+            throw new \Aurora\System\Exceptions\ApiException(Enums\ErrorCodes::SecretNotSet);
         }
 
         return $mResult;
