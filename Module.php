@@ -378,7 +378,6 @@ class Module extends \Aurora\System\Module\AbstractModule
      * @param string $Password
      * @return bool|array
      * @throws \Aurora\System\Exceptions\ApiException
-     * @throws \Aurora\System\Exceptions\BaseException
      */
     public function VerifyAuthenticatorAppCode($Code, $Login, $Password)
     {
