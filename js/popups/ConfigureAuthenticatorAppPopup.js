@@ -11,7 +11,9 @@ var
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Api = require('%PathToCoreWebclientModule%/js/Api.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js')
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+
+	QRcode = require('modules/%ModuleName%/js/vendors/qr.js')
 ;
 
 /**
@@ -65,17 +67,23 @@ CConfigureAuthenticatorAppPopup.prototype.getAuthenticatorAppData = function ()
 
 CConfigureAuthenticatorAppPopup.prototype.onRegisterAuthenticatorAppBeginResponse = function (oResponse)
 {
-	var oResult = oResponse && oResponse.Result;
+	const oResult = oResponse && oResponse.Result
 
-	if(oResult && oResult.Secret && oResult.QRcode)
+	if(oResult && oResult.Secret && oResult.QRCodeName)
 	{
-		this.authenticatorQRCodeUrl(oResult.QRcode);
-		this.authenticatorSecret(oResult.Secret);
-		this.authenticatorCodeFocus(true);
+		const data = `otpauth://totp/${oResult.QRCodeName}?secret=${oResult.Secret}`
+		
+		this.authenticatorQRCodeUrl(QRcode.generatePNG(data, {
+			margin: 0,
+			modulesize: 6,
+		}))
+
+		this.authenticatorSecret(oResult.Secret)
+		this.authenticatorCodeFocus(true)
 	}
 	else
 	{
-		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_WRONG_PASSWORD'));
+		Api.showErrorByCode(oResponse, TextUtils.i18n('%MODULENAME%/ERROR_SECRET_GENERATION_FAILED'))
 	}
 };
 

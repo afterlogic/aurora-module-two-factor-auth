@@ -175,7 +175,7 @@ class Module extends \Aurora\System\Module\AbstractModule
      */
     public function GetUserSettings($UserId)
     {
-        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::TenantAdmin);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if ($this->oModuleSettings->AllowAuthenticatorApp) {
             $oUser = Api::getUserById($UserId);
@@ -285,7 +285,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         return [
             'Secret' => $sSecret,
-            'QRcode' => $oGoogle->getQRCodeGoogleUrl($sQRCodeName, $sSecret),
+            'QRCodeName' => $sQRCodeName,
             'Enabled' => $oUser->getExtendedProp($this->GetName() . '::Secret') ? true : false
         ];
     }
@@ -378,7 +378,6 @@ class Module extends \Aurora\System\Module\AbstractModule
      * @param string $Password
      * @return bool|array
      * @throws \Aurora\System\Exceptions\ApiException
-     * @throws \Aurora\System\Exceptions\BaseException
      */
     public function VerifyAuthenticatorAppCode($Code, $Login, $Password)
     {
@@ -415,9 +414,10 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oStatus = $oGoogle->verifyCode($sSecret, $Code, $iClockTolerance);
             if ($oStatus) {
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
             }
         } else {
-            throw new \Aurora\System\Exceptions\BaseException(Enums\ErrorCodes::SecretNotSet);
+            throw new \Aurora\System\Exceptions\ApiException(Enums\ErrorCodes::SecretNotSet);
         }
 
         return $mResult;
@@ -538,6 +538,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             $oUser->setExtendedProp($this->GetName() . '::BackupCodes', \Aurora\System\Utils::EncryptValue(json_encode($aBackupCodes)));
             \Aurora\Modules\Core\Module::Decorator()->UpdateUserObject($oUser);
             $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
         }
         return $mResult;
     }
@@ -792,6 +793,8 @@ class Module extends \Aurora\System\Module\AbstractModule
                 // process the get request. throws WebAuthnException if it fails
                 $this->oWebAuthn->processGet($clientDataJSON, $authenticatorData, $signature, $credentialPublicKey, $challenge, null, false);
                 $mResult = \Aurora\Modules\Core\Module::Decorator()->SetAuthDataAndGetAuthToken($mAuthenticateResult);
+
+
                 if (isset($oWebAuthnKey)) {
                     $oWebAuthnKey->LastUsageDateTime = time();
                     $oWebAuthnKey->save();
@@ -956,22 +959,20 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function TrustDevice($DeviceId, $DeviceName)
     {
-        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         if (!$this->oModuleSettings->AllowUsedDevices) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        if (!Api::validateAuthToken()) {
-            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
-        }
+        $authToken = Api::getAuthToken();
 
-        $oUser = Api::getAuthenticatedUser(Api::getAuthToken());
+        $oUser = Api::getAuthenticatedUser($authToken);
         if (!($oUser instanceof User) || !$oUser->isNormalOrTenant()) {
             throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
         }
 
-        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, Api::getAuthToken());
+        return $this->getUsedDevicesManager()->trustDevice($oUser->Id, $DeviceId, $DeviceName, $authToken);
     }
 
     /**
@@ -1189,12 +1190,14 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function onAfterSetAuthDataAndGetAuthToken(&$aArgs, &$mResult)
     {
-        if (is_array($mResult) && isset($mResult['AuthToken']) && $this->oModuleSettings->AllowUsedDevices) {
+        if (is_array($mResult) && isset($mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]) && $this->oModuleSettings->AllowUsedDevices) {
             $deviceId = Api::getDeviceIdFromHeaders();
             if ($deviceId && is_string($deviceId)) {
                 $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
                 $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
-                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult['AuthToken']);
+                $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]);
+            } else {
+                throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
             }
         }
     }
