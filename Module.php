@@ -144,6 +144,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
             $aSettings = array_merge($aSettings, [
                 'ShowRecommendationToConfigure' => $bShowRecommendationToConfigure,
+                'MandatoryToConfigure' => $this->oModuleSettings->MandatoryToConfigure,
                 'WebAuthKeysInfo' => $aWebAuthKeysInfo,
                 'AuthenticatorAppEnabled' => $bAuthenticatorAppEnabled,
                 'BackupCodesCount' => $iBackupCodesCount,

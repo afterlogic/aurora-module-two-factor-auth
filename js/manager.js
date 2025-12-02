@@ -37,7 +37,18 @@ module.exports = function (oAppData) {
         }
       }
 
-      if (App.getUserRole() === Enums.UserRole.Anonymous) {
+      if (App.isUserNormalOrTenant()) {
+        // display popup if MandatoryToConfigure is set to true
+        if (Settings.MandatoryToConfigure) {
+          var
+            Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+            MandatoryPopup = require('modules/%ModuleName%/js/popups/MandatoryPopup.js')
+
+          if (!MandatoryPopup.SettingView.isEnabledTwoFactorAuth()) {
+            Popups.showPopup(MandatoryPopup)
+          }
+        }
+      } else if (App.getUserRole() === Enums.UserRole.Anonymous) {
         var onAfterlLoginFormConstructView = function (oParams) {
           var oLoginScreenView = oParams.View,
             Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),

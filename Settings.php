@@ -12,6 +12,7 @@ use Aurora\System\SettingsProperty;
 /**
  * @property bool $Disabled
  * @property bool $ShowRecommendationToConfigure
+ * @property bool $MandatoryToConfigure
  * @property bool $AllowSecurityKeys
  * @property array $FacetIds
  * @property bool $AllowAuthenticatorApp
@@ -40,6 +41,12 @@ class Settings extends \Aurora\System\Module\Settings
                 "bool",
                 null,
                 "If true, users will get a message suggesting to enable 2FA if it's not enabled in their accounts yet",
+            ),
+            "MandatoryToConfigure" => new SettingsProperty(
+                false,
+                "bool",
+                null,
+                "If true, users will see a configuration dialog with and configuration of 2FA became mandatory",
             ),
             "AllowSecurityKeys" => new SettingsProperty(
                 false,
