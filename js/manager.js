@@ -69,7 +69,12 @@ module.exports = function (oAppData) {
 
               //if TwoFactorAuth enabled - trying to verify user token
               var oTwoFactorAuthData = oResponse.Result && oResponse.Result.TwoFactorAuth
-              if (oTwoFactorAuthData) {
+              // var Popups = require('%PathToCoreWebclientModule%/js/Popups.js')
+              // if (Settings.MandatoryToConfigure && !MandatoryPopup.SettingView.isEnabledTwoFactorAuth()) {
+              if (oResponse?.Result?.TwoFactorAuth?.MandatoryToConfigure) {
+                var MandatoryPopup = require('modules/%ModuleName%/js/popups/MandatoryPopup.js')
+                Popups.showPopup(MandatoryPopup, [oResponse?.Result?.TwoFactorAuth?.UserToken])
+              } else if (oTwoFactorAuthData) {
                 Popups.showPopup(VerifySecondFactorPopup, [
                   fOldOnSystemLoginResponse,
                   _.bind(function () {

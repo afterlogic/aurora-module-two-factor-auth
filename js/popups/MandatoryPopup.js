@@ -11,11 +11,11 @@ var
  */
 function CMandatoryPopup()
 {
-	CAbstractPopup.call(this);
+	CAbstractPopup.call(this)
+
+	this.sUserToken = ''
 
 	this.SettingView = require('modules/%ModuleName%/js/views/TwoFactorAuthSettingsFormView.js')
-	this.SettingView.subPage(false)
-
 
 	this.SettingView.isEnabledTwoFactorAuth.subscribe(function (v) {
 		if (v) {
@@ -24,13 +24,16 @@ function CMandatoryPopup()
 	}, this)
 }
 
-_.extendOwn(CMandatoryPopup.prototype, CAbstractPopup.prototype);
+_.extendOwn(CMandatoryPopup.prototype, CAbstractPopup.prototype)
 
-CMandatoryPopup.prototype.PopupTemplate = '%ModuleName%_MandatoryPopup';
+CMandatoryPopup.prototype.PopupTemplate = '%ModuleName%_MandatoryPopup'
 
-CMandatoryPopup.prototype.onOpen = function (sEditVerificator, fSuccessCallback)
+CMandatoryPopup.prototype.onOpen = function (sUserToken)
 {
-	this.SettingView.clearAll();
-};
+	this.SettingView.subPage(false)
+	this.SettingView.bNeedReloginAfterSetup = true
+	this.SettingView.userToken(sUserToken || '')
+	this.SettingView.clearAll()
+}
 
-module.exports = new CMandatoryPopup();
+module.exports = new CMandatoryPopup()
