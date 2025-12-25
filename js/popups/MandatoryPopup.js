@@ -37,4 +37,8 @@ CMandatoryPopup.prototype.onOpen = function (sUserToken)
 	this.SettingView.userToken(sUserToken || '')
 }
 
+CMandatoryPopup.prototype.onEscHandler = function ()
+{
+}
+
 module.exports = new CMandatoryPopup()
