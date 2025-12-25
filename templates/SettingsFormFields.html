@@ -122,7 +122,7 @@
         <span class="button" data-bind="click: setupAuthenticatorApp, visible: hasAuthenticatorApp">
           <span data-bind="i18n: {'key': '%MODULENAME%/ACTION_CONFIGURE'}"></span>
         </span>
-        <span class="button" data-bind="click: askDisableAuthenticatorApp, visible: hasAuthenticatorApp()">
+        <span class="button" data-bind="click: askDisableAuthenticatorApp, visible: hasAuthenticatorApp() && (!bMandatoryToConfigure || (bAllowSecurityKeys && securityKeys().length > 0))">
           <span data-bind="i18n: {'key': '%MODULENAME%/ACTION_DISABLE'}"></span>
         </span>
       </div>

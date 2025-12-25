@@ -32,8 +32,9 @@ CMandatoryPopup.prototype.onOpen = function (sUserToken)
 {
 	this.SettingView.subPage(false)
 	this.SettingView.bNeedReloginAfterSetup = true
-	this.SettingView.userToken(sUserToken || '')
+	this.SettingView.bWatchUserActivity = false
 	this.SettingView.clearAll()
+	this.SettingView.userToken(sUserToken || '')
 }
 
 module.exports = new CMandatoryPopup()
