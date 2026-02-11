@@ -73,14 +73,14 @@ function CTwoFactorAuthSettingsFormView() {
     this.subPage(!!v)
 
     if (v) {
-      $('body').on('click', this.updateActivityTimerBind)
+      $('body').on('click keyup', this.updateActivityTimerBind)
     } else {
       CreateSecurityKeyPopup.closePopup()
       EditSecurityKeyPopup.closePopup()
       ConfigureAuthenticatorAppPopup.closePopup()
       ShowBackupCodesPopup.closePopup()
 
-      $('body').off('click', this.updateActivityTimerBind)
+      $('body').off('click keyup', this.updateActivityTimerBind)
     }
   }, this)
 
@@ -124,7 +124,7 @@ CTwoFactorAuthSettingsFormView.prototype.updateActivityTimer = function () {
     
     this.userActivityTimer = setTimeout(_.bind(function () {
       this.clearAll()
-    }, this), 10000)
+    }, this), Settings.UserActivityTimeout * 1000)
   }
 }
 

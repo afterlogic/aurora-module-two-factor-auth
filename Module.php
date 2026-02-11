@@ -122,6 +122,7 @@ class Module extends \Aurora\System\Module\AbstractModule
             'AllowUsedDevices' => $bAllowUsedDevices,
             'TrustDevicesForDays' => $bAllowUsedDevices ? $this->oModuleSettings->TrustDevicesForDays : 0,
             'MandatoryToConfigure' => $this->oModuleSettings->MandatoryToConfigure,
+            'UserActivityTimeoutSeconds' => $this->oModuleSettings->UserActivityTimeoutSeconds,
         ];
 
         $oUser = Api::getAuthenticatedUser();
