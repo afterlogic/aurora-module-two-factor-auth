@@ -14,6 +14,7 @@ use Aurora\System\Api;
 use PragmaRX\Recovery\Recovery;
 use lbuchs\WebAuthn;
 use Aurora\Modules\Core\Module as CoreModule;
+use Aurora\System\Facades\Route;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -61,11 +62,12 @@ class Module extends \Aurora\System\Module\AbstractModule
 
     public function init()
     {
-        \Aurora\System\Router::getInstance()->registerArray(
-            self::GetName(),
+
+        Route::add(
+            $this,
             [
-                'assetlinks' => [$this, 'EntryAssetlinks'],
-                'verify-security-key' => [$this, 'EntryVerifySecurityKey'],
+                'assetlinks' => 'EntryAssetlinks',
+                'verify-security-key' => 'EntryVerifySecurityKey',
             ]
         );
 
