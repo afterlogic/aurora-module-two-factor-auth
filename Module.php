@@ -1038,14 +1038,6 @@ class Module extends \Aurora\System\Module\AbstractModule
     }
 
     /**
-     * @deprecated since version 9.7.2. Use SetDeviceName instead.
-     */
-    public function SaveDevice($DeviceId, $DeviceName)
-    {
-        return $this->Decorator()->SetDeviceName($DeviceId, $DeviceName);
-    }
-
-    /**
      * @param string $DeviceId
      * @param string $DeviceName
      *
