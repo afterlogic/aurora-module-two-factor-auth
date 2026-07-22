@@ -1,5 +1,5 @@
 <template>
-  <div class="full-width">
+  <div class="full-width" data-test-id="login-2fa">
     <div class="text-center two-factor full-width">
       <p class="text-weight-medium two-factor__heading">
         {{ $t('TWOFACTORAUTH.HEADING_TWA_VERIFICATION') }}
@@ -31,7 +31,11 @@
     </div>
   </div>
   <div class="q-pb-xl text-center">
-    <a href="javascript:void(0)" @click.prevent="onBackToLogin">
+    <a
+      data-test-id="login-2fa-back"
+      href="javascript:void(0)"
+      @click.prevent="onBackToLogin"
+    >
       {{ $t('TWOFACTORAUTH.ACTION_BACK_TO_LOGIN') }}
     </a>
   </div>
