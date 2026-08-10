@@ -47,7 +47,7 @@ class Settings extends \Aurora\System\Module\Settings
                 false,
                 "bool",
                 null,
-                "If true, users will see a configuration dialog with and configuration of 2FA became mandatory",
+                "If true, users will see a configuration dialog and 2FA setup will be enforced as mandatory",
             ),
             "UserActivityTimeoutSeconds" => new SettingsProperty(
                 30,
