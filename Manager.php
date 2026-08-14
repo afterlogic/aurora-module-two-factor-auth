@@ -68,8 +68,9 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
     public function getDeviceByAuthToken($iUserId, $sAuthToken)
     {
+        $sTokenHash = hash('sha256', $sAuthToken);
         return UsedDevice::where('UserId', $iUserId)
-            ->where('AuthToken', $sAuthToken)
+            ->where('AuthTokenHash', $sTokenHash)
             ->first();
     }
 
@@ -108,6 +109,11 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             $oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime;
         }
 
+        if (!empty($sAuthToken)) {
+            $oUsedDevice->AuthTokenHash = hash('sha256', $sAuthToken);
+            $oUsedDevice->AuthTokenRaw = $sAuthToken;
+        }
+
         return $oUsedDevice->save();
     }
 
@@ -144,12 +150,10 @@ class Manager extends \Aurora\System\Managers\AbstractManager
             if (!empty($sDeviceName)) {
                 $oUsedDevice->DeviceName = $sDeviceName;
             }
-            // $_SERVER['REMOTE_ADDR'] may not actually contain real client IP addresses, as it will give you a proxy address for clients connected through a proxy, for example.
-            // But the client can set all HTTP header information (ie. $_SERVER['HTTP_CLIENT_IP'], $_SERVER['HTTP_X_FORWARDED_FOR']) to any arbitrary value it wants, so we cannot rely on them.
             $oUsedDevice->DeviceIP = $_SERVER['REMOTE_ADDR'];
         }
 
-        $oUsedDevice->AuthToken = $sAuthToken;
+        $oUsedDevice->AuthTokenHash = empty($sAuthToken) ? '' : hash('sha256', $sAuthToken);
         $oUsedDevice->LastUsageDateTime = time();
 
         return $oUsedDevice->save();

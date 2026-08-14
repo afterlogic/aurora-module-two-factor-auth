@@ -22,7 +22,8 @@ use Aurora\Modules\Core\Models\User;
  * @property string $DeviceId
  * @property string $DeviceName
  * @property string $DeviceCustomName
- * @property string $AuthToken
+ * @property string $AuthTokenHash
+ * @property string|null $AuthTokenRaw
  * @property integer $CreationDateTime
  * @property integer $LastUsageDateTime
  * @property integer $TrustTillDateTime
@@ -39,7 +40,7 @@ use Aurora\Modules\Core\Models\User;
  * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice newQuery()
  * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice query()
  * @method static \Illuminate\Database\Eloquent\Builder|\Aurora\Modules\TwoFactorAuth\Models\UsedDevice where(Closure|string|array|\Illuminate\Database\Query\Expression $column, mixed $operator = null, mixed $value = null, string $boolean = 'and')
- * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice whereAuthToken($value)
+ * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice whereAuthTokenHash($value)
  * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice whereCreatedAt($value)
  * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice whereCreationDateTime($value)
  * @method static \Illuminate\Database\Eloquent\Builder|UsedDevice whereDeviceIP($value)
@@ -65,7 +66,8 @@ class UsedDevice extends Model
         'DeviceId',
         'DeviceName',
         'DeviceCustomName',
-        'AuthToken',
+        'AuthTokenHash',
+        'AuthTokenRaw',
         'CreationDateTime',
         'LastUsageDateTime',
         'TrustTillDateTime',
@@ -77,13 +79,15 @@ class UsedDevice extends Model
         $aResponse = parent::toResponseArray();
         $aResponse['Authenticated'] = false;
         if (\Aurora\Api::GetSettings()->StoreAuthTokenInDB) {
-            if (!empty($aResponse['AuthToken']) && !empty(\Aurora\System\Api::UserSession()->Get($aResponse['AuthToken']))) {
+            // If AuthTokenRaw is set (during active request), verify via UserSession
+            $sAuthToken = !empty($this->AuthTokenRaw) ? $this->AuthTokenRaw : null;
+            if ($sAuthToken && !empty(\Aurora\System\Api::UserSession()->Get($sAuthToken))) {
                 $aResponse['Authenticated'] = true;
             }
-        } elseif (!empty($aResponse['AuthToken'])) {
+        } elseif (!empty($aResponse['AuthTokenHash'])) {
             $aResponse['Authenticated'] = true;
         }
-        unset($aResponse['AuthToken']);
+        unset($aResponse['AuthTokenHash'], $aResponse['AuthTokenRaw']);
         return $aResponse;
     }
 }

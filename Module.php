@@ -1127,7 +1127,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         if ($oUser instanceof User && $oUser->isNormalOrTenant()) {
             $oUsedDevice = $this->getUsedDevicesManager()->getDeviceByAuthToken($oUser->Id, Api::getAuthToken());
             if ($oUsedDevice) {
-                $oUsedDevice->AuthToken = '';
+                $oUsedDevice->AuthTokenHash = '';
                 $oUsedDevice->save();
             }
         }
