@@ -1151,9 +1151,9 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
 
         $oUsedDevice = $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
-        if ($oUsedDevice && !empty($oUsedDevice->AuthToken)) {
-            Api::UserSession()->Delete($oUsedDevice->AuthToken);
-            $oUsedDevice->AuthToken = '';
+        if ($oUsedDevice && !empty($oUsedDevice->AuthTokenHash)) {
+            Api::UserSession()->DeleteByTokenHash($oUsedDevice->AuthTokenHash);
+            $oUsedDevice->AuthTokenHash = '';
             $oUsedDevice->TrustTillDateTime = $oUsedDevice->CreationDateTime; // revoke trust
             $oUsedDevice->save();
         }
@@ -1178,7 +1178,9 @@ class Module extends \Aurora\System\Module\AbstractModule
 
         $oUsedDevice = $oUser->isAdmin() ? $this->getUsedDevicesManager()->getDeviceByDeviceId($DeviceId) : $this->getUsedDevicesManager()->getDevice($oUser->Id, $DeviceId);
         if ($oUsedDevice) {
-            Api::UserSession()->Delete($oUsedDevice->AuthToken);
+            if (!empty($oUsedDevice->AuthTokenHash)) {
+                Api::UserSession()->DeleteByTokenHash($oUsedDevice->AuthTokenHash);
+            }
             $oUsedDevice->delete();
         }
         return true;
@@ -1229,7 +1231,7 @@ class Module extends \Aurora\System\Module\AbstractModule
 
                     if (!$usedDevice) {
                         $error = true;
-                    } elseif ($usedDevice->AuthToken !== $authToken) {
+                    } elseif ($usedDevice->AuthTokenHash !== hash('sha256', (string) $authToken)) {
                         $error = true;
                     }
                 } else {
