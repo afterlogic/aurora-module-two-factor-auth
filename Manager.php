@@ -111,10 +111,16 @@ class Manager extends \Aurora\System\Managers\AbstractManager
 
         if (!empty($sAuthToken)) {
             $oUsedDevice->AuthTokenHash = hash('sha256', $sAuthToken);
+        }
+
+        $bResult = $oUsedDevice->save();
+
+        if ($bResult && !empty($sAuthToken)) {
+            // Not persisted (no such DB column) - kept in-memory only, for toResponseArray() during this request.
             $oUsedDevice->AuthTokenRaw = $sAuthToken;
         }
 
-        return $oUsedDevice->save();
+        return $bResult;
     }
 
     public function setDeviceName($iUserId, $sDeviceId, $sDeviceName)
