@@ -2,6 +2,11 @@ import eventBus from 'src/event-bus'
 
 import settings from './settings'
 
+const LOGIN_MODULE_NAMES = [
+  'StandardLoginFormMobileWebclient',
+  'MailLoginFormMobileWebclient',
+]
+
 const _getProcessLoginResultComponent = params => {
   params.getProcessLoginResultComponent = () => import('./pages/CheckSecondFactor')
 }
@@ -16,7 +21,10 @@ export default {
   },
 
   initSubscriptions (appData) {
-    eventBus.$off('StandardLoginFormMobileWebclient::GetProcessLoginResultComponent', _getProcessLoginResultComponent)
-    eventBus.$on('StandardLoginFormMobileWebclient::GetProcessLoginResultComponent', _getProcessLoginResultComponent)
+    LOGIN_MODULE_NAMES.forEach((moduleName) => {
+      const eventName = `${moduleName}::GetProcessLoginResultComponent`
+      eventBus.$off(eventName, _getProcessLoginResultComponent)
+      eventBus.$on(eventName, _getProcessLoginResultComponent)
+    })
   },
 }
