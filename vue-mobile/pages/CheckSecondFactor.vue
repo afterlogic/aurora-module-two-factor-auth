@@ -1,14 +1,23 @@
 <template>
-  <div class="full-width" data-test-id="login-2fa">
-    <div class="text-center two-factor full-width">
+  <div class="full-width login-2fa" data-test-id="login-2fa">
+    <div
+      class="text-center two-factor full-width"
+      :class="{ 'two-factor--configure': isMandatoryToConfigure }"
+    >
       <p class="text-weight-medium two-factor__heading">
         {{ $t('TWOFACTORAUTH.HEADING_TWA_VERIFICATION') }}
       </p>
       <p class="q-mt-sm">
-        {{ $t('TWOFACTORAUTH.INFO_TWA_VERIFICATION') }}
+        {{ isMandatoryToConfigure ? $t('TWOFACTORAUTH.HINT_ABOUT_TWOFACTORAUTH') : $t('TWOFACTORAUTH.INFO_TWA_VERIFICATION') }}
       </p>
       <div class="q-mt-lg">
-        <MethodChoose v-if="isMethodChoosing" @chooseMethod="onChooseMethod" />
+        <ConfigureAuthenticatorApp
+          v-if="isMandatoryToConfigure"
+          :user-token="mandatoryUserToken"
+          :need-relogin-after-setup="true"
+          @configured="onConfigured"
+        />
+        <MethodChoose v-else-if="isMethodChoosing" @chooseMethod="onChooseMethod" />
         <TrustDevice
           v-else-if="isTrustDeviceShow"
           v-model:trust-device="trustDevice"
@@ -47,6 +56,7 @@ import VueCookies from 'vue-cookies'
 import { useCoreStore } from 'src/stores/index-pinia'
 const coreStore = useCoreStore()
 
+import ConfigureAuthenticatorApp from '../components/ConfigureAuthenticatorApp'
 import MethodChoose from '../components/MethodChoose'
 import TrustDevice from '../components/TrustDevice'
 import VerificationForm from '../components/VerificationForm'
@@ -58,6 +68,7 @@ export default {
   name: 'CheckSecondFactor',
 
   components: {
+    ConfigureAuthenticatorApp,
     MethodChoose,
     TrustDevice,
     VerificationForm,
@@ -91,6 +102,12 @@ export default {
   }),
 
   computed: {
+    isMandatoryToConfigure() {
+      return this.loginResult.TwoFactorAuth?.MandatoryToConfigure === true
+    },
+    mandatoryUserToken() {
+      return this.loginResult.TwoFactorAuth?.UserToken ?? ''
+    },
     disabledVerification() {
       return this.verificationOption === 'authenticator-app'
         ? !this.verificationCode
@@ -118,6 +135,15 @@ export default {
   methods: {
     onBackToLogin() {
       this.$emit('backToLogin')
+    },
+
+    async onConfigured(response) {
+      const authToken = response?.AuthToken
+      if (authToken) {
+        await coreStore.setAuthToken(authToken)
+      } else {
+        this.$emit('backToLogin')
+      }
     },
 
     async verifyAuthenticatorAppCode() {
@@ -206,6 +232,12 @@ export default {
 <style lang="scss" scoped>
 .two-factor {
   padding-top: 6.25rem;
+  // The mandatory-setup form is much taller than the verification form; drop the
+  // big top offset so it fits (LoginLayout's content area scrolls if needed).
+  &--configure {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+  }
   &__heading {
     font-size: 1.125rem;
     line-height: 1.25rem;

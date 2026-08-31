@@ -39,4 +39,81 @@ export default {
         throw error
       })
   },
+
+  getSettings: async () => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'GetSettings',
+      parameters: {},
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
+
+  updateSettings: async (parameters) => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'UpdateSettings',
+      parameters,
+      silentError: true,
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
+
+  verifyPassword: async (parameters) => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'VerifyPassword',
+      parameters,
+      defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_WRONG_PASSWORD')
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
+
+  registerAuthenticatorAppBegin: async (parameters) => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'RegisterAuthenticatorAppBegin',
+      parameters,
+      defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_SECRET_GENERATION_FAILED')
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
+
+  registerAuthenticatorAppFinish: async (parameters) => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'RegisterAuthenticatorAppFinish',
+      parameters,
+      defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_WRONG_CODE')
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
+
+  disableAuthenticatorApp: async (parameters) => {
+    return webApi.sendRequest({
+      moduleName: 'TwoFactorAuth',
+      methodName: 'DisableAuthenticatorApp',
+      parameters,
+      defaultErrorText: i18n.global.tc('TWOFACTORAUTH.ERROR_WRONG_PASSWORD')
+    })
+      .then(result => result)
+      .catch(error => {
+        throw error
+      })
+  },
 }
