@@ -154,7 +154,9 @@ export default {
       }
 
       const response = await twoFactorWebApi.verifyAuthenticatorAppCode(data)
-      return response?.AllowAccess && response?.AuthToken
+      // A truthy Result means the second factor checked out; the server has already
+      // moved the auth token into an httpOnly cookie and replaced `AuthToken` with `true`.
+      return !!response?.AuthToken
     },
 
     async verifyBackupCode() {
@@ -165,7 +167,7 @@ export default {
       }
 
       const response = await twoFactorWebApi.verifyBackupCode(data)
-      return response?.AllowAccess && response?.AuthToken
+      return !!response?.AuthToken
     },
 
     trustTheDevice(payload) {
