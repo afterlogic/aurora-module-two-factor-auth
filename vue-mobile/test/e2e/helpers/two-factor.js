@@ -21,19 +21,17 @@ function twoFactorTabLocator(page) {
 async function callAppApi(page, moduleName, methodName, parameters = {}) {
   return page.evaluate(
     async ({ moduleName, methodName, parameters }) => {
-      const authToken = (document.cookie.match(/(?:^|;\s*)AuthToken=([^;]+)/) || [])[1]
       const body = new URLSearchParams({ Module: moduleName, Method: methodName })
       if (parameters && Object.keys(parameters).length > 0) {
         body.set('Parameters', JSON.stringify(parameters))
       }
+      // Same origin + credentials: 'include' sends the httpOnly AuthToken cookie; the
+      // server reads it from $_COOKIE, so no explicit Authorization header is needed.
       const res = await fetch(location.origin + location.pathname + '?/Api/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           'X-MobileApp': '1',
-          ...(authToken
-            ? { Authorization: 'Bearer ' + decodeURIComponent(authToken) }
-            : {}),
         },
         body,
         credentials: 'include',
