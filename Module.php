@@ -289,7 +289,11 @@ class Module extends \Aurora\System\Module\AbstractModule
         }
         $sServerName = !empty($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : $_SERVER['HTTP_HOST'];
         if (!empty($sServerName)) {
-            $sServerName = "(" . $sServerName . ")";
+            // Include the web path the product is installed under, so the entry
+            // created in the authenticator app distinguishes installations that
+            // share a domain, e.g. "example.com/aurora" or "example.com/sub/path".
+            $sWebPath = rtrim(\Aurora\System\Api::getCookiePath(), '/');
+            $sServerName = "(" . $sServerName . $sWebPath . ")";
         }
         $sQRCodeName = $oUser->PublicId . $sServerName;
 
