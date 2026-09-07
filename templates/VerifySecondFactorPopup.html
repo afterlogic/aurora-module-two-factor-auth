@@ -1,4 +1,4 @@
-<div class="popup" style="display: none;">
+<div class="popup" style="display: none;" data-test-id="two-factor-verify">
 	<div class="mask"></div>
 	<div class="popup_panel popup_verify_second_factor">
 		<span class="close" data-bind="click: cancelPopup"></span>
@@ -50,13 +50,13 @@
 			<div class="fieldset list-block">
 				<div class="item-content">
 					<div data-bind="css: {'item-inner': isMobile(), 'row': !isMobile()}">
-						<input class="input" type="text" spellcheck="false"
+						<input class="input" type="text" spellcheck="false" data-test-id="two-factor-verify-code"
 							   data-bind="value: authenticatorCode, hasFocus: authenticatorCodeFocused, valueUpdate: 'afterkeydown', onEnter: verifyAuthenticatorCode" />
 					</div>
 				</div>
 			</div>
 			<div class="buttons">
-				<span class="button button-fill" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY'}, click: verifyAuthenticatorCode, visible: !authenticatorCodeInProgress()"></span>
+				<span class="button button-fill" data-test-id="two-factor-verify-submit" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY'}, click: verifyAuthenticatorCode, visible: !authenticatorCodeInProgress()"></span>
 				<span class="button button-fill" data-bind="i18n: {'key': '%MODULENAME%/ACTION_VERIFY_IN_PROGRESS'}, visible: authenticatorCodeInProgress()"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
