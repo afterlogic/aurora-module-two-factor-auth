@@ -1243,20 +1243,26 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onAfterSetAuthDataAndGetAuthToken(&$aArgs, &$mResult)
     {
         if (is_array($mResult) && isset($mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]) && $this->oModuleSettings->AllowUsedDevices) {
-            $deviceId = Api::getDeviceIdFromHeaders();
-            if ($deviceId && is_string($deviceId)) {
-                $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
-                $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
-                try {
-                    $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]);
-                } catch (\Exception $oEx) {
-                    // Remembering the device is a non-critical side effect of login (e.g. it can fail
-                    // if the security_used_devices table schema is out of date after an upgrade).
-                    // It must never block an otherwise successful authentication.
-                    \Aurora\System\Api::LogException($oEx, \Aurora\System\Enums\LogLevel::Error);
+            $oUser = Api::getAuthenticatedUser();
+            // Device tracking only applies to normal/tenant users, same as the enforcement in
+            // onBeforeRunEntry(). SuperAdmin logins (e.g. AdminAuth::LoginAsSuperadmin, used by
+            // external API integrations) must not be blocked just because no X-DeviceId header was sent.
+            if ($oUser && $oUser->isNormalOrTenant()) {
+                $deviceId = Api::getDeviceIdFromHeaders();
+                if ($deviceId && is_string($deviceId)) {
+                    $sFallbackName = $_SERVER['HTTP_USER_AGENT'] ?? $_SERVER['REMOTE_ADDR'];
+                    $sFallbackName = substr((string)explode(' ', $sFallbackName)[0], 0, 255);
+                    try {
+                        $this->getUsedDevicesManager()->saveDevice(Api::getAuthenticatedUserId(), $deviceId, $sFallbackName, $mResult[\Aurora\System\Application::AUTH_TOKEN_KEY]);
+                    } catch (\Exception $oEx) {
+                        // Remembering the device is a non-critical side effect of login (e.g. it can fail
+                        // if the security_used_devices table schema is out of date after an upgrade).
+                        // It must never block an otherwise successful authentication.
+                        \Aurora\System\Api::LogException($oEx, \Aurora\System\Enums\LogLevel::Error);
+                    }
+                } else {
+                    throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
                 }
-            } else {
-                throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
             }
         }
     }
