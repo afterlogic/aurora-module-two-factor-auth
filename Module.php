@@ -986,8 +986,8 @@ class Module extends \Aurora\System\Module\AbstractModule
         $sResult = \file_get_contents($this->GetPath() . '/templates/EntryVerifySecurityKey.html');
         $sResult = \strtr($sResult, array(
             '{{GetArgs}}' => \Aurora\System\Managers\Response::GetJsonFromObject(null, $oGetArgs),
-            '{{PackageName}}' => $sPackageName,
-            '{{Error}}' => $sError,
+            '{{PackageName}}' => \json_encode((string) $sPackageName),
+            '{{Error}}' => \json_encode((string) $sError),
             '{{Description}}' => $this->i18N('HINT_INSERT_TOUCH_SECURITY_KEY'),
             '{{Theme}}' => $sTheme,
         ));
