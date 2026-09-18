@@ -972,6 +972,14 @@ class Module extends \Aurora\System\Module\AbstractModule
         $sLogin = $oHttp->GetQuery('login', '');
         $sPassword = $oHttp->GetQuery('password', '');
         $sPackageName = $oHttp->GetQuery('package_name', '');
+        // package_name becomes the scheme of a deep-link URI built as `$sPackageName . '://u2f?...'`
+        // in the template. json_encode() alone (below) stops it from breaking out of the JS
+        // string, but a value like `javascript:alert(1)//` would still produce a valid,
+        // clickable `javascript:` href. Restrict it to characters a URI scheme can legally
+        // contain (RFC 3986) so it can never introduce a `:` or `/` of its own.
+        if (!empty($sPackageName) && !\preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*$/', $sPackageName)) {
+            $sPackageName = '';
+        }
         if (empty($sLogin) || empty($sPassword)) {
             return '';
         }
