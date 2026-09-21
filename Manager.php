@@ -24,7 +24,7 @@ class Manager extends \Aurora\System\Managers\AbstractManager
     /**
      * @param \Aurora\Modules\TwoFactorAuth\Module $oModule
      */
-    public function __construct(\Aurora\Modules\TwoFactorAuth\Module $oModule = null)
+    public function __construct(?\Aurora\Modules\TwoFactorAuth\Module $oModule = null)
     {
         parent::__construct($oModule);
     }
