@@ -68,6 +68,7 @@ class Module extends \Aurora\System\Module\AbstractModule
         $this->subscribeEvent('Core::Logout::before', array($this, 'onBeforeLogout'));
         $this->subscribeEvent('Core::DeleteUser::after', array($this, 'onAfterDeleteUser'));
         $this->subscribeEvent('System::RunEntry::before', array($this, 'onBeforeRunEntry'));
+        $this->subscribeEvent('System::UserSession::RefreshAuthToken::after', array($this, 'onAfterRefreshAuthToken'));
 
         $this->oWebAuthn = new WebAuthn\WebAuthn(
             'WebAuthn Library',
@@ -1244,7 +1245,33 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
         }
         if ($error) {
-            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+            // Distinct from AuthError: the token itself is valid and belongs to a real,
+            // authenticated user (see AuthenticatedUserId in the response) - this device/token
+            // pairing specifically isn't trusted. Conflating the two here previously made an
+            // otherwise-successful, authenticated request look like an auth failure.
+            throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UntrustedDevice);
+        }
+    }
+
+    /**
+     * Keeps a device's trust in sync when its session's AuthToken is reissued outside of login
+     * (e.g. after a password change). Without this, the device stays keyed to the old token
+     * hash and onBeforeRunEntry() starts rejecting every subsequent, otherwise-valid request.
+     */
+    public function onAfterRefreshAuthToken(&$aArgs, &$mResult)
+    {
+        if ($this->oModuleSettings->AllowUsedDevices && !empty($aArgs['UserId'])) {
+            $deviceId = Api::getDeviceIdFromHeaders();
+            if ($deviceId) {
+                $oUsedDevice = $this->getUsedDevicesManager()->getDevice($aArgs['UserId'], $deviceId);
+                if ($oUsedDevice) {
+                    try {
+                        $this->getUsedDevicesManager()->saveDevice($aArgs['UserId'], $deviceId, '', $aArgs['NewAuthToken']);
+                    } catch (\Exception $oEx) {
+                        \Aurora\System\Api::LogException($oEx, \Aurora\System\Enums\LogLevel::Error);
+                    }
+                }
+            }
         }
     }
 
@@ -1269,7 +1296,7 @@ class Module extends \Aurora\System\Module\AbstractModule
                         \Aurora\System\Api::LogException($oEx, \Aurora\System\Enums\LogLevel::Error);
                     }
                 } else {
-                    throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+                    throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::UntrustedDevice);
                 }
             }
         }
