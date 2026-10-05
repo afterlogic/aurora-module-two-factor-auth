@@ -1224,7 +1224,14 @@ class Module extends \Aurora\System\Module\AbstractModule
     public function onBeforeRunEntry(&$aArgs, &$mResult)
     {
         $error = false;
-        if ($aArgs['EntryName'] === 'api' && $this->oModuleSettings->AllowUsedDevices) {
+        $authToken = '';
+        // The web clients send this header, the mobile apps don't
+        $isWebClient = strtolower((string) $this->oHttp->GetHeader('X-Client')) === 'webclient';
+        // A client has no other way to end a session of an untrusted device, so Logout is allowed
+        $isLogout = isset($aArgs['Module'], $aArgs['Method'])
+            && $aArgs['Module'] === 'Core'
+            && $aArgs['Method'] === 'Logout';
+        if ($aArgs['EntryName'] === 'api' && $this->oModuleSettings->AllowUsedDevices && !$isLogout) {
             $user = \Aurora\System\Api::getAuthenticatedUser();
             $authToken = \Aurora\System\Api::getAuthenticatedUserAuthToken();
 
@@ -1245,6 +1252,14 @@ class Module extends \Aurora\System\Module\AbstractModule
             }
         }
         if ($error) {
+            if (!$isWebClient) {
+                // The mobile apps don't know UntrustedDevice, but they handle AuthError: they end
+                // their session and show the login form. Without it they would repeat the
+                // rejected requests forever. So the session is ended here and the answer is AuthError.
+                \Aurora\System\Api::UserSession()->Delete($authToken);
+                throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AuthError);
+            }
+
             // Distinct from AuthError: the token itself is valid and belongs to a real,
             // authenticated user (see AuthenticatedUserId in the response) - this device/token
             // pairing specifically isn't trusted. Conflating the two here previously made an
