@@ -13,6 +13,18 @@ const { generateTotp } = require('./totp')
 async function callAppApi(page, moduleName, methodName, parameters = {}) {
   return page.evaluate(
     async ({ moduleName, methodName, parameters }) => {
+      // The app sends these on every call (CoreWebclient Ajax.js). Without them
+      // TwoFactorAuth's used-devices check takes the request for a mobile app,
+      // answers AuthError and deletes the session.
+      const deviceId = (document.cookie.match(/(?:^|;\s*)DeviceId=([^;]*)/) || [])[1]
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Client': 'WebClient',
+      }
+      if (deviceId) {
+        headers['X-DeviceId'] = decodeURIComponent(deviceId)
+      }
+
       async function post(url) {
         const body = new URLSearchParams({
           Module: moduleName,
@@ -21,7 +33,7 @@ async function callAppApi(page, moduleName, methodName, parameters = {}) {
         })
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers,
           body,
           credentials: 'include',
         })
