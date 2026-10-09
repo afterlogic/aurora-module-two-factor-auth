@@ -131,16 +131,14 @@ test.describe('Two-Factor login (Authenticator App)', () => {
     // Continue (the stand has it on, a plain install does not).
     await step('Confirm the "all set" step when it is shown', async () => {
       const verify = page.getByTestId('two-factor-verify')
-      const continueBtn = verify
-        .getByTestId('two-factor-verify-continue')
-        .or(verify.locator('.button').filter({ hasText: /^(continue|продолжить)$/i }))
-        .first()
+      const continueBtn = verify.getByTestId('two-factor-verify-continue')
       const shown = await continueBtn
         .waitFor({ state: 'visible', timeout: T(10000) })
         .then(() => true)
         .catch(() => false)
       if (shown) {
         await clickReady(continueBtn)
+        console.log('  → Confirmed the trusted-device step')
       }
     })
 
