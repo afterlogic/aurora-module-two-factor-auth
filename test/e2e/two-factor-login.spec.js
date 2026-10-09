@@ -19,8 +19,8 @@ const {
   enableAuthenticatorAppFromUserToken,
   armLoginResponse,
   disableAuthenticatorAppViaApi,
+  currentTotp,
 } = require('./helpers/two-factor')
-const { generateTotp } = require('./helpers/totp')
 
 // Regression coverage for: logging in with a correct Authenticator App code
 // was rejected as "wrong code" even though the backend accepted it — the
@@ -123,8 +123,25 @@ test.describe('Two-Factor login (Authenticator App)', () => {
     })
 
     await step('Enter a freshly computed TOTP code and submit', async () => {
-      await fieldControl(page, 'two-factor-verify-code').fill(generateTotp(secret))
+      await fieldControl(page, 'two-factor-verify-code').fill(await currentTotp(page, secret))
       await clickReady(page.getByTestId('two-factor-verify-submit'))
+    })
+
+    // With trusted devices allowed the popup shows an "all set" step that needs
+    // Continue (the stand has it on, a plain install does not).
+    await step('Confirm the "all set" step when it is shown', async () => {
+      const verify = page.getByTestId('two-factor-verify')
+      const continueBtn = verify
+        .getByTestId('two-factor-verify-continue')
+        .or(verify.locator('.button').filter({ hasText: /^(continue|продолжить)$/i }))
+        .first()
+      const shown = await continueBtn
+        .waitFor({ state: 'visible', timeout: T(10000) })
+        .then(() => true)
+        .catch(() => false)
+      if (shown) {
+        await clickReady(continueBtn)
+      }
     })
 
     await step('Login completes: app shell loads, verify prompt is gone', async () => {

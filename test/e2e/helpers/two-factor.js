@@ -59,6 +59,31 @@ async function callAppApi(page, moduleName, methodName, parameters = {}) {
 }
 
 /**
+ * Current time of the server under test, from the Date header of a same-origin
+ * request. A TOTP code has to match the server clock; the runner's own clock can
+ * be off (a code from it is then rejected although the secret is right).
+ * Falls back to the local clock when the header is unavailable.
+ */
+async function serverNowMs(page) {
+  const serverDate = await page
+    .evaluate(async () => {
+      const res = await fetch(location.origin + location.pathname, {
+        method: 'HEAD',
+        cache: 'no-store',
+      })
+      return res.headers.get('date')
+    })
+    .catch(() => null)
+  const parsed = serverDate ? Date.parse(serverDate) : NaN
+  return Number.isNaN(parsed) ? Date.now() : parsed
+}
+
+/** TOTP code valid on the server's clock. */
+async function currentTotp(page, secret) {
+  return generateTotp(secret, { timestamp: await serverNowMs(page) })
+}
+
+/**
  * Enables the Authenticator App second factor for the currently logged-in
  * user, entirely via API (VerifyPassword → RegisterAuthenticatorAppBegin →
  * a computed TOTP code → RegisterAuthenticatorAppFinish). Requires an
@@ -113,7 +138,7 @@ async function enableAuthenticatorAppFromUserToken(
 
   const finishResponse = await callAppApi(page, 'TwoFactorAuth', 'RegisterAuthenticatorAppFinish', {
     UserToken: userToken,
-    Code: generateTotp(secret),
+    Code: await currentTotp(page, secret),
     Secret: secret,
     NeedReloginAfterSetup: needReloginAfterSetup,
   })
@@ -164,4 +189,5 @@ module.exports = {
   enableAuthenticatorAppFromUserToken,
   armLoginResponse,
   disableAuthenticatorAppViaApi,
+  currentTotp,
 }
